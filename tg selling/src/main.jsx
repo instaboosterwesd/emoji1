@@ -834,7 +834,7 @@ function ProductsView({ session, onBuy }) {
                 </div>
               )}
               <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
-                <MatIcon name="shopping_bag" size={17} /> Buy Now <MatIcon name="arrow_forward" size={17} />
+                <img src="/icons/new/buy.png" style={{width:17,height:17,objectFit:'contain',filter:'brightness(0) invert(1)'}} alt="" /> Buy Now <MatIcon name="arrow_forward" size={17} />
               </button>
               {available && pricingOpen[product.pid] && (
                 <div className="duration-grid pricing-drop">
