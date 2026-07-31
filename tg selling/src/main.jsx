@@ -334,9 +334,9 @@ function Dashboard({ session, onSessionChange, onLogout }) {
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'buy', label: 'Buy', icon: 'shopping_bag' },
-    { id: 'orders', label: 'My Orders', icon: 'receipt_long' },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'buy', label: 'Buy' },
+    { id: 'orders', label: 'My Orders' },
     { id: 'wallet', label: 'Wallet', icon: 'account_balance_wallet' },
     { id: 'profile', label: 'Profile', icon: 'account_circle' },
   ];
@@ -372,7 +372,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
       <nav className="bottom-nav">
         {navItems.map(({ id, label, icon }) => (
           <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-            <MatIcon name={icon} size={20} />
+            {icon && <MatIcon name={icon} size={20} />}
             <span>{label}</span>
           </button>
         ))}
