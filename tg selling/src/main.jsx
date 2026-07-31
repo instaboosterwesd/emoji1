@@ -393,7 +393,7 @@ function DashboardHome({ profile, role, setTab }) {
         <span>My balance</span>
         <strong>{money(profile.balance)}</strong>
         <button className="add-funds" onClick={() => setTab('wallet')}>
-          <MatIcon name="add_circle" size={17} /> Deposit
+          Deposit
         </button>
       </div>
       <div className="stats-grid">
@@ -498,7 +498,7 @@ function WalletView({ session, profile, refreshProfile }) {
         <span>Available balance</span>
         <strong>{money(profile.balance)}</strong>
         <button className="add-funds" onClick={() => setDepositStep('amount')}>
-          <MatIcon name="add_circle" size={17} /> Add funds
+          Add funds
         </button>
       </div>
 
@@ -959,10 +959,10 @@ function ProfileView({ profile, openDialog, openApi }) {
         </div>
       </div>
       <div className="glass-card profile-actions">
-        <button onClick={() => openDialog('edit')}><MatIcon name="edit" size={18} /> Edit profile</button>
-        <button onClick={() => openDialog('password')}><MatIcon name="lock" size={18} /> Change password</button>
-        <button onClick={openApi}><MatIcon name="vpn_key" size={18} /> API settings</button>
-        <button className="danger" onClick={() => openDialog('logout')}><MatIcon name="logout" size={18} /> Logout</button>
+        <button onClick={() => openDialog('edit')}>Edit profile</button>
+        <button onClick={() => openDialog('password')}>Change password</button>
+        <button onClick={openApi}>API settings</button>
+        <button className="danger" onClick={() => openDialog('logout')}>Logout</button>
       </div>
     </>
   );
