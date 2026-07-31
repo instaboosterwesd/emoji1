@@ -105,7 +105,7 @@ const Detail = ({ label, value }) => (
 );
 const Stat = ({ label, value, iconName }) => (
   <div className="stat-card">
-    <MatIcon name={iconName} size={19} />
+    {iconName && <MatIcon name={iconName} size={19} />}
     <span>{label}</span>
     <strong>{value}</strong>
   </div>
@@ -397,8 +397,8 @@ function DashboardHome({ profile, role, setTab }) {
         </button>
       </div>
       <div className="stats-grid">
-        <Stat label="Today sales" value={money(profile.todaySales)} iconName="trending_up" />
-        <Stat label="Monthly sales" value={money(profile.monthlySales)} iconName="show_chart" />
+        <Stat label="Today sales" value={money(profile.todaySales)} />
+        <Stat label="Monthly sales" value={money(profile.monthlySales)} />
         <Stat label="My purchases" value={money(profile.myPurchases)} iconName="shopping_cart" />
         <Stat label="Active keys" value={profile.active || 0} iconName="verified_user" />
       </div>
