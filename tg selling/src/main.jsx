@@ -399,8 +399,8 @@ function DashboardHome({ profile, role, setTab }) {
       <div className="stats-grid">
         <Stat label="Today sales" value={money(profile.todaySales)} />
         <Stat label="Monthly sales" value={money(profile.monthlySales)} />
-        <Stat label="My purchases" value={money(profile.myPurchases)} iconName="shopping_cart" />
-        <Stat label="Active keys" value={profile.active || 0} iconName="verified_user" />
+        <Stat label="My purchases" value={money(profile.myPurchases)} />
+        <Stat label="Active keys" value={profile.active || 0} />
       </div>
       {role === 'admin' && (
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
@@ -830,7 +830,7 @@ function ProductsView({ session, onBuy }) {
               </div>
               {product.features.length > 0 && (
                 <div className="feature-list">
-                  {shownFeatures.map((f, i) => <div key={`${product.pid}-${f}`}><span>{i % 2 ? <MatIcon name="auto_awesome" size={12} /> : <MatIcon name="flash_on" size={12} />}</span>{f}</div>)}
+                  {shownFeatures.map((f, i) => <div key={`${product.pid}-${f}`}><span><img src={i % 2 ? '/icons/new/premium.png' : '/icons/new/key-color.png'} style={{width:13,height:13,objectFit:'contain',filter:'brightness(0) invert(1) drop-shadow(0 0 4px rgba(196,141,255,.5))'}} alt="" /></span>{f}</div>)}
                 </div>
               )}
               <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
