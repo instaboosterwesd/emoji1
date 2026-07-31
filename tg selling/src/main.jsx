@@ -338,7 +338,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
     { id: 'buy', label: 'Buy' },
     { id: 'orders', label: 'My Orders' },
     { id: 'wallet', label: 'Wallet' },
-    { id: 'profile', label: 'Profile', icon: 'account_circle' },
+    { id: 'profile', label: 'Profile' },
   ];
 
   const section =
