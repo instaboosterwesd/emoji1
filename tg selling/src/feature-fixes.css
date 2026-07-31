@@ -668,30 +668,93 @@
 
 /* ── Deposit dialog ───────────────────────────────────────────── */
 .deposit-dialog {
-  max-width: 420px !important;
+  max-width: 400px !important;
   width: 95vw !important;
+  padding: 24px 22px 20px !important;
 }
 
+.deposit-dialog .dialog-title-row {
+  margin-bottom: 4px !important;
+}
+.deposit-dialog .dialog-title-row h2 {
+  font-size: 1.25rem !important;
+}
+
+.deposit-dialog .dialog-sub {
+  font-size: 11px !important;
+  letter-spacing: 0.4px !important;
+  margin-bottom: 18px !important;
+  color: rgba(255,255,255,0.45) !important;
+}
+
+/* preset grid — 3 columns × 2 rows */
 .quick-amounts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-bottom: 0;
 }
+
 .quick-chip {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.75);
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 0.85rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.78);
+  border-radius: 12px;
+  padding: 11px 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  text-align: center;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+  letter-spacing: 0.2px;
 }
-.quick-chip:hover, .quick-chip.active {
-  background: rgba(99,179,255,0.18);
-  border-color: rgba(99,179,255,0.5);
+.quick-chip:hover {
+  background: rgba(99,179,255,0.12);
+  border-color: rgba(99,179,255,0.35);
   color: #fff;
+}
+.quick-chip.active {
+  background: rgba(99,179,255,0.20);
+  border-color: rgba(99,179,255,0.65);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(99,179,255,0.18), inset 0 1px rgba(255,255,255,0.08);
+}
+
+/* divider between grid and custom input */
+.deposit-dialog .deposit-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: 18px 0 16px;
+}
+
+/* custom amount label */
+.deposit-dialog label[for="dep-amount"] {
+  display: block;
+  font-size: 11px !important;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4) !important;
+  margin-bottom: 8px;
+}
+
+/* custom amount input */
+.deposit-dialog input#dep-amount {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  color: #fff !important;
+  font-size: 1rem !important;
+  font-family: 'Space Grotesk', sans-serif;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.deposit-dialog input#dep-amount:focus {
+  border-color: rgba(99,179,255,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(99,179,255,0.10) !important;
 }
 
 .upi-id-display {

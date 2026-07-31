@@ -523,6 +523,7 @@ function WalletView({ session, profile, refreshProfile }) {
                   ))}
                 </div>
                 <form onSubmit={handleAmountNext}>
+                  <hr className="deposit-divider" />
                   <label htmlFor="dep-amount">Custom amount (₹)</label>
                   <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
                   <div className="modal-btn-row">
