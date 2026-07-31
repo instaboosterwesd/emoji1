@@ -5,8 +5,8 @@
   width: 24px !important;
   height: 24px !important;
   opacity: .9 !important;
-  background-image: url('/icons/new/plus.png') !important;
-  filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(255,255,255,.3)) !important;
+  background-image: url('/icons/new/plus-premium.svg') !important;
+  filter: drop-shadow(0 0 5px rgba(126, 232, 255, .3)) drop-shadow(0 4px 8px rgba(0, 0, 0, .24)) !important;
 }
 
 .profile-actions button:before {
