@@ -1,0 +1,67 @@
+modules = ["python-base-3.13", "nodejs-24"]
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+VITE_FIREBASE_API_KEY = "AIzaSyCyWc2-oVF43E-IvvCUGXqyT4cVg6-DnIk"
+VITE_FIREBASE_APP_ID = "1:114813760320:web:3468b7e8a621a9fd05c0a5"
+VITE_FIREBASE_AUTH_DOMAIN = "panleseling.firebaseapp.com"
+VITE_FIREBASE_DATABASE_URL = "https://panleseling-default-rtdb.firebaseio.com"
+VITE_FIREBASE_MESSAGING_SENDER_ID = "114813760320"
+VITE_FIREBASE_PROJECT_ID = "panleseling"
+VITE_FIREBASE_STORAGE_BUCKET = "panleseling.firebasestorage.app"
+VITE_PRODUCTS_ENDPOINT = "https://game-cheats-api.vercel.app/products"
+VITE_RESELLER_API_KEY = "7cfd4cd975c20fe02957d4a0fb7b194e"
+VITE_RESELLER_ENDPOINT = "https://xyzcheats.com/api/reseller_v1.php"
+VITE_RESELLER_MASTER_KEY = "a7f3e8b2c9d1f4a6b8c2d5e9f1a3b6c8"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "TG Selling App"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flaticon Proxy"
+
+[[workflows.workflow]]
+name = "TG Selling App"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'tg selling' && npx vite --host"
+waitForPort = 5173
+
+[[workflows.workflow]]
+name = "Flaticon Proxy"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'tg selling/flaticon-proxy' && python3 server.py"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[ports]]
+localPort = 5173
+externalPort = 80
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
