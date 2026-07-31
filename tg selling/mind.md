@@ -483,6 +483,68 @@ When fixing visual issues, prefer adding final overrides there instead of editin
 - Fake transaction data
 - Loading animation beyond skeleton unless user provides/approves
 
+## Session log — Replit setup & UI fixes (Jul 31 2026)
+
+### Replit environment setup
+
+- Project "tg selling" को Replit पर run करने के लिए `vite.config.js` update किया:
+  - `server.host: true` — Replit proxy के लिए ज़रूरी
+  - `server.allowedHosts: true` — iframe preview के लिए
+  - `server.port: parseInt(process.env.PORT || '5173')` — workflow env var से port read करता है
+- सभी `.env` variables Replit secrets/env में set किए (VITE_FIREBASE_*, VITE_RESELLER_*, VITE_PRODUCTS_ENDPOINT)
+- Python deps (`flask`, `flask-cors`, `curl_cffi`) Replit package manager से install किए
+- दो workflows configure किए:
+  - **TG Selling App** — `cd 'tg selling' && npx vite --host` (port 5173, webview)
+  - **Flaticon Proxy** — `cd 'tg selling/flaticon-proxy' && python3 server.py` (port 8080, console)
+
+### Icon system — dual icon problem & fix
+
+**Problem**: CSS `::before` pseudo-elements (in `styles.css` और `feature-fixes.css`) custom PNG icons inject करते हैं। साथ ही JSX में `<MatIcon>` (material SVG `<img>`) भी था → हर button पर **दो icons** दिखते थे।
+
+**Logic**: CSS `::before` के icons को रहने दो (ये "Material 3 new" icons हैं — `/icons/new/` folder से)। JSX के `<MatIcon>` हटाओ।
+
+**Fixes applied**:
+- Bottom nav (5 buttons): सभी `iconName` props हटाए navItems से। Render में `{icon && <MatIcon>}` conditional बनाया ताकि undefined पर error न आए।
+- Deposit button (Dashboard + Wallet दोनों): `<MatIcon name="add_circle">` हटाया। CSS `::before` का `plus.png` / `add-fund-glass.svg` रहा।
+- Profile action buttons (Edit, Change password, API settings, Logout): सभी `<MatIcon>` हटाए। CSS `::before` में पहले से `edit.png`, `shield.png`, `key-color.png`, `logout.png` थे।
+
+### Dashboard stat cards — icon consistency fix
+
+**Problem**: Stat cards 1 & 2 (Today sales, Monthly sales) में CSS `::before` icons थे। Stat cards 3 & 4 (My purchases, Active keys) में `<MatIcon>` img था → inconsistent look + extra space above icon।
+
+**Fix**:
+- Stat cards 1 & 2 से `iconName` prop already absent था (पहले remove हुआ था)।
+- Stat cards 3 & 4 से `iconName="shopping_cart"` और `iconName="verified_user"` हटाए।
+- `feature-fixes.css` में CSS `::before` add किए:
+  - `.stats-grid .stat-card:nth-child(3):before` → `buy.png` (nav का Buy icon — user ने select करके indicate किया)
+  - `.stats-grid .stat-card:nth-child(4):before` → `key.png`
+
+### Feature card list icons
+
+**Problem**: Product feature list items में `auto_awesome` और `flash_on` MatIcons alternate होते थे — generic, unrelated to product theme।
+
+**Fix**: MatIcons को project के `/icons/new/` folder से replace किया:
+- Even index → `premium.png`
+- Odd index → `key-color.png`
+- Inline `style` में `filter: brightness(0) invert(1) drop-shadow(...)` — purple glow effect।
+
+### Buy Now button icon
+
+- `<MatIcon name="shopping_bag">` को `<img src="/icons/new/buy.png">` से replace किया — same icon जो bottom nav के Buy button पर है।
+
+### Icon system — summary logic
+
+```
+/icons/new/       → app का primary icon set (PNG, premium look)
+/icons/material/  → MatIcon SVG source (legacy, avoid in new buttons)
+CSS ::before      → buttons पर icon inject करता है (profile-actions, bottom-nav, stat-cards, add-funds)
+JSX img tag       → direct inline icons के लिए (feature list, buy button, dialog titles)
+```
+
+**Rule**: जब CSS `::before` already icon दे रहा हो, JSX में `<MatIcon>` मत रखो — double हो जाएगा।
+
+---
+
 ## Common next tasks
 
 1. Apply admin pricing rules to Buy page displayed prices.
