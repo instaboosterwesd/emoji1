@@ -626,6 +626,15 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
 | "My purchases" stat card (Dashboard) | `lottieIcon` prop on `<Stat>` | `/icons/new/shopping-cart.json` |
 | "Buy" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/shopping-cart.json` |
 | "Dashboard" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/shop-store.json` |
+| "My Orders" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/my-orders.json` |
+| "Wallet" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/wallet-lottie.json` |
+| "Profile" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/profile-lottie.json` |
+| Duration label in pricing cards | `<LottieIcon>` inline in JSX | `/icons/new/timer.json` |
+| "Today sales" stat card (Dashboard) | `lottieIcon` prop on `<Stat>` | `/icons/new/today-sales.json` (emoji1 — rising red graph chart) |
+| "Monthly sales" stat card (Dashboard) | `lottieIcon` prop on `<Stat>` | `/icons/new/monthly-sales.json` (emoji1 — green money bag with $ and bow) |
+| "Active keys" stat card (Dashboard) | `lottieIcon` prop on `<Stat>` | `/icons/new/active-keys.json` (emoji1 — rainbow crystal gem) |
+| Admin button on Dashboard | `<LottieIcon>` inline in JSX | `/icons/new/crown.json` (emoji1 — orange/gold crown) |
+| Username h3 in Profile card | `<LottieIcon>` inline after name text | `/icons/new/verified-badge.json` (user-uploaded — red verified checkmark badge, 22px) |
 
 **Important:** `lottie-web` import is at top of `src/main.jsx`:
 
@@ -671,6 +680,84 @@ This kills Lottie (which renders an SVG). Always counter it with:
 .bottom-nav button.has-lottie svg { display: block !important; }
 ```
 This rule already exists in `feature-fixes.css` — do not remove it.
+
+#### ⚠ CSS gotcha — stat card ::before specificity
+
+If a stat card has a specific `::before` override in `feature-fixes.css` (e.g. `.stats-grid .stat-card:nth-child(4):before`), that rule is **more specific** than `.stat-card.has-lottie:before { display: none }`, so the CSS icon keeps showing alongside the Lottie icon.
+
+Fix: add a more specific suppression rule after the existing one:
+```css
+.stats-grid .stat-card.has-lottie:nth-child(4):before {
+  display: none !important;
+}
+```
+This pattern already exists in `feature-fixes.css` for the 4th stat card (Active keys).
+
+---
+
+## emoji1 folder — uploaded emoji pack
+
+### Location
+
+```text
+/home/runner/workspace/emoji1/
+```
+
+### Structure
+
+128 emojis. Each emoji is in its own folder named by Telegram file ID:
+
+```text
+emoji1/
+  <file_id>/
+    <file_id>.json    ← Lottie JSON (animated, use with lottie-web) ✅ use this
+    <file_id>.lottie  ← ZIP archive format (not plain JSON, skip)
+    <file_id>.png     ← rendered PNG 512×512 (static preview)
+    <file_id>.tgs     ← raw gzipped TGS file
+```
+
+Use `.json` (not `.lottie`) with `LottieIcon` in React.
+
+### How to use an emoji from emoji1
+
+```bash
+# Copy the JSON to tg selling public folder with a readable name:
+cp "/home/runner/workspace/emoji1/<file_id>/<file_id>.json" "tg selling/public/icons/new/my-name.json"
+```
+
+Then in React:
+```jsx
+<LottieIcon src="/icons/new/my-name.json" size={26} />
+```
+
+### Already added from emoji1 (Aug 2026)
+
+| File saved as | emoji1 folder ID | What it looks like | Used where |
+|---|---|---|---|
+| `today-sales.json` | `CAACAgUAAxUAAWps78tZIbBxH9AeMakQlT-17vhGAALBGAAC0OSoVt5MSz7-hRzRPQQ` | Red upward-trending line chart on blue grid | Today sales stat card |
+| `monthly-sales.json` | `CAACAgUAAxUAAWps78tw-tTNGv-_AWkBB4se3kxHAAI8FAACrs2IVjujX9BK8deYPQQ` | Green money bag with $ sign and gold bow | Monthly sales stat card |
+| `active-keys.json` | `CAACAgUAAxUAAWps78v1wVhSNC8jxf3atRiQ3Ff5AAKLHAACVsSJVhdpTjjfxkO5PQQ` | Rainbow/iridescent crystal gem, glowing | Active keys stat card |
+| `crown.json` | `CAACAgUAAxUAAWps78sKzdgs8SQQIIBR1dWe4lBOAAJbFQACuBCIVvFbNQUTzOI9PQQ` | Orange & gold royal crown with gems | Admin button on Dashboard |
+
+### Other good emojis in emoji1 (not yet used — available for future)
+
+| emoji1 folder ID | What it looks like | Good for |
+|---|---|---|
+| `CAACAgUAAxUAAWps78sHwyf1CdGT8j96Xi7Ndaa4AALoFQAC33GJViJPwOGFDir3PQQ` | Doge coin with sunglasses holding cash | Wallet / balance / rich vibes |
+| `CAACAgUAAxUAAWps78slwthx5Sg7ntROiXzOWhG4AAK9HAACmgSQVhMz3ywHfPPkPQQ` | Blue creature lying on a pile of cash with gold chain & crown | Wallet balance / "rich" state |
+| `CAACAgUAAxUAAWps78t0BYDaS2IFvflh2GVRgv33AAIFFgACEkuhVsc4-xQdqHpgPQQ` | Orange megaphone | Admin Announcements section |
+| `CAACAgUAAxUAAWps78usHAUjqJ9RDyB6x62pRsHpAAIrFQAC21qQViYyM13ro3RMPQQ` | Gold lion head with crown | Admin dashboard header / premium branding |
+| `CAACAgUAAxUAAWps78uUWrx_RKZTt1WF22jHe-XGAAK-GQACHZKIVg1Azizin4JTPQQ` | Blue/purple glowing lightsaber | Active keys / power / hacker theme |
+| `CAACAgUAAxUAAWps78te2SROuU5AtHFI_p6KAYN5AAJ-EgACZmeJVvL3LnfrEmBEPQQ` | Classic red/orange fire flame | Hot products / trending |
+| `CAACAgUAAxUAAWps78sWgTJ8UgyHVZu2pQVIyuAvAAIaGwAC5ReIVvMwDuf-ZTTVPQQ` | Two red lightning bolts | Active / power / speed |
+| `CAACAgUAAxUAAWps78tP--ww3SqWk9cH4DAHUMo_AAI5FwAClmRQVQHVaRhmDOk8PQQ` | Blue verified checkmark badge (Twitter-style) | Verified users / status |
+| `CAACAgUAAxUAAWps78tT6k75oa77vdA3rutowPV4AALzEQACnY2pVtBUEInJk-i8PQQ` | Telegram app icon (octagon, paper plane, cyan glow) | Bot login / Telegram-related UI |
+| `CAACAgUAAxUAAWps78s9jLRM9UqBv1L943xC9d6rAAJ0GwACWJuYVkGMxDYuuJK0PQQ` | 3D silver/white Telegram paper plane | Telegram branding |
+| `CAACAgUAAxUAAWps78uuOWIfz5Y-Xn0x8-R_-WVlAAJgFwACI5KRVi5j96-CIx97PQQ` | Purple grim reaper with scythe (cute style) | Hacker/dark theme elements |
+| `CAACAgUAAxUAAWps78uZVc3VaKyakqaDy32vikGiAAI9IQACGXSIVpzcvrlxNs7EPQQ` | Purple crystal ball with skull inside | Hacker/mystery theme |
+| `CAACAgUAAxUAAWps78v4t2JASCFo5xccj25CO5NnAAJOHgACI2qIViPUZVmqc-JMPQQ` | Red rose held in a golden fist | Premium / VIP gift |
+| `CAACAgUAAxUAAWps78tMdoPyDWdyJS1fnOsMzrgPAAJJIgAC8haIVnSjd3p9pLTJPQQ` | Gold Rolex-style wristwatch (green dial, crown logo) | Time-based stats / premium |
+| `CAACAgUAAxUAAWps78ufg6TH1MgxkfgwnkmmAAGdjgACEhcAAjvPoVb6XufmA9KoRj0E` | Two colorful gift boxes (orange+green, red+purple) | Rewards / gifts / offers |
 
 ---
 

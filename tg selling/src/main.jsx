@@ -396,19 +396,19 @@ function DashboardHome({ profile, role, setTab }) {
       <div className="balance-card">
         <span>My balance</span>
         <strong>{money(profile.balance)}</strong>
-        <button className="add-funds" onClick={() => setTab('wallet')}>
-          Deposit
+        <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
+          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
         </button>
       </div>
       <div className="stats-grid">
-        <Stat label="Today sales" value={money(profile.todaySales)} />
-        <Stat label="Monthly sales" value={money(profile.monthlySales)} />
+        <Stat label="Today sales" value={money(profile.todaySales)} lottieIcon="/icons/new/today-sales.json" />
+        <Stat label="Monthly sales" value={money(profile.monthlySales)} lottieIcon="/icons/new/monthly-sales.json" />
         <Stat label="My purchases" value={money(profile.myPurchases)} lottieIcon="/icons/new/shopping-cart.json" />
-        <Stat label="Active keys" value={profile.active || 0} />
+        <Stat label="Active keys" value={profile.active || 0} lottieIcon="/icons/new/active-keys.json" />
       </div>
       {role === 'admin' && (
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
-          <MatIcon name="admin_panel_settings" size={18} /> Open admin dashboard
+          <LottieIcon src="/icons/new/crown.json" size={22} /> Open admin dashboard
         </button>
       )}
       <div className="glass-card">
@@ -555,8 +555,8 @@ function WalletView({ session, profile, refreshProfile }) {
       <div className="balance-card">
         <span>Available balance</span>
         <strong>{money(profile.balance)}</strong>
-        <button className="add-funds" onClick={() => setDepositStep('amount')}>
-          Add funds
+        <button className="add-funds has-lottie" onClick={() => setDepositStep('amount')}>
+          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
       </div>
 
@@ -1035,7 +1035,7 @@ function ProfileView({ profile, openDialog, openApi }) {
       <div className="glass-card profile-card">
         <img src={profile.photoData || logo} alt="Profile" />
         <div>
-          <h3>{profile.name || 'Account holder'}</h3>
+          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} /></h3>
           <p className="muted">{profile.email || profile.phone || 'Verified account'}</p>
           <p className="muted">Balance {money(profile.balance)} · {profile.status || 'active'}</p>
         </div>
