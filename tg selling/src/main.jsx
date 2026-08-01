@@ -1722,7 +1722,7 @@ function AddFundPage({ session, onSessionChange }) {
                   </button>
                 ))}
               </div>
-              <p className="muted deposit-hint">Min. deposit: {money(paySettings.minDeposit)}</p>
+              <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: {money(paySettings.minDeposit)}</p>
               <hr className="deposit-divider" />
               <form onSubmit={handleAmountNext}>
                 <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> Custom amount (₹)</label>
