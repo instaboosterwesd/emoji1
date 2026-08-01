@@ -143,7 +143,7 @@
   filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(196, 141, 255, .22)) !important;
 }
 
-/* Balance card — money emoji as background decoration */
+/* Balance card — money bag emoji as background decoration */
 .balance-card {
   position: relative;
   overflow: hidden;
@@ -151,18 +151,20 @@
 
 .balance-money-emoji {
   position: absolute;
-  right: -4px;
+  right: -8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  opacity: 0.18;
+  opacity: 0.22;
   z-index: 0;
   pointer-events: none;
+  display: block;
 }
 
-.balance-card > span,
+.balance-money-emoji svg {
+  display: block !important;
+}
+
+.balance-card > span:not(.balance-money-emoji),
 .balance-card > strong,
 .balance-card > .add-funds {
   position: relative;

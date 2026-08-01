@@ -439,7 +439,7 @@ function DashboardHome({ profile, role, setTab }) {
     <>
       <SectionTitle title="Dashboard" subtitle="Here's what is happening today" />
       <div className="balance-card">
-        <video src="/icons/new/money.webm" className="balance-money-emoji" autoPlay loop muted playsInline />
+        <span className="balance-money-emoji"><LottieIcon src="/icons/new/money-bag.json" size={72} /></span>
         <span>My balance</span>
         <strong>{money(profile.balance)}</strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
@@ -599,7 +599,7 @@ function WalletView({ session, profile, refreshProfile }) {
     <>
       <SectionTitle title="Wallet" subtitle="Manage your funds" />
       <div className="balance-card">
-        <video src="/icons/new/money.webm" className="balance-money-emoji" autoPlay loop muted playsInline />
+        <span className="balance-money-emoji"><LottieIcon src="/icons/new/money-bag.json" size={72} /></span>
         <span>Available balance</span>
         <strong>{money(profile.balance)}</strong>
         <button className="add-funds has-lottie" onClick={() => setDepositStep('amount')}>
