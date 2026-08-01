@@ -23,19 +23,29 @@
   filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(196, 141, 255, .22)) !important;
 }
 
-/* Balance card — amount row with money emoji */
+/* Balance card — amount row with money emoji behind text */
 .balance-amount-row {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
 }
 
 .balance-money-emoji {
-  width: 52px;
-  height: 52px;
+  position: absolute;
+  right: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 10px rgba(196, 141, 255, 0.35));
+  opacity: 0.55;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.balance-amount-row strong {
+  position: relative;
+  z-index: 1;
 }
 
 /* API settings button — Lottie icon, suppress CSS ::before */
