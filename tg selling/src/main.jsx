@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import lottie from 'lottie-web';
 import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
 import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
@@ -421,6 +422,29 @@ function DashboardHome({ profile, role, setTab }) {
   );
 }
 
+/* ── LottieIcon — plays a Lottie JSON animation inline ─────────── */
+function LottieIcon({ src, size = 24, loop = true, className = '' }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const anim = lottie.loadAnimation({
+      container: ref.current,
+      renderer: 'svg',
+      loop,
+      autoplay: true,
+      path: src,
+    });
+    return () => anim.destroy();
+  }, [src, loop]);
+  return (
+    <span
+      ref={ref}
+      className={className}
+      style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle' }}
+    />
+  );
+}
+
 /* ── WalletView — full deposit flow ─────────────────────────────── */
 function WalletView({ session, profile, refreshProfile }) {
   const [depositStep, setDepositStep] = useState('idle'); // idle | amount | qr | confirm | pending
@@ -605,7 +629,7 @@ function WalletView({ session, profile, refreshProfile }) {
                     <MatIcon name="arrow_back" size={16} /> Back
                   </button>
                   <button className="modal-save" type="button" onClick={() => setDepositStep('confirm')}>
-                    I have paid <img src="/icons/new/verified-check.png" className="verified-check-emoji" alt="✓" />
+                    I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
                   </button>
                 </div>
               </>
