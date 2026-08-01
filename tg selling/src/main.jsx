@@ -273,7 +273,7 @@ function Login({ onSuccess }) {
             <form onSubmit={apiLogin}>
               <label htmlFor="api-key">API key</label>
               <input className="api-login-input" id="api-key" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="tg_..." autoFocus required />
-              <button className="primary" type="submit">Login with API <MatIcon name="vpn_key" size={18} /></button>
+              <button className="primary" type="submit">Login with API <LottieIcon src="/icons/new/key-lottie.json" size={18} /></button>
             </form>
           </>
         )}
@@ -395,7 +395,10 @@ function DashboardHome({ profile, role, setTab }) {
       <SectionTitle title="Dashboard" subtitle="Here's what is happening today" />
       <div className="balance-card">
         <span>My balance</span>
-        <strong>{money(profile.balance)}</strong>
+        <div className="balance-amount-row">
+          <strong>{money(profile.balance)}</strong>
+          <video src="/icons/new/money.webm" className="balance-money-emoji" autoPlay loop muted playsInline />
+        </div>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
         </button>
@@ -414,7 +417,7 @@ function DashboardHome({ profile, role, setTab }) {
       <div className="glass-card">
         <div className="card-heading recent-heading">
           <div className="heading-title-row">
-            <span className="recent-line-icon"><MatIcon name="vpn_key" size={19} /></span>
+            <span className="recent-line-icon"><LottieIcon src="/icons/new/key-lottie.json" size={22} /></span>
             <div><h3>Recent key sold</h3><p className="muted">Your latest key activity</p></div>
           </div>
         </div>
@@ -554,7 +557,10 @@ function WalletView({ session, profile, refreshProfile }) {
       <SectionTitle title="Wallet" subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
-        <strong>{money(profile.balance)}</strong>
+        <div className="balance-amount-row">
+          <strong>{money(profile.balance)}</strong>
+          <video src="/icons/new/money.webm" className="balance-money-emoji" autoPlay loop muted playsInline />
+        </div>
         <button className="add-funds has-lottie" onClick={() => setDepositStep('amount')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
@@ -746,7 +752,7 @@ function OrdersView({ session }) {
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
         <SectionTitle title={selected.productName || selected.product || 'Order'} subtitle="Complete order details" />
         <div className="glass-card detail-card">
-          <MatIcon name="vpn_key" size={28} style={{ marginBottom: 8, filter: 'invert(0.7)' }} />
+          <div style={{ marginBottom: 8 }}><LottieIcon src="/icons/new/key-lottie.json" size={36} /></div>
           <Detail label="Product" value={selected.productName || selected.product || '—'} />
           <Detail label="Duration" value={selected.duration || '—'} />
           <Detail label="Amount paid" value={money(selected.price)} />
@@ -785,7 +791,7 @@ function OrdersView({ session }) {
             : filtered.map(k => (
               <button className="order-button" key={k.id} onClick={() => setSelected(k)}>
                 <div className="order-row">
-                  <div className="order-icon"><MatIcon name="vpn_key" size={18} style={{ filter: 'invert(0.7)' }} /></div>
+                  <div className="order-icon"><LottieIcon src="/icons/new/key-lottie.json" size={22} /></div>
                   <div className="order-main">
                     <strong>{k.productName || k.product || 'License key'}</strong>
                     <span>{k.duration || '—'} · {money(k.price)}</span>
@@ -912,7 +918,7 @@ function ProductsView({ session, onBuy }) {
               </div>
               {product.features.length > 0 && (
                 <div className="feature-list">
-                  {shownFeatures.map((f, i) => <div key={`${product.pid}-${f}`}><span><img src={i % 2 ? '/icons/new/premium.png' : '/icons/new/key-color.png'} style={{width:13,height:13,objectFit:'contain',filter:'brightness(0) invert(1) drop-shadow(0 0 4px rgba(196,141,255,.5))'}} alt="" /></span>{f}</div>)}
+                  {shownFeatures.map((f, i) => <div key={`${product.pid}-${f}`}><span>{i % 2 ? <img src='/icons/new/premium.png' style={{width:13,height:13,objectFit:'contain',filter:'brightness(0) invert(1) drop-shadow(0 0 4px rgba(196,141,255,.5))'}} alt="" /> : <LottieIcon src="/icons/new/key-lottie.json" size={14} />}</span>{f}</div>)}
                 </div>
               )}
               <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
@@ -1117,7 +1123,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
       )}
       {type === 'api' && (
         <section className="action-modal liquid-dialog">
-          <div className="dialog-title-row"><MatIcon name="vpn_key" size={20} /><h2>Private API</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/key-lottie.json" size={24} /><h2>Private API</h2></div>
           {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
           <p>This key enables Bot login. Keep it private.</p>
           <div className="modal-btn-row">
@@ -1212,7 +1218,7 @@ function UserHistoryDialog({ user, onClose }) {
             <div className="history-scroll">
               {userKeys.length === 0 ? <p className="muted empty-state">No keys</p> : userKeys.slice(0, 20).map(k => (
                 <div className="tx-row compact" key={k.id}>
-                  <MatIcon name="vpn_key" size={15} style={{ filter: 'invert(0.6)' }} />
+                  <LottieIcon src="/icons/new/key-lottie.json" size={16} />
                   <div className="tx-main">
                     <strong>{k.productName || k.product}</strong>
                     <span>{k.duration} · {fmtDate(k.purchasedAt)}</span>
@@ -1444,7 +1450,7 @@ function AdminPage({ session, onSessionChange }) {
           <div className="admin-card">
             <h3>Inventory status</h3>
             <p className="muted"><MatIcon name="shopping_bag" size={14} /> {products.length} API products loaded</p>
-            <p className="muted"><MatIcon name="vpn_key" size={14} /> {keys.length} license key records</p>
+            <p className="muted"><LottieIcon src="/icons/new/key-lottie.json" size={14} /> {keys.length} license key records</p>
             <p className="muted"><MatIcon name="inventory" size={14} /> {manualKeys.filter(k => !k.used).length} unused manual keys</p>
             <p className="muted"><MatIcon name="schedule" size={14} /> {deposits.filter(d => d.status === 'pending').length} pending payment requests</p>
           </div>

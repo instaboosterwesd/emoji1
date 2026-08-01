@@ -23,6 +23,21 @@
   filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(196, 141, 255, .22)) !important;
 }
 
+/* Balance card — amount row with money emoji */
+.balance-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.balance-money-emoji {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(196, 141, 255, 0.35));
+}
+
 /* API settings button — Lottie icon, suppress CSS ::before */
 .profile-actions button:nth-child(3).has-lottie:before {
   display: none !important;
