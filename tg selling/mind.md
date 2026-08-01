@@ -560,3 +560,82 @@ JSX img tag       → direct inline icons के लिए (feature list, buy bu
 6. Add Firebase security rules.
 7. Compress video/logo assets for faster mobile load.
 
+---
+
+## EmojiSaver — Telegram premium emoji downloader
+
+### Location
+
+```text
+/home/runner/workspace/EmojiSaver/
+```
+
+### Purpose
+
+Download Telegram premium emoji packs (TGS animated stickers) as **512×512 PNG files** for use on the website. No full bot infrastructure needed — uses a standalone script.
+
+### Script
+
+```text
+EmojiSaver/download_pack.py
+```
+
+### How to run
+
+```bash
+cd /home/runner/workspace/EmojiSaver
+python download_pack.py <pack_name_or_t.me_link>
+```
+
+Examples:
+
+```bash
+python download_pack.py glasses_emojique_by_TgEmojis_bot
+python download_pack.py https://t.me/addemoji/glasses_emojique_by_TgEmojis_bot
+python download_pack.py https://t.me/addstickers/SomeStickerPack
+```
+
+### Auth
+
+Bot token stored as Replit secret: `EMOJI_BOT_TOKEN`
+
+Script reads it automatically — no .env file needed.
+
+### Output
+
+```text
+EmojiSaver/downloaded/<pack_name>/0001.png … NNNN.png   ← individual PNGs
+EmojiSaver/downloaded/<pack_name>.zip                    ← full archive
+```
+
+### Pack name from t.me URL
+
+For `https://t.me/addemoji/glasses_emojique_by_TgEmojis_bot` → pack name is **`glasses_emojique_by_TgEmojis_bot`**
+
+### Conversion notes
+
+- Animated emojis are **TGS** (gzipped Lottie JSON) → converted to PNG using `rlottie-python`
+- `render_pillow_frame(frame_num=0, width=512, height=512)` — correct API (NOT `buffer_width`)
+- Static stickers are **WebP** → converted to PNG via Pillow
+- Video stickers (WebM) are saved as-is
+
+### Installed Python packages
+
+`requests`, `rlottie-python`, `Pillow`, `python-dotenv` — installed in the workspace venv.
+
+### Packs already downloaded
+
+| Pack name | Count | Notes |
+|---|---|---|
+| `glasses_emojique_by_TgEmojis_bot` | 50 PNGs | glasses @emojique — pixel-art glasses |
+
+### Next time user gives a pack
+
+Just run:
+
+```bash
+cd /home/runner/workspace/EmojiSaver && python download_pack.py <pack_name>
+```
+
+PNGs appear in `EmojiSaver/downloaded/<pack_name>/`.
+

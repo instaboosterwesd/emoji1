@@ -28,9 +28,10 @@ import requests
 from dotenv import load_dotenv
 from PIL import Image
 
-load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent / ".env", override=False)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+# primary key: EMOJI_BOT_TOKEN (Replit secret); fallback: BOT_TOKEN from .env
+BOT_TOKEN = os.getenv("EMOJI_BOT_TOKEN") or os.getenv("BOT_TOKEN", "")
 API_BASE  = f"https://api.telegram.org/bot{BOT_TOKEN}"
 FILE_BASE = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 
@@ -58,7 +59,7 @@ def tgs_to_png(tgs_data: bytes) -> bytes | None:
         from rlottie_python import LottieAnimation  # type: ignore
         json_data = gzip.decompress(tgs_data)
         anim = LottieAnimation.from_data(json_data.decode())
-        frame = anim.render_pillow_frame(frame_num=0, buffer_width=512, buffer_height=512)
+        frame = anim.render_pillow_frame(frame_num=0, width=512, height=512)
         buf = io.BytesIO()
         frame.save(buf, format="PNG")
         return buf.getvalue()
