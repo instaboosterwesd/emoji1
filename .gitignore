@@ -1,10 +1,19 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
+node_modules/
 dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
+dist-tmp/
+.tgs
+.lottie
+.zip
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+venv/
+material-design-icons-4.0.0/
+material-design-icons-4.0.0.zip
+flaticon-proxy/node_modules/
+.DS_Store
+*.log
+.env
+.env.local
