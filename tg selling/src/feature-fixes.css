@@ -1399,6 +1399,14 @@
   display: none !important;
 }
 
+/* Center Lottie emojis vertically in history heading (right/both felt off) */
+.history-heading .heading-title-row > span,
+.history-heading .icon-button > span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 /* Play badge — Lottie emoji replaces ▶ text; strip all background/border/glow */
 .play-badge,
 .product-card .play-badge {
