@@ -53,11 +53,19 @@ def api(method: str, **params):
 
 
 def download_file(file_id: str) -> bytes:
-    info = api("getFile", file_id=file_id)
-    url  = f"{FILE_BASE}/{info['file_path']}"
-    r = requests.get(url, timeout=60)
-    r.raise_for_status()
-    return r.content
+    for attempt in range(1, 5):
+        try:
+            info = api("getFile", file_id=file_id)
+            url  = f"{FILE_BASE}/{info['file_path']}"
+            r = requests.get(url, timeout=60)
+            r.raise_for_status()
+            return r.content
+        except Exception as exc:
+            if attempt == 4:
+                raise
+            wait = 3 * attempt
+            print(f"  [retry {attempt}/3 in {wait}s: {exc}]", end=" ", flush=True)
+            import time; time.sleep(wait)
 
 
 def tgs_to_png(tgs_data: bytes) -> bytes | None:
@@ -119,6 +127,16 @@ def main():
         # each emoji gets its own numbered folder
         emoji_dir = pack_dir / f"{i:04d}"
         emoji_dir.mkdir(parents=True, exist_ok=True)
+
+        # skip if already fully downloaded
+        if (emoji_dir / "info.json").exists() and any(
+            (emoji_dir / f).exists() for f in ["sticker.png", "sticker.webp", "sticker.webm", "sticker.tgs"]
+        ):
+            print(f"  [{i:>3}/{len(stickers)}] {emoji} [skip]")
+            # collect existing files for zip
+            for f in emoji_dir.iterdir():
+                all_files.append(f)
+            continue
 
         print(f"  [{i:>3}/{len(stickers)}] {emoji} downloading...", end=" ", flush=True)
         raw = download_file(file_id)
