@@ -1745,7 +1745,7 @@ function AddFundPage({ session, onSessionChange }) {
               <h2>Scan &amp; Pay</h2>
             </div>
             <p className="deposit-label">Send exactly <strong>{money(amount)}</strong> to:</p>
-            <p className="upi-id-display"><MatIcon name="payment" size={16} /> {paySettings.upiId}</p>
+            <p className="upi-id-display"><LottieIcon src="/icons/new/bank-emoji.json" size={20} /> {paySettings.upiId}</p>
             {qrUrl && (
               <div className="qr-wrap">
                 <img className="qr-image" src={qrUrl} alt="UPI QR code" />
