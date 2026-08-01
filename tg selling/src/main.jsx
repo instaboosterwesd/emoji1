@@ -38,6 +38,7 @@ import {
   purchaseProduct,
   adminDeleteReseller,
   checkResellerBalance,
+  getAnnouncements,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -313,11 +314,28 @@ function Dashboard({ session, onSessionChange, onLogout }) {
   const [apiState, setApiState] = useState({ apiKey: '', last4: session.apiKeyLast4 || '' });
   const [purchase, setPurchase] = useState(null);
   const [pageLoading, setPageLoading] = useState(false);
+  const [notifs, setNotifs] = useState([]);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
 
   useEffect(() => {
     if (!session?.uid) return;
     getUserProfile(session.uid).then(next => { setProfile(next); onSessionChange(next); }).catch(() => {});
   }, [session?.uid]);
+
+  useEffect(() => {
+    getAnnouncements().then(list => {
+      setNotifs(list);
+      const seenAt = parseInt(localStorage.getItem('notif_seen_at') || '0');
+      if (list.some(n => (n.createdAt || 0) > seenAt)) setHasUnread(true);
+    }).catch(() => {});
+  }, []);
+
+  const openNotifs = () => {
+    setShowNotifs(true);
+    setHasUnread(false);
+    localStorage.setItem('notif_seen_at', String(Date.now()));
+  };
 
   useEffect(() => { setPageLoading(false); }, [tab]);
 
@@ -364,9 +382,15 @@ function Dashboard({ session, onSessionChange, onLogout }) {
             <span className="dash-kicker">WELCOME BACK</span>
             <h2>Your dashboard</h2>
           </div>
-          <button className="theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
-            {theme === 'dark' ? '☀' : '☾'}
-          </button>
+          <div className="header-actions">
+            <button className="notif-bell-btn" onClick={openNotifs} aria-label="Notifications">
+              <LottieIcon src="/icons/new/bell.json" size={26} />
+              {hasUnread && <span className="notif-dot" />}
+            </button>
+            <button className="theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+              {theme === 'dark' ? '☀' : '☾'}
+            </button>
+          </div>
         </header>
       )}
       <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'}`}>
@@ -382,6 +406,27 @@ function Dashboard({ session, onSessionChange, onLogout }) {
         ))}
       </nav>
       <ProfileDialog type={dialog} profile={profile} apiState={apiState} close={() => setDialog(null)} onLogout={onLogout} onProfile={next => { setProfile(next); onSessionChange(next); }} onApiState={setApiState} />
+      {showNotifs && (
+        <div className="notif-overlay" role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false); }}>
+          <div className="notif-dialog liquid-dialog">
+            <div className="notif-dialog-header">
+              <LottieIcon src="/icons/new/bell.json" size={26} />
+              <h3>Notifications</h3>
+              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}>✕</button>
+            </div>
+            {notifs.length === 0
+              ? <p className="muted empty-state" style={{ padding: '24px 0' }}>No notifications yet</p>
+              : notifs.map(n => (
+                <div key={n.id} className="notif-item">
+                  {n.title && <strong className="notif-title">{n.title}</strong>}
+                  <p className="notif-msg">{n.message}</p>
+                  <small className="notif-time muted">{fmtDate(n.createdAt)}</small>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
       <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
       <Toaster position="top-center" offset={18} theme={theme} toastOptions={toastOptions} />
     </main>
@@ -1333,6 +1378,7 @@ function AdminPage({ session, onSessionChange }) {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [announcement, setAnnouncement] = useState('');
+  const [annTitle, setAnnTitle] = useState('');
   const [fundForm, setFundForm] = useState({ uid: '', amount: '', mode: 'add' });
   const [resellerForm, setResellerForm] = useState({ username: '', password: '', fund: '' });
   const [upiId, setUpiId] = useState('');
@@ -1461,9 +1507,10 @@ function AdminPage({ session, onSessionChange }) {
     announcements: (
       <div className="admin-card">
         <h3>New announcement</h3>
-        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(async () => { await adminSaveAnnouncement(announcement); setAnnouncement(''); }, 'Announcement published'); }}>
+        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(async () => { await adminSaveAnnouncement(announcement, annTitle); setAnnouncement(''); setAnnTitle(''); }, 'Announcement published'); }}>
+          <input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Title (optional)" style={{ marginBottom: 8 }} />
           <textarea value={announcement} onChange={e => setAnnouncement(e.target.value)} placeholder="Write announcement for users" />
-          <button className="modal-save"><MatIcon name="campaign" size={16} /> Publish</button>
+          <button className="modal-save"><LottieIcon src="/icons/new/bell.json" size={16} /> Publish</button>
         </form>
         <AdminList items={announcements} empty="No announcements yet" render={item => (
           <AdminRow title={item.message} meta={fmtDate(item.createdAt)} status={item.status || 'active'} />

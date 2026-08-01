@@ -16,6 +16,126 @@
   display: block !important;
 }
 
+/* ── Notification bell ─────────────────────────────────────────── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.notif-bell-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .08);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.notif-bell-btn svg { display: block !important; }
+
+.notif-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  box-shadow: 0 0 0 2px rgba(15, 12, 30, .9);
+  animation: notif-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes notif-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(15,12,30,.9), 0 0 0 0 rgba(255,107,107,.6); }
+  50%       { transform: scale(1.15); box-shadow: 0 0 0 2px rgba(15,12,30,.9), 0 0 0 6px rgba(255,107,107,0); }
+}
+
+/* Notification overlay & dialog */
+.notif-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, .45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 70px 16px 0;
+}
+
+.notif-dialog {
+  width: min(340px, calc(100vw - 32px));
+  max-height: 70vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  animation: notif-drop .22s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes notif-drop {
+  from { opacity: 0; transform: translateY(-10px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.notif-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.notif-dialog-header h3 {
+  flex: 1;
+  font-size: 15px;
+  margin: 0;
+}
+
+.notif-dialog-header svg { display: block !important; }
+
+.notif-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.6);
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.notif-item {
+  padding: 12px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.notif-title {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #c795ff;
+}
+
+.notif-msg {
+  font-size: 12px;
+  color: rgba(255,255,255,.82);
+  margin: 0 0 5px;
+  line-height: 1.5;
+}
+
+.notif-time { font-size: 10px; }
+
 .profile-actions button:before {
   width: 23px !important;
   height: 23px !important;

@@ -317,16 +317,28 @@ export async function adminAdjustUserFund(uid, amount, mode = 'add', note = 'Adm
   return nextBalance;
 }
 
-export async function adminSaveAnnouncement(message) {
+export async function adminSaveAnnouncement(message, title = '') {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   if (!message?.trim()) throw new Error('Enter announcement text.');
   const id = `ann_${Date.now()}`;
   await set(ref(firebaseDb, `announcements/${id}`), {
+    ...(title?.trim() ? { title: title.trim() } : {}),
     message: message.trim(),
     createdAt: Date.now(),
     status: 'active',
   });
   return id;
+}
+
+export async function getAnnouncements() {
+  if (!firebaseDb) return [];
+  const snap = await get(ref(firebaseDb, 'announcements'));
+  const val = snap.val();
+  if (!val) return [];
+  return Object.entries(val)
+    .map(([id, item]) => ({ id, ...(item || {}) }))
+    .filter(n => n.status !== 'deleted')
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export async function adminSaveReseller({ username, password, fund }) {
