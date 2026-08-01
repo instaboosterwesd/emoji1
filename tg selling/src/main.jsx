@@ -806,7 +806,7 @@ function OrdersView({ session }) {
           <Detail label="Duration" lottieIcon="/icons/new/timer.json" value={selected.duration || '—'} />
           <Detail label="Amount paid" lottieIcon="/icons/new/verified-badge.json" value={money(selected.price)} />
           <Detail label="Purchase date" lottieIcon="/icons/new/calendar.json" value={fmtDate(selected.purchasedAt || selected.createdAt)} />
-          <Detail label="Status" value={selected.status || 'active'} />
+          <Detail label="Status" lottieIcon="/icons/new/status-mail.json" value={selected.status || 'active'} />
           <Detail label="Source" value={selected.source || 'api'} />
           <div className="key-reveal-box">
             <label><LottieIcon src="/icons/new/key-lottie.json" size={16} /> License key</label>
