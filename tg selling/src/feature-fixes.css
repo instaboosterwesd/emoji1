@@ -1128,6 +1128,16 @@
   line-height: 1.5;
   margin-bottom: 10px;
 }
+/* Suppress ::before ghost icon when order-icon has a brand image */
+.order-icon.has-brand-img::before {
+  display: none !important;
+  content: none !important;
+}
+.order-icon.has-brand-img {
+  background: rgba(255,255,255,0.06) !important;
+  overflow: hidden;
+}
+
 /* Key reveal header — label + eye toggle side by side */
 .key-reveal-header {
   display: flex;

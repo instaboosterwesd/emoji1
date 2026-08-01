@@ -435,7 +435,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
         </div>
       )}
       <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
-      <Toaster position="top-center" offset={18} theme={theme} toastOptions={toastOptions} />
+      <Toaster position="top-center" offset={18} theme={theme} toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
     </main>
   );
 }
@@ -848,7 +848,7 @@ function OrdersView({ session }) {
             : filtered.map(k => (
               <button className="order-button" key={k.id} onClick={() => setSelected(k)}>
                 <div className="order-row">
-                  <div className="order-icon"><img src={productIconFor(k.productName || k.product)} style={{width:30,height:30,objectFit:'contain',borderRadius:9}} alt="" /></div>
+                  <div className="order-icon has-brand-img"><img src={productIconFor(k.productName || k.product)} style={{width:30,height:30,objectFit:'contain',borderRadius:9}} alt="" /></div>
                   <div className="order-main">
                     <strong>{k.productName || k.product || 'License key'}</strong>
                     <span>{k.duration || '—'} · {money(k.price)}</span>
