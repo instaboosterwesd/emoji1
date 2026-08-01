@@ -1714,7 +1714,7 @@ function AddFundPage({ session, onSessionChange }) {
               <h2>Add funds</h2>
             </div>
             <div className="deposit-page-card">
-              <p className="muted deposit-label"><LottieIcon src="/icons/new/magnet-emoji.json" size={20} /> Choose amount</p>
+              <p className="muted deposit-label"><LottieIcon src="/icons/new/choose-amount-emoji.json" size={20} /> Choose amount</p>
               <div className="quick-amounts">
                 {quickAmounts.map(a => (
                   <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
