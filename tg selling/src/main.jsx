@@ -261,13 +261,13 @@ function Login({ onSuccess }) {
           <>
             <button className="back-link" type="button" onClick={() => setStep('phone')}><MatIcon name="arrow_back" size={16} /> Change number</button>
             <img className="devx-logo small" src={logo} alt="Brand logo" />
-            <p className="eyebrow">SECURE VERIFICATION</p>
+            <p className="eyebrow"><LottieIcon src="/icons/new/shield-verify.json" size={20} /> SECURE VERIFICATION <LottieIcon src="/icons/new/shield-verify.json" size={20} /></p>
             <h1>Enter your OTP</h1>
             <p className="intro">We sent a 4-digit code to +{country.dialCode} {phone}.</p>
             <form onSubmit={verifyOtp}>
               <label htmlFor="otp">Verification code</label>
               <input className="otp-input" id="otp" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} placeholder="0000" autoFocus required />
-              <button className="primary" type="submit">Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={22} /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
             </form>
           </>
         )}
