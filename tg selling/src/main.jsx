@@ -605,7 +605,7 @@ function WalletView({ session, profile, refreshProfile }) {
                     <MatIcon name="arrow_back" size={16} /> Back
                   </button>
                   <button className="modal-save" type="button" onClick={() => setDepositStep('confirm')}>
-                    I have paid <MatIcon name="check_circle" size={17} />
+                    I have paid <img src="/icons/new/verified-check.png" className="verified-check-emoji" alt="✓" />
                   </button>
                 </div>
               </>

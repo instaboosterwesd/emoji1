@@ -791,6 +791,16 @@
   box-sizing: border-box;
 }
 
+/* verified check emoji on "I have paid" button */
+.verified-check-emoji {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
 .qr-dl-btn {
   display: inline-flex;
   align-items: center;
