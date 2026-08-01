@@ -337,9 +337,9 @@ function Dashboard({ session, onSessionChange, onLogout }) {
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'dashboard', label: 'Dashboard', lottieIcon: '/icons/new/shop-store.json' },
     { id: 'buy', label: 'Buy' },
-    { id: 'orders', label: 'My Orders', lottieIcon: '/icons/new/shop-store.json' },
+    { id: 'orders', label: 'My Orders' },
     { id: 'wallet', label: 'Wallet' },
     { id: 'profile', label: 'Profile' },
   ];
