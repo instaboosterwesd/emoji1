@@ -1043,7 +1043,7 @@ function ProfileView({ profile, openDialog, openApi }) {
       <div className="glass-card profile-actions">
         <button onClick={() => openDialog('edit')}>Edit profile</button>
         <button onClick={() => openDialog('password')}>Change password</button>
-        <button onClick={openApi}>API settings</button>
+        <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
         <button className="danger" onClick={() => openDialog('logout')}>Logout</button>
       </div>
     </>
