@@ -109,13 +109,21 @@ def main():
         raw = download_file(file_id)
 
         if is_anim:
-            # TGS → PNG
+            # TGS → PNG + JSON (for web Lottie animations)
+            try:
+                json_data = gzip.decompress(raw)
+                json_fname = out_dir / f"{i:04d}.json"
+                json_fname.write_bytes(json_data)
+                saved.append(json_fname)
+            except Exception as exc:
+                print(f"  [warn] TGS→JSON failed: {exc}")
+
             png = tgs_to_png(raw)
             if png:
                 fname = out_dir / f"{i:04d}.png"
                 fname.write_bytes(png)
                 saved.append(fname)
-                print(f"✓ {fname.name}")
+                print(f"✓ {fname.name} + .json")
             else:
                 # fallback: save raw TGS
                 fname = out_dir / f"{i:04d}.tgs"
