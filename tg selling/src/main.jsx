@@ -780,6 +780,7 @@ function OrdersView({ session }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
+  const [keyVisible, setKeyVisible] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -807,10 +808,17 @@ function OrdersView({ session }) {
           <Detail label="Amount paid" lottieIcon="/icons/new/verified-badge.json" value={money(selected.price)} />
           <Detail label="Purchase date" lottieIcon="/icons/new/calendar.json" value={fmtDate(selected.purchasedAt || selected.createdAt)} />
           <Detail label="Status" lottieIcon="/icons/new/status-mail.json" value={selected.status || 'active'} />
-          <Detail label="Source" value={selected.source || 'api'} />
+          <Detail label="Source" lottieIcon="/icons/new/source-rocket.json" value={selected.source || 'api'} />
           <div className="key-reveal-box">
-            <label><LottieIcon src="/icons/new/key-lottie.json" size={16} /> License key</label>
-            <code>{selected.key || selected.keyCode || '—'}</code>
+            <div className="key-reveal-header">
+              <label><LottieIcon src="/icons/new/key-lottie.json" size={16} /> License key</label>
+              {(selected.key || selected.keyCode) && (
+                <button type="button" className="eye-toggle-btn" onClick={() => setKeyVisible(v => !v)} aria-label={keyVisible ? 'Hide key' : 'Show key'}>
+                  <MatIcon name={keyVisible ? 'visibility_off' : 'visibility'} size={16} />
+                </button>
+              )}
+            </div>
+            <code className={keyVisible ? '' : 'key-blurred'}>{selected.key || selected.keyCode || '—'}</code>
             {(selected.key || selected.keyCode) && (
               <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(selected.key || selected.keyCode); toast.success('Key copied!'); }}>
                 <MatIcon name="content_copy" size={15} /> Copy
