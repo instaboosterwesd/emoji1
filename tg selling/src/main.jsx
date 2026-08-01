@@ -975,7 +975,7 @@ function ProductsView({ session, onBuy }) {
               </div>
               {product.features.length > 0 && (
                 <div className="feature-list">
-                  {shownFeatures.map((f, i) => {
+                  {shownFeatures.map((f) => {
                     const featIcons = [
                       '/icons/new/feat-lightsaber.json',
                       '/icons/new/feat-fire.json',
@@ -983,8 +983,13 @@ function ProductsView({ session, onBuy }) {
                       '/icons/new/feat-crystal-skull.json',
                       '/icons/new/feat-reaper.json',
                       '/icons/new/feat-verified-badge.json',
+                      '/icons/new/feat-doge.json',
+                      '/icons/new/feat-rolex.json',
+                      '/icons/new/feat-rose-fist.json',
+                      '/icons/new/feat-gift-boxes.json',
                     ];
-                    return <div key={`${product.pid}-${f}`}><span><LottieIcon src={featIcons[i % featIcons.length]} size={15} /></span>{f}</div>;
+                    const hash = (product.pid + f).split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 0);
+                    return <div key={`${product.pid}-${f}`}><span><LottieIcon src={featIcons[hash % featIcons.length]} size={15} /></span>{f}</div>;
                   })}
                 </div>
               )}
