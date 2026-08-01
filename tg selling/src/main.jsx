@@ -975,7 +975,17 @@ function ProductsView({ session, onBuy }) {
               </div>
               {product.features.length > 0 && (
                 <div className="feature-list">
-                  {shownFeatures.map((f, i) => <div key={`${product.pid}-${f}`}><span>{i % 2 ? <img src='/icons/new/premium.png' style={{width:13,height:13,objectFit:'contain',filter:'brightness(0) invert(1) drop-shadow(0 0 4px rgba(196,141,255,.5))'}} alt="" /> : <LottieIcon src="/icons/new/key-lottie.json" size={14} />}</span>{f}</div>)}
+                  {shownFeatures.map((f, i) => {
+                    const featIcons = [
+                      '/icons/new/feat-lightsaber.json',
+                      '/icons/new/feat-fire.json',
+                      '/icons/new/feat-lightning.json',
+                      '/icons/new/feat-crystal-skull.json',
+                      '/icons/new/feat-reaper.json',
+                      '/icons/new/feat-verified-badge.json',
+                    ];
+                    return <div key={`${product.pid}-${f}`}><span><LottieIcon src={featIcons[i % featIcons.length]} size={15} /></span>{f}</div>;
+                  })}
                 </div>
               )}
               <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
