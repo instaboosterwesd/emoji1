@@ -688,41 +688,96 @@ Bot token stored as Replit secret: `EMOJI_BOT_TOKEN`
 
 Script reads it automatically — no .env file needed.
 
-### Output
+### Output structure (per-emoji subfolders)
+
+हर emoji का अपना folder होता है:
 
 ```text
-EmojiSaver/downloaded/<pack_name>/0001.png … NNNN.png   ← individual PNGs
-EmojiSaver/downloaded/<pack_name>.zip                    ← full archive
+EmojiSaver/downloaded/<pack_name>/
+    0001/
+        sticker.tgs       ← raw TGS animated file (gzipped Lottie)
+        sticker.png       ← rendered PNG 512×512 (first frame)
+        lottie.json       ← decompressed Lottie JSON (for lottie-web in React)
+        info.json         ← emoji metadata (emoji char, file_id, keywords, type)
+    0002/
+        ...
+    0NNN/
+        ...
+EmojiSaver/downloaded/<pack_name>.zip   ← ZIP of full folder tree (same structure)
 ```
+
+**Note:** Static WebP stickers → `sticker.png` + `sticker.webp`. Video (WebM) stickers → `sticker.webm` only (no TGS).
 
 ### Pack name from t.me URL
 
-For `https://t.me/addemoji/glasses_emojique_by_TgEmojis_bot` → pack name is **`glasses_emojique_by_TgEmojis_bot`**
+`https://t.me/addemoji/glasses_emojique_by_TgEmojis_bot` → pack name: **`glasses_emojique_by_TgEmojis_bot`**
+
+### Script features
+
+- **Resume support** — अगर download बीच में रुक जाए तो दोबारा run करने पर already-downloaded emoji folders skip होते हैं (`info.json` + sticker file exists check)
+- **Retry logic** — network reset पर auto-retry (3 attempts with backoff)
+- **ZIP** — हर pack का automatically ZIP बनता है same folder structure के साथ
 
 ### Conversion notes
 
-- Animated emojis are **TGS** (gzipped Lottie JSON) → converted to PNG using `rlottie-python`
-- `render_pillow_frame(frame_num=0, width=512, height=512)` — correct API (NOT `buffer_width`)
-- Static stickers are **WebP** → converted to PNG via Pillow
-- Video stickers (WebM) are saved as-is
+- Animated emojis → **TGS** (gzip Lottie JSON) → PNG via `rlottie-python` + `lottie.json` extract
+- Static stickers → **WebP** → PNG via Pillow + WebP saved
+- Video stickers → **WebM** → saved as-is
 
 ### Installed Python packages
 
-`requests`, `rlottie-python`, `Pillow`, `python-dotenv` — installed in the workspace venv.
+`requests`, `rlottie-python`, `Pillow`, `python-dotenv` — workspace venv में installed।
 
-### Packs already downloaded
+### Packs downloaded (23/23 complete ✅)
 
-| Pack name | Count | Notes |
+सभी packs यहाँ हैं: `EmojiSaver/downloaded/`
+
+| # | Pack name | Emojis |
 |---|---|---|
-| `glasses_emojique_by_TgEmojis_bot` | 50 PNGs | glasses @emojique — pixel-art glasses |
+| 1 | `Iam_Hacker7_by_fStikBot` | 176 |
+| 2 | `NewsEmoji` | 100 |
+| 3 | `EwaLooter_by_fStikBot` | 182 |
+| 4 | `NewPacksVickyTricks_by_fStikBot` | 84 |
+| 5 | `ARPANPAPA` | 200 |
+| 6 | `InterfaceElements` | 140 |
+| 7 | `StellarRocketSkins` | 50 |
+| 8 | `CupidCharmSkins` | 50 |
+| 9 | `SnoopCigarSkins` | 50 |
+| 10 | `sti_created_by_by_TgEmojis_bot` | 200 |
+| 11 | `KripanshEmojis_by_fStikBot` | 200 |
+| 12 | `CARDERS_by_TgEmojis_bot` | 163 |
+| 13 | `tmeaddemojieee5e_by_fStikBot` | 200 |
+| 14 | `var1ous_by_TgEmodziBot` | 156 |
+| 15 | `FinanceEmoji` | 60 |
+| 16 | `DSPSIR_by_TgEmojis_bot` | 199 |
+| 17 | `WhiteXModz` | 197 |
+| 18 | `Topics` | 112 |
+| 19 | `TONEmoji` | 45 |
+| 20 | `t_me_PAID_HACKS_UPDATE_by_fStikBot` | 131 |
+| 21 | `EmojiMoskva` | 200 |
+| 22 | `emoji_7685f_by_TgEmojis_bot` | 133 |
+| 23 | `ANTI_LLONG12_by_TgEmojis_bot` | 77 |
 
-### Next time user gives a pack
+**Total: ~3,115 emojis downloaded**
 
-Just run:
+### किसी pack का emoji React में use करना
+
+```bash
+# किसी भी emoji की lottie.json copy करो tg selling/public/ में:
+cp EmojiSaver/downloaded/FinanceEmoji/0001/lottie.json "tg selling/public/icons/new/finance-emoji.json"
+```
+
+फिर React में `LottieIcon` component से use करो (already in `src/main.jsx`):
+
+```jsx
+<LottieIcon src="/icons/new/finance-emoji.json" size={26} />
+```
+
+### नया pack download करना
 
 ```bash
 cd /home/runner/workspace/EmojiSaver && python download_pack.py <pack_name>
 ```
 
-PNGs appear in `EmojiSaver/downloaded/<pack_name>/`.
+Output: `EmojiSaver/downloaded/<pack_name>/` folder + `.zip`
 
