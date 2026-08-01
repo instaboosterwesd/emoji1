@@ -221,7 +221,7 @@ function Login({ onSuccess }) {
           <>
             <img className="devx-logo" src={logo} alt="Brand logo" />
             <p className="eyebrow">WELCOME BACK <LottieIcon src="/icons/new/welcome-yoda.json" size={22} /></p>
-            <h1>Sign in to continue</h1>
+            <h1><LottieIcon src="/icons/new/signin-flame.json" size={28} /> Sign in to continue</h1>
             <p className="intro">Enter your phone number to connect with your account.</p>
             <form onSubmit={sendOtp}>
               <label htmlFor="phone">Phone number <LottieIcon src="/icons/new/phone-arrow.json" size={20} /></label>
@@ -247,7 +247,7 @@ function Login({ onSuccess }) {
                   </div>
                 )}
               </div>
-              <button className="primary" type="submit">Send OTP <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><LottieIcon src="/icons/new/send-flash.json" size={22} /> Send OTP <MatIcon name="arrow_forward" size={19} /></button>
             </form>
             <div className="divider"><span>or continue with</span></div>
             <div className="socials">
