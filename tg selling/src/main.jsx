@@ -12,6 +12,7 @@ import {
   ensurePhoneUser,
   ensureUserApiKey,
   getUserProfile,
+  getGoogleRedirectResult,
   loginWithApiKey,
   resetUserApiKey,
   sendIndiaOtp,
@@ -196,6 +197,7 @@ function Login({ onSuccess }) {
   const googleLogin = async () => {
     try {
       const result = await signInWithGoogle();
+      if (!result) return;
       const user = await ensureGoogleUser(result.user);
       toast.success('Google login successful');
       onSuccess(user);
@@ -614,7 +616,7 @@ function WalletView({ session, profile, refreshProfile }) {
 
       {/* ── Deposit flow overlay ── */}
       {depositStep !== 'idle' && (
-        <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) { setDepositStep('idle'); setAmount(''); setSenderUpi(''); } }}>
+        <div className="action-modal-backdrop deposit-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) { setDepositStep('idle'); setAmount(''); setSenderUpi(''); } }}>
           <section className="action-modal liquid-dialog deposit-dialog">
 
             {/* Step: amount */}
@@ -1820,6 +1822,20 @@ function App() {
 
   const updateSession = next => { localStorage.setItem('app_session', JSON.stringify(next)); setSession(next); };
   const logout = () => { localStorage.removeItem('app_session'); setSession(null); };
+
+  useEffect(() => {
+    let active = true;
+    getGoogleRedirectResult()
+      .then(async result => {
+        if (!active || !result?.user) return;
+        const user = await ensureGoogleUser(result.user);
+        if (active) updateSession(user);
+      })
+      .catch(error => {
+        if (active) toast.error(error?.message || 'Google login could not be completed.');
+      });
+    return () => { active = false; };
+  }, []);
 
   if (!online) return <ErrorTv mode="offline" />;
   if (!knownPath) return <ErrorTv mode="404" />;

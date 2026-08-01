@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { getDatabase, get, ref, set, update } from 'firebase/database';
 
 const firebaseConfig = {
@@ -48,7 +48,24 @@ export async function verifyIndiaOtp(phone, otp, currentDeviceId) {
 
 export async function signInWithGoogle() {
   if (!firebaseAuth) throw new Error('Firebase environment is not configured.');
-  return signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    return await signInWithPopup(firebaseAuth, provider);
+  } catch (error) {
+    // Mobile browsers and deployed previews often block OAuth popups.
+    // Redirect keeps the same Google flow working in those environments.
+    if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(firebaseAuth, provider);
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function getGoogleRedirectResult() {
+  if (!firebaseAuth) return null;
+  return getRedirectResult(firebaseAuth);
 }
 
 export async function getUserRole(uid) {

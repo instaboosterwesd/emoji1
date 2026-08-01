@@ -1429,3 +1429,77 @@
 .play-badge svg {
   display: block !important;
 }
+
+/* Deposit QR dialog: keep the whole card fixed on mobile.
+   The QR flow is intentionally compact instead of becoming an inner scroller. */
+.deposit-modal-backdrop {
+  overflow: hidden !important;
+  align-items: center !important;
+  place-items: center !important;
+  padding: 10px !important;
+}
+
+.deposit-modal-backdrop .deposit-dialog {
+  max-height: none !important;
+  overflow: visible !important;
+  width: min(400px, calc(100vw - 20px)) !important;
+}
+
+.deposit-modal-backdrop .qr-image {
+  max-width: min(210px, 42vh) !important;
+}
+
+@media (max-width: 520px) {
+  .deposit-modal-backdrop .deposit-dialog {
+    width: min(370px, calc(100vw - 20px)) !important;
+    padding: 14px !important;
+  }
+
+  .deposit-modal-backdrop .qr-image {
+    max-width: min(174px, 31vh) !important;
+    padding: 4px !important;
+  }
+
+  .deposit-modal-backdrop .qr-wrap {
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .deposit-modal-backdrop .upi-id-display {
+    margin-bottom: 9px !important;
+    padding: 8px 10px !important;
+    font-size: .82rem !important;
+  }
+
+  .deposit-modal-backdrop .upi-app-btn {
+    gap: 3px !important;
+    padding: 7px 4px 6px !important;
+  }
+
+  .deposit-modal-backdrop .modal-btn-row {
+    margin-top: 10px !important;
+  }
+}
+
+@media (max-height: 620px) {
+  .deposit-modal-backdrop .deposit-dialog {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .deposit-modal-backdrop .dialog-sub {
+    margin-bottom: 8px !important;
+  }
+
+  .deposit-modal-backdrop .qr-image {
+    max-width: 142px !important;
+  }
+
+  .deposit-modal-backdrop .qr-dl-btn {
+    padding: 4px 11px !important;
+  }
+
+  .deposit-modal-backdrop .modal-btn-row {
+    margin-top: 7px !important;
+  }
+}
