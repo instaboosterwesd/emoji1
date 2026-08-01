@@ -856,42 +856,69 @@
   color: rgba(255,255,255,0.5);
 }
 
-/* ── Deposit dialog ───────────────────────────────────────────── */
-.action-modal-backdrop {
-  align-items: flex-start !important;
-  padding: 16px 12px !important;
-  overflow-y: auto !important;
+/* ── Deposit full pages (replaces old modal overlay) ─────────── */
+/* Shared: card-like sections inside a deposit page */
+.deposit-page {
+  animation: deposit-fade-in .22s ease-out;
 }
 
-/* centre vertically when there's room, otherwise flush to top */
-@media (min-height: 640px) {
-  .action-modal-backdrop {
-    align-items: center !important;
-    padding: 20px !important;
-  }
+@keyframes deposit-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
-.deposit-dialog {
-  max-width: 400px !important;
-  width: 95vw !important;
-  padding: 24px 22px 20px !important;
-  max-height: calc(100dvh - 32px) !important;
-  overflow-y: auto !important;
-  margin: auto !important;
+.deposit-page-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.deposit-page-header h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 1.35rem;
 }
 
-.deposit-dialog .dialog-title-row {
-  margin-bottom: 4px !important;
-}
-.deposit-dialog .dialog-title-row h2 {
-  font-size: 1.25rem !important;
+.deposit-label {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.58);
+  margin-bottom: 14px;
 }
 
-.deposit-dialog .dialog-sub {
-  font-size: 11px !important;
-  letter-spacing: 0.4px !important;
-  margin-bottom: 18px !important;
-  color: rgba(255,255,255,0.45) !important;
+.deposit-hint {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.deposit-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: 18px 0 16px;
+}
+
+.deposit-page-card {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 22px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.13), rgba(255,255,255,0.045));
+  box-shadow: inset 1px 1px rgba(255,255,255,0.15), 0 16px 40px rgba(0,0,0,0.2);
+  backdrop-filter: blur(20px);
+  margin-bottom: 18px;
+}
+.deposit-page-card.pending {
+  text-align: center;
+}
+.deposit-page-card.pending p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.pending-id {
+  font-size: 0.7rem !important;
+  word-break: break-all;
+  display: inline-block;
+  max-width: 100%;
 }
 
 /* preset grid — 3 columns × 2 rows */
@@ -928,15 +955,8 @@
   box-shadow: 0 0 10px rgba(99,179,255,0.18), inset 0 1px rgba(255,255,255,0.08);
 }
 
-/* divider between grid and custom input */
-.deposit-dialog .deposit-divider {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  margin: 18px 0 16px;
-}
-
 /* custom amount label */
-.deposit-dialog label[for="dep-amount"] {
+.deposit-page label[for="dep-amount"] {
   display: block;
   font-size: 11px !important;
   letter-spacing: 0.8px;
@@ -946,7 +966,7 @@
 }
 
 /* custom amount input */
-.deposit-dialog input#dep-amount {
+.deposit-page input#dep-amount {
   width: 100%;
   box-sizing: border-box;
   background: rgba(255,255,255,0.05) !important;
@@ -959,11 +979,81 @@
   outline: none;
   transition: border-color 0.18s, box-shadow 0.18s;
 }
-.deposit-dialog input#dep-amount:focus {
+.deposit-page input#dep-amount:focus {
   border-color: rgba(99,179,255,0.5) !important;
   box-shadow: 0 0 0 3px rgba(99,179,255,0.10) !important;
 }
 
+/* confirm UPI input */
+.deposit-page input#sender-upi {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  color: #fff !important;
+  font-size: 1rem !important;
+  font-family: 'Space Grotesk', sans-serif;
+  outline: none;
+}
+.deposit-page input#sender-upi:focus {
+  border-color: rgba(99,179,255,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(99,179,255,0.10) !important;
+}
+
+/* main CTA buttons on deposit pages */
+.deposit-proceed-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #229ed9, #8b6cff);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(34,158,217,0.22);
+  transition: transform 0.12s, box-shadow 0.18s;
+}
+.deposit-proceed-btn:active {
+  transform: scale(0.97);
+}
+.deposit-proceed-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.deposit-paid-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #229ed9, #8b6cff);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(34,158,217,0.22);
+  transition: transform 0.12s, box-shadow 0.18s;
+}
+.deposit-paid-btn:active {
+  transform: scale(0.97);
+}
+
+/* reused from old dialog styles — kept as-is */
 .upi-id-display {
   display: flex;
   align-items: center;
@@ -978,7 +1068,6 @@
   word-break: break-all;
 }
 
-/* QR wrap + image + download */
 .qr-wrap {
   display: flex;
   flex-direction: column;
@@ -996,16 +1085,6 @@
   background: #fff;
   padding: 6px;
   box-sizing: border-box;
-}
-
-/* verified check emoji on "I have paid" button */
-.verified-check-emoji {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  mix-blend-mode: screen;
-  vertical-align: middle;
-  margin-left: 2px;
 }
 
 .qr-dl-btn {
@@ -1027,7 +1106,6 @@
   border-color: rgba(99,179,255,0.35);
 }
 
-/* UPI direct pay app buttons */
 .upi-apps-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1059,7 +1137,6 @@
 }
 .upi-app-btn:active { transform: scale(0.96); }
 
-/* individual brand accent colours */
 .upi-app-btn.gpay {
   border-color: rgba(66,133,244,0.30);
 }
@@ -1083,13 +1160,6 @@
   font-size: 0.78rem;
   color: rgba(255,255,255,0.38);
   margin-bottom: 4px;
-}
-
-.modal-btn-row {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 /* ── Detail row label with icon ──────────────────────────────── */

@@ -614,124 +614,113 @@ function WalletView({ session, profile, refreshProfile }) {
         </button>
       </div>
 
-      {/* ── Deposit flow overlay ── */}
-      {depositStep !== 'idle' && (
-        <div className="action-modal-backdrop deposit-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) { setDepositStep('idle'); setAmount(''); setSenderUpi(''); } }}>
-          <section className="action-modal liquid-dialog deposit-dialog">
+      {/* ── Deposit flow — full pages ── */}
+      {depositStep !== 'idle' && depositStep === 'amount' && (
+        <div className="deposit-page">
+          <div className="deposit-page-header">
+            <button className="back-link" onClick={() => { setDepositStep('idle'); setAmount(''); setSenderUpi(''); }}>
+              <MatIcon name="arrow_back" size={16} /> Back
+            </button>
+            <h2>Add funds</h2>
+          </div>
 
-            {/* Step: amount */}
-            {depositStep === 'amount' && (
-              <>
-                <div className="dialog-title-row">
-                  <MatIcon name="account_balance_wallet" size={22} />
-                  <h2>Add funds</h2>
-                </div>
-                <p className="muted dialog-sub">Min. deposit: {money(paySettings.minDeposit)}</p>
-                <div className="quick-amounts">
-                  {quickAmounts.map(a => (
-                    <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
-                      {money(a)}
-                    </button>
-                  ))}
-                </div>
-                <form onSubmit={handleAmountNext}>
-                  <hr className="deposit-divider" />
-                  <label htmlFor="dep-amount">Custom amount (₹)</label>
-                  <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
-                  <div className="modal-btn-row">
-                    <button type="button" onClick={() => setDepositStep('idle')}>Cancel</button>
-                    <button className="modal-save" type="submit">Proceed to pay <MatIcon name="arrow_forward" size={17} /></button>
-                  </div>
-                </form>
-              </>
-            )}
+          <div className="deposit-page-card">
+            <p className="muted deposit-label">Choose amount</p>
+            <div className="quick-amounts">
+              {quickAmounts.map(a => (
+                <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
+                  {money(a)}
+                </button>
+              ))}
+            </div>
+            <p className="muted deposit-hint">Min. deposit: {money(paySettings.minDeposit)}</p>
 
-            {/* Step: QR code */}
-            {depositStep === 'qr' && (
-              <>
-                <div className="dialog-title-row">
-                  <LottieIcon src="/icons/new/qr-scan.json" size={30} />
-                  <h2>Scan &amp; Pay</h2>
-                </div>
-                <p className="muted dialog-sub">Send exactly <strong>{money(amount)}</strong> to:</p>
-                <p className="upi-id-display"><MatIcon name="payment" size={16} /> {paySettings.upiId}</p>
+            <hr className="deposit-divider" />
+            <form onSubmit={handleAmountNext}>
+              <label htmlFor="dep-amount">Custom amount (₹)</label>
+              <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
+              <button className="deposit-proceed-btn" type="submit">
+                Proceed to pay <MatIcon name="arrow_forward" size={17} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
-                {/* QR image + download */}
-                {qrUrl && (
-                  <div className="qr-wrap">
-                    <img className="qr-image" src={qrUrl} alt="UPI QR code" />
-                    <button type="button" className="qr-dl-btn" onClick={downloadQR}>
-                      <MatIcon name="download" size={15} /> Download QR
-                    </button>
-                  </div>
-                )}
+      {depositStep !== 'idle' && depositStep === 'qr' && (
+        <div className="deposit-page">
+          <div className="deposit-page-header">
+            <button className="back-link" onClick={() => setDepositStep('amount')}>
+              <MatIcon name="arrow_back" size={16} /> Back
+            </button>
+            <h2>Scan &amp; Pay</h2>
+          </div>
 
-                {/* Direct pay buttons */}
-                <div className="upi-apps-row">
-                  <a href={upiPayLink('gpay')} className="upi-app-btn gpay">
-                    <SiGooglepay size={26} /> GPay
-                  </a>
-                  <a href={upiPayLink('phonepe')} className="upi-app-btn phonepe">
-                    <SiPhonepe size={20} /> PhonePe
-                  </a>
-                  <a href={upiPayLink('paytm')} className="upi-app-btn paytm">
-                    <SiPaytm size={20} /> Paytm
-                  </a>
-                </div>
-                <p className="muted qr-hint">Tap an app to pay directly, or scan the QR above</p>
+          <p className="deposit-label">Send exactly <strong>{money(amount)}</strong> to:</p>
+          <p className="upi-id-display"><MatIcon name="payment" size={16} /> {paySettings.upiId}</p>
 
-                <div className="modal-btn-row">
-                  <button type="button" onClick={() => setDepositStep('amount')}>
-                    <MatIcon name="arrow_back" size={16} /> Back
-                  </button>
-                  <button className="modal-save" type="button" onClick={() => setDepositStep('confirm')}>
-                    I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
-                  </button>
-                </div>
-              </>
-            )}
+          {qrUrl && (
+            <div className="qr-wrap">
+              <img className="qr-image" src={qrUrl} alt="UPI QR code" />
+              <button type="button" className="qr-dl-btn" onClick={downloadQR}>
+                <MatIcon name="download" size={15} /> Download QR
+              </button>
+            </div>
+          )}
 
-            {/* Step: confirm UPI */}
-            {depositStep === 'confirm' && (
-              <>
-                <div className="dialog-title-row">
-                  <MatIcon name="payment" size={22} />
-                  <h2>Confirm payment</h2>
-                </div>
-                <p className="muted dialog-sub">Enter the UPI ID you paid from so admin can verify.</p>
-                <form onSubmit={submitDeposit}>
-                  <label htmlFor="sender-upi">Your UPI ID</label>
-                  <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
-                  <p className="muted qr-hint">Amount: <strong>{money(amount)}</strong> → {paySettings.upiId}</p>
-                  <div className="modal-btn-row">
-                    <button type="button" disabled={busy} onClick={() => setDepositStep('qr')}>
-                      <MatIcon name="arrow_back" size={16} /> Back
-                    </button>
-                    <button className="modal-save" type="submit" disabled={busy}>
-                      {busy ? 'Submitting…' : <><MatIcon name="check" size={17} /> Submit</>}
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
+          <div className="upi-apps-row">
+            <a href={upiPayLink('gpay')} className="upi-app-btn gpay">
+              <SiGooglepay size={26} /> GPay
+            </a>
+            <a href={upiPayLink('phonepe')} className="upi-app-btn phonepe">
+              <SiPhonepe size={20} /> PhonePe
+            </a>
+            <a href={upiPayLink('paytm')} className="upi-app-btn paytm">
+              <SiPaytm size={20} /> Paytm
+            </a>
+          </div>
+          <p className="muted qr-hint">Tap an app to pay directly, or scan the QR above</p>
 
-            {/* Step: pending */}
-            {depositStep === 'pending' && (
-              <>
-                <div className="dialog-title-row">
-                  <MatIcon name="schedule" size={22} style={{ filter: 'invert(80%) sepia(1) saturate(2) hue-rotate(30deg)' }} />
-                  <h2>Request submitted</h2>
-                </div>
-                <p className="muted dialog-sub">Your deposit of <strong>{money(amount)}</strong> is pending admin approval.</p>
-                <p className="muted">Request ID: <strong style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>{pendingId}</strong></p>
-                <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
-                  <button className="modal-save" type="button" onClick={() => { setDepositStep('idle'); setAmount(''); setSenderUpi(''); }}>
-                    <MatIcon name="close" size={17} /> Close
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
+          <button className="deposit-paid-btn" type="button" onClick={() => setDepositStep('confirm')}>
+            I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
+          </button>
+        </div>
+      )}
+
+      {depositStep !== 'idle' && depositStep === 'confirm' && (
+        <div className="deposit-page">
+          <div className="deposit-page-header">
+            <button className="back-link" onClick={() => setDepositStep('qr')}>
+              <MatIcon name="arrow_back" size={16} /> Back
+            </button>
+            <h2>Confirm payment</h2>
+          </div>
+
+          <p className="deposit-label">Enter the UPI ID you paid from so admin can verify.</p>
+          <form onSubmit={submitDeposit}>
+            <label htmlFor="sender-upi">Your UPI ID</label>
+            <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
+            <p className="muted qr-hint">Amount: <strong>{money(amount)}</strong> → {paySettings.upiId}</p>
+            <button className="deposit-proceed-btn" type="submit" disabled={busy}>
+              {busy ? 'Submitting…' : <><MatIcon name="check" size={17} /> Submit</>}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {depositStep !== 'idle' && depositStep === 'pending' && (
+        <div className="deposit-page">
+          <div className="deposit-page-header">
+            <h2>Request submitted</h2>
+          </div>
+
+          <div className="deposit-page-card pending">
+            <p className="muted">Your deposit of <strong>{money(amount)}</strong> is pending admin approval.</p>
+            <p className="muted">Request ID: <strong className="pending-id">{pendingId}</strong></p>
+            <button className="deposit-proceed-btn" type="button" onClick={() => { setDepositStep('idle'); setAmount(''); setSenderUpi(''); }}>
+              <MatIcon name="close" size={17} /> Close
+            </button>
+          </div>
         </div>
       )}
 
