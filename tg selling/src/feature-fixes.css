@@ -1080,6 +1080,11 @@
 
 /* My purchases (3rd) — icon handled by LottieIcon in JSX */
 /* Active keys (4th) stat card — CSS ::before icon */
+
+/* Nav buttons with Lottie icons — suppress CSS ::before PNG */
+.bottom-nav button.has-lottie:before {
+  display: none !important;
+}
 .stats-grid .stat-card:nth-child(4):before {
   content: '' !important;
   display: block !important;

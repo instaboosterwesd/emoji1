@@ -339,7 +339,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'buy', label: 'Buy' },
-    { id: 'orders', label: 'My Orders' },
+    { id: 'orders', label: 'My Orders', lottieIcon: '/icons/new/shop-store.json' },
     { id: 'wallet', label: 'Wallet' },
     { id: 'profile', label: 'Profile' },
   ];
@@ -373,8 +373,9 @@ function Dashboard({ session, onSessionChange, onLogout }) {
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
       <nav className="bottom-nav">
-        {navItems.map(({ id, label, icon }) => (
-          <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+        {navItems.map(({ id, label, icon, lottieIcon }) => (
+          <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
+            {lottieIcon && <LottieIcon src={lottieIcon} size={22} loop />}
             {icon && <MatIcon name={icon} size={20} />}
             <span>{label}</span>
           </button>
