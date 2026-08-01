@@ -1085,6 +1085,11 @@
 .bottom-nav button.has-lottie:before {
   display: none !important;
 }
+
+/* styles.css hides all SVGs inside nav buttons; allow them for Lottie */
+.bottom-nav button.has-lottie svg {
+  display: block !important;
+}
 .stats-grid .stat-card:nth-child(4):before {
   content: '' !important;
   display: block !important;
