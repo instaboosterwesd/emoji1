@@ -1398,3 +1398,12 @@
 .stats-grid .stat-card.has-lottie:nth-child(4):before {
   display: none !important;
 }
+
+/* Play badge — Lottie emoji replaces ▶ text; remove text offset, show SVG */
+.play-badge {
+  padding-left: 0 !important;
+  font-size: 0 !important;
+}
+.play-badge svg {
+  display: block !important;
+}

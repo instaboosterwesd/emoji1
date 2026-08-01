@@ -964,7 +964,7 @@ function ProductsView({ session, onBuy }) {
                 ) : (
                   <button className="video-thumb" type="button" onClick={() => product.videos[0] ? setPlayingVideo(product.pid) : null}>
                     {product.image ? <img src={product.image} alt={product.name} loading="lazy" /> : <div className="product-media-fallback"><MatIcon name="shopping_bag" size={30} style={{ filter: 'invert(0.5)' }} /></div>}
-                    {product.videos[0] && <span className="play-badge">▶</span>}
+                    {product.videos[0] && <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={54} /></span>}
                   </button>
                 )}
               </div>
