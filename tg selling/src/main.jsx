@@ -641,7 +641,7 @@ function WalletView({ session, profile, refreshProfile }) {
             {depositStep === 'qr' && (
               <>
                 <div className="dialog-title-row">
-                  <MatIcon name="qr_code" size={22} />
+                  <LottieIcon src="/icons/new/qr-scan.json" size={30} />
                   <h2>Scan &amp; Pay</h2>
                 </div>
                 <p className="muted dialog-sub">Send exactly <strong>{money(amount)}</strong> to:</p>
@@ -961,7 +961,7 @@ function ProductsView({ session, onBuy }) {
                 </div>
               )}
               <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
-                <img src="/icons/new/buy.png" style={{width:17,height:17,objectFit:'contain',filter:'brightness(0) invert(1)'}} alt="" /> Buy Now <MatIcon name="arrow_forward" size={17} />
+                <LottieIcon src="/icons/new/buy-now-btn.json" size={22} /> Buy Now <MatIcon name="arrow_forward" size={17} />
               </button>
               {available && pricingOpen[product.pid] && (
                 <div className="duration-grid pricing-drop">

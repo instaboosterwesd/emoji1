@@ -834,10 +834,27 @@
 }
 
 /* ── Deposit dialog ───────────────────────────────────────────── */
+.action-modal-backdrop {
+  align-items: flex-start !important;
+  padding: 16px 12px !important;
+  overflow-y: auto !important;
+}
+
+/* centre vertically when there's room, otherwise flush to top */
+@media (min-height: 640px) {
+  .action-modal-backdrop {
+    align-items: center !important;
+    padding: 20px !important;
+  }
+}
+
 .deposit-dialog {
   max-width: 400px !important;
   width: 95vw !important;
   padding: 24px 22px 20px !important;
+  max-height: calc(100dvh - 32px) !important;
+  overflow-y: auto !important;
+  margin: auto !important;
 }
 
 .deposit-dialog .dialog-title-row {
