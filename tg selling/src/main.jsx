@@ -338,7 +338,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', lottieIcon: '/icons/new/shop-store.json' },
-    { id: 'buy', label: 'Buy' },
+    { id: 'buy', label: 'Buy', lottieIcon: '/icons/new/shopping-cart.json' },
     { id: 'orders', label: 'My Orders' },
     { id: 'wallet', label: 'Wallet' },
     { id: 'profile', label: 'Profile' },
@@ -403,7 +403,7 @@ function DashboardHome({ profile, role, setTab }) {
       <div className="stats-grid">
         <Stat label="Today sales" value={money(profile.todaySales)} />
         <Stat label="Monthly sales" value={money(profile.monthlySales)} />
-        <Stat label="My purchases" value={money(profile.myPurchases)} lottieIcon="/icons/new/my-purchases.json" />
+        <Stat label="My purchases" value={money(profile.myPurchases)} lottieIcon="/icons/new/shopping-cart.json" />
         <Stat label="Active keys" value={profile.active || 0} />
       </div>
       {role === 'admin' && (

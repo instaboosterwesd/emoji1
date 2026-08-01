@@ -620,15 +620,57 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
 
 **Currently used on:**
 
-| Location | File | JSON |
+| Location | How added | JSON |
 |---|---|---|
-| "I have paid" button in Scan & Pay dialog | `src/main.jsx` line ~630 | `/icons/new/verified-check.json` |
+| "I have paid" button in Scan & Pay dialog | `<LottieIcon>` inline in JSX | `/icons/new/verified-check.json` |
+| "My purchases" stat card (Dashboard) | `lottieIcon` prop on `<Stat>` | `/icons/new/shopping-cart.json` |
+| "Buy" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/shopping-cart.json` |
+| "Dashboard" bottom nav button | `lottieIcon` in `navItems` array | `/icons/new/shop-store.json` |
 
 **Important:** `lottie-web` import is at top of `src/main.jsx`:
 
 ```js
 import lottie from 'lottie-web';
 ```
+
+---
+
+### Quick reference — where to add Lottie icons in this project
+
+#### Bottom nav button
+
+1. Copy JSON to `tg selling/public/icons/new/my-icon.json`
+2. In `navItems` array (`src/main.jsx`), add `lottieIcon: '/icons/new/my-icon.json'` to the nav item:
+   ```js
+   { id: 'buy', label: 'Buy', lottieIcon: '/icons/new/my-icon.json' },
+   ```
+3. The nav render already handles it — it shows `<LottieIcon>` and adds class `has-lottie` to the button.
+4. `feature-fixes.css` already has rules that hide the CSS `::before` PNG and un-hide the SVG for `.has-lottie` buttons — **no CSS change needed**.
+
+#### Dashboard stat card (stats-grid)
+
+1. Copy JSON to `tg selling/public/icons/new/my-icon.json`
+2. Pass `lottieIcon` prop to the `<Stat>` component:
+   ```jsx
+   <Stat label="My purchases" value={...} lottieIcon="/icons/new/my-icon.json" />
+   ```
+3. Make sure the matching CSS `::before` rule for that stat card is removed from `feature-fixes.css` (search for `stat-card:nth-child(N):before`).
+
+#### Any other button / inline location
+
+Just drop `<LottieIcon>` directly:
+```jsx
+<LottieIcon src="/icons/new/my-icon.json" size={26} />
+```
+
+#### ⚠ CSS gotcha — SVGs hidden in bottom-nav
+
+`styles.css` has `.bottom-nav button svg { display: none }`.
+This kills Lottie (which renders an SVG). Always counter it with:
+```css
+.bottom-nav button.has-lottie svg { display: block !important; }
+```
+This rule already exists in `feature-fixes.css` — do not remove it.
 
 ---
 
