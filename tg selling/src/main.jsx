@@ -220,7 +220,7 @@ function Login({ onSuccess }) {
         {step === 'phone' && (
           <>
             <img className="devx-logo" src={logo} alt="Brand logo" />
-            <p className="eyebrow">WELCOME BACK</p>
+            <p className="eyebrow">WELCOME BACK <LottieIcon src="/icons/new/welcome-yoda.json" size={22} /></p>
             <h1>Sign in to continue</h1>
             <p className="intro">Enter your phone number to connect with your account.</p>
             <form onSubmit={sendOtp}>
