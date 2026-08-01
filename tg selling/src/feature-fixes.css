@@ -143,18 +143,27 @@
   filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(196, 141, 255, .22)) !important;
 }
 
-/* Balance card — money bag emoji as background decoration */
-.balance-card {
+/* Balance card — money bag emoji centered behind amount */
+.balance-amount-wrap {
   position: relative;
-  overflow: hidden;
+  display: inline-block;
+  margin: 6px 0 18px;
+}
+
+.balance-amount-wrap strong {
+  display: block;
+  font: 600 30px 'Space Grotesk';
+  margin: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .balance-money-emoji {
   position: absolute;
-  right: -8px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.22;
+  transform: translate(-50%, -50%);
+  opacity: 0.55;
   z-index: 0;
   pointer-events: none;
   display: block;
@@ -162,13 +171,6 @@
 
 .balance-money-emoji svg {
   display: block !important;
-}
-
-.balance-card > span:not(.balance-money-emoji),
-.balance-card > strong,
-.balance-card > .add-funds {
-  position: relative;
-  z-index: 1;
 }
 
 /* API settings button — Lottie icon, suppress CSS ::before */
