@@ -387,7 +387,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
           <img src={logo} alt="Brand logo" />
           <div>
             <span className="dash-kicker">WELCOME BACK</span>
-            <h2>Your dashboard</h2>
+            <h2>{profile?.name || 'User'}'s dashboard</h2>
           </div>
           <div className="header-actions">
             <button className="notif-bell-btn" onClick={openNotifs} aria-label="Notifications">
@@ -444,7 +444,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
 function DashboardHome({ profile, role, setTab }) {
   return (
     <>
-      <SectionTitle title="Dashboard" subtitle="Here's what is happening today" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle="Here's what is happening today" />
       <div className="balance-card">
         <span>My balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span>{money(profile.balance)}</span></strong>
