@@ -11,9 +11,16 @@ Examples:
     python download_pack.py https://t.me/addemoji/glasses_emojique_by_TgEmojis_bot
     python download_pack.py https://t.me/addstickers/SomeStickerPack
 
-Output:
-    ./downloaded/<pack_name>/  — all emojis as PNG files
-    ./downloaded/<pack_name>.zip — zipped archive of all PNGs
+Output structure (matches real Telegram emoji pack format):
+    downloaded/<pack_name>/
+        0001/
+            sticker.tgs       ← raw TGS file
+            sticker.png       ← rendered PNG (512×512, first frame)
+            lottie.json       ← decompressed Lottie JSON
+            info.json         ← emoji metadata (emoji char, keywords, file_id, etc.)
+        0002/
+            ...
+    downloaded/<pack_name>.zip ← ZIP of the above folder tree
 """
 
 import gzip
@@ -96,69 +103,106 @@ def main():
     stickers = pack.get("stickers", [])
     print(f"✅  '{title}'  —  {len(stickers)} items")
 
-    out_dir = Path("downloaded") / pack_name
-    out_dir.mkdir(parents=True, exist_ok=True)
+    pack_dir = Path("downloaded") / pack_name
+    pack_dir.mkdir(parents=True, exist_ok=True)
 
-    saved = []
+    # collect all files for zip
+    all_files = []
+
     for i, sticker in enumerate(stickers, 1):
         file_id   = sticker["file_id"]
         is_video  = sticker.get("is_video", False)
         is_anim   = sticker.get("is_animated", False)
+        emoji     = sticker.get("emoji", "")
+        keywords  = [k.get("keyword", "") for k in sticker.get("keywords", [])]
 
-        print(f"  [{i:>3}/{len(stickers)}] downloading...", end=" ", flush=True)
+        # each emoji gets its own numbered folder
+        emoji_dir = pack_dir / f"{i:04d}"
+        emoji_dir.mkdir(parents=True, exist_ok=True)
+
+        print(f"  [{i:>3}/{len(stickers)}] {emoji} downloading...", end=" ", flush=True)
         raw = download_file(file_id)
 
-        if is_anim:
-            # TGS → PNG + JSON (for web Lottie animations)
-            try:
-                json_data = gzip.decompress(raw)
-                json_fname = out_dir / f"{i:04d}.json"
-                json_fname.write_bytes(json_data)
-                saved.append(json_fname)
-            except Exception as exc:
-                print(f"  [warn] TGS→JSON failed: {exc}")
+        # --- build info.json (metadata) ---
+        info = {
+            "index": i,
+            "emoji": emoji,
+            "keywords": keywords,
+            "file_id": file_id,
+            "is_animated": is_anim,
+            "is_video": is_video,
+            "pack": pack_name,
+            "title": title,
+        }
+        info_path = emoji_dir / "info.json"
+        info_path.write_text(json.dumps(info, ensure_ascii=False, indent=2))
+        all_files.append(info_path)
 
+        if is_anim:
+            # Save raw TGS file
+            tgs_path = emoji_dir / "sticker.tgs"
+            tgs_path.write_bytes(raw)
+            all_files.append(tgs_path)
+
+            # Decompress to lottie.json
+            try:
+                lottie_data = gzip.decompress(raw)
+                lottie_path = emoji_dir / "lottie.json"
+                lottie_path.write_bytes(lottie_data)
+                all_files.append(lottie_path)
+            except Exception as exc:
+                print(f"  [warn] TGS→lottie.json failed: {exc}")
+
+            # Render PNG
             png = tgs_to_png(raw)
             if png:
-                fname = out_dir / f"{i:04d}.png"
-                fname.write_bytes(png)
-                saved.append(fname)
-                print(f"✓ {fname.name} + .json")
+                png_path = emoji_dir / "sticker.png"
+                png_path.write_bytes(png)
+                all_files.append(png_path)
+                print(f"✓ {i:04d}/ (tgs + lottie.json + png + info.json)")
             else:
-                # fallback: save raw TGS
-                fname = out_dir / f"{i:04d}.tgs"
-                fname.write_bytes(raw)
-                saved.append(fname)
-                print(f"⚠ {fname.name} (raw TGS, conversion failed)")
+                print(f"⚠ {i:04d}/ (tgs + lottie.json + info.json, PNG failed)")
+
         elif is_video:
-            # WebM — save as-is
-            fname = out_dir / f"{i:04d}.webm"
-            fname.write_bytes(raw)
-            saved.append(fname)
-            print(f"✓ {fname.name} (video)")
+            # WebM video sticker
+            webm_path = emoji_dir / "sticker.webm"
+            webm_path.write_bytes(raw)
+            all_files.append(webm_path)
+            print(f"✓ {i:04d}/ (webm + info.json)")
+
         else:
             # Static WebP → PNG
             try:
                 png = webp_to_png(raw)
-                fname = out_dir / f"{i:04d}.png"
-                fname.write_bytes(png)
-                saved.append(fname)
-                print(f"✓ {fname.name}")
+                png_path = emoji_dir / "sticker.png"
+                png_path.write_bytes(png)
+                all_files.append(png_path)
+                # also save original webp
+                webp_path = emoji_dir / "sticker.webp"
+                webp_path.write_bytes(raw)
+                all_files.append(webp_path)
+                print(f"✓ {i:04d}/ (png + webp + info.json)")
             except Exception as exc:
-                fname = out_dir / f"{i:04d}.webp"
-                fname.write_bytes(raw)
-                saved.append(fname)
-                print(f"⚠ {fname.name} (raw WebP): {exc}")
+                webp_path = emoji_dir / "sticker.webp"
+                webp_path.write_bytes(raw)
+                all_files.append(webp_path)
+                print(f"⚠ {i:04d}/ (raw webp + info.json): {exc}")
 
-    # zip everything
+    # zip with full folder tree: pack_name/0001/sticker.png etc.
     zip_path = Path("downloaded") / f"{pack_name}.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for f in saved:
-            zf.write(f, arcname=f"{pack_name}/{f.name}")
+        for f in all_files:
+            # arcname keeps pack_name/0001/filename structure
+            arcname = f.relative_to(Path("downloaded"))
+            zf.write(f, arcname=str(arcname))
 
-    print(f"\n🎉  Done!  {len(saved)} files saved to:")
-    print(f"   Folder : {out_dir}/")
+    print(f"\n🎉  Done!  {len(all_files)} files saved.")
+    print(f"   Folder : {pack_dir}/")
     print(f"   Archive: {zip_path}")
+    print(f"\n   ZIP structure:")
+    print(f"   {pack_name}/")
+    print(f"     0001/  sticker.tgs  sticker.png  lottie.json  info.json")
+    print(f"     0002/  ...")
 
 
 if __name__ == "__main__":
