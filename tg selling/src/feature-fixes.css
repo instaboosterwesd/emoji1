@@ -893,6 +893,9 @@
 .deposit-page-header .emoji-back:active {
   transform: scale(0.9);
 }
+.mb-\[5px\] {
+  margin-bottom: 5px;
+}
 .deposit-page-header h2 {
   margin: 0;
   flex: 1;

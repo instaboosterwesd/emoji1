@@ -1708,7 +1708,7 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'amount' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link emoji-back" onClick={goBack}>
+              <button className="back-link emoji-back mb-[5px]" onClick={goBack}>
                 <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
               </button>
               <h2>Add funds</h2>
@@ -1739,7 +1739,7 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'qr' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link emoji-back" onClick={() => setStep('amount')}>
+              <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('amount')}>
                 <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
               </button>
               <h2>Scan &amp; Pay</h2>
@@ -1776,7 +1776,7 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'confirm' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link emoji-back" onClick={() => setStep('qr')}>
+              <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('qr')}>
                 <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
               </button>
               <h2>Confirm payment</h2>
