@@ -603,7 +603,7 @@ function WalletView({ session, profile, refreshProfile }) {
 
   return (
     <>
-      <SectionTitle title="Wallet" subtitle="Manage your funds" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} /> Wallet</>} subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span>{money(profile.balance)}</span></strong>
@@ -832,7 +832,7 @@ function OrdersView({ session }) {
 
   return (
     <>
-      <SectionTitle title="My Orders" subtitle="Track your purchased license keys" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle="Track your purchased license keys" />
       <div className="filter-row">
         <div className="search-box">
           <MatIcon name="search" size={16} style={{ filter: 'invert(0.5)' }} />
@@ -930,7 +930,7 @@ function ProductsView({ session, onBuy }) {
 
   return (
     <>
-      <SectionTitle title="Buy Products" subtitle="Live products with pricing" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>} subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         <div className="search-box">
           <MatIcon name="search" size={16} style={{ filter: 'invert(0.5)' }} />
@@ -1094,7 +1094,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
 function ProfileView({ profile, openDialog, openApi }) {
   return (
     <>
-      <SectionTitle title="Profile" subtitle="Manage your account" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/profile-lottie.json" size={26} /> Profile</>} subtitle="Manage your account" />
       <div className="glass-card profile-card">
         <img src={profile.photoData || logo} alt="Profile" />
         <div>
