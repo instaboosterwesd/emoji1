@@ -105,8 +105,9 @@ const SectionTitle = ({ title, subtitle }) => (
 const Detail = ({ label, value }) => (
   <div className="detail-row"><span>{label}</span><strong>{value}</strong></div>
 );
-const Stat = ({ label, value, iconName }) => (
+const Stat = ({ label, value, iconName, lottieIcon }) => (
   <div className="stat-card">
+    {lottieIcon && <LottieIcon src={lottieIcon} size={30} />}
     {iconName && <MatIcon name={iconName} size={19} />}
     <span>{label}</span>
     <strong>{value}</strong>
@@ -401,7 +402,7 @@ function DashboardHome({ profile, role, setTab }) {
       <div className="stats-grid">
         <Stat label="Today sales" value={money(profile.todaySales)} />
         <Stat label="Monthly sales" value={money(profile.monthlySales)} />
-        <Stat label="My purchases" value={money(profile.myPurchases)} />
+        <Stat label="My purchases" value={money(profile.myPurchases)} lottieIcon="/icons/new/my-purchases.json" />
         <Stat label="Active keys" value={profile.active || 0} />
       </div>
       {role === 'admin' && (

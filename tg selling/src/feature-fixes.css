@@ -1078,20 +1078,8 @@
 }
 
 
-/* My purchases (3rd) and Active keys (4th) stat card — CSS ::before icons */
-.stats-grid .stat-card:nth-child(3):before {
-  content: '' !important;
-  display: block !important;
-  width: 30px !important;
-  height: 30px !important;
-  background-image: url('/icons/new/buy.png') !important;
-  background-size: contain !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(196, 141, 255, .35)) !important;
-  opacity: 1 !important;
-  margin-bottom: 10px !important;
-}
+/* My purchases (3rd) — icon handled by LottieIcon in JSX */
+/* Active keys (4th) stat card — CSS ::before icon */
 .stats-grid .stat-card:nth-child(4):before {
   content: '' !important;
   display: block !important;
