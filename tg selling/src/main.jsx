@@ -1728,7 +1728,7 @@ function AddFundPage({ session, onSessionChange }) {
                 <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> Custom amount (₹)</label>
                 <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
                 <button className="deposit-proceed-btn" type="submit">
-                  Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                  <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                 </button>
               </form>
             </div>
