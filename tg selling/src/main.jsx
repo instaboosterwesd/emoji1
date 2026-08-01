@@ -741,7 +741,7 @@ function WalletView({ session, profile, refreshProfile }) {
             <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
           </div>
           <button className="icon-button" onClick={loadData} aria-label="Refresh">
-            <MatIcon name="refresh" size={17} />
+            <LottieIcon src="/icons/new/history-emoji.json" size={26} />
           </button>
         </div>
         {txLoading
