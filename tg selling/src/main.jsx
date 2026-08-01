@@ -251,8 +251,8 @@ function Login({ onSuccess }) {
             </form>
             <div className="divider"><span>or continue with</span></div>
             <div className="socials">
-              <button className="social" type="button" onClick={googleLogin}><FcGoogle size={19} /><span>Google</span></button>
-              <button className="social" type="button" onClick={() => setStep('api')}><img className="telegram-logo" src={telegramLogo} alt="" /><span>Bot</span></button>
+              <button className="social" type="button" onClick={googleLogin}><LottieIcon src="/icons/new/google-lottie.json" size={24} /><span>Google</span></button>
+              <button className="social" type="button" onClick={() => setStep('api')}><LottieIcon src="/icons/new/telegram-lottie.json" size={24} /><span>Bot</span></button>
             </div>
             <Terms />
           </>
