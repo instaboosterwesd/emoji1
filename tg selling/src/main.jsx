@@ -1765,7 +1765,7 @@ function AddFundPage({ session, onSessionChange }) {
                 <SiPaytm size={20} /> Paytm
               </a>
             </div>
-            <p className="muted qr-hint">Tap an app to pay directly, or scan the QR above</p>
+            <p className="muted qr-hint"><LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /> Tap an app to pay directly, or scan the QR above <LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /></p>
             <button className="deposit-paid-btn" type="button" onClick={() => setStep('confirm')}>
               I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
             </button>
