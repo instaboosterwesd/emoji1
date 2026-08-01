@@ -106,7 +106,7 @@ const Detail = ({ label, value }) => (
   <div className="detail-row"><span>{label}</span><strong>{value}</strong></div>
 );
 const Stat = ({ label, value, iconName, lottieIcon }) => (
-  <div className="stat-card">
+  <div className={`stat-card${lottieIcon ? ' has-lottie' : ''}`}>
     {lottieIcon && <LottieIcon src={lottieIcon} size={30} />}
     {iconName && <MatIcon name={iconName} size={19} />}
     <span>{label}</span>
@@ -339,7 +339,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', lottieIcon: '/icons/new/shop-store.json' },
     { id: 'buy', label: 'Buy', lottieIcon: '/icons/new/shopping-cart.json' },
-    { id: 'orders', label: 'My Orders' },
+    { id: 'orders', label: 'My Orders', lottieIcon: '/icons/new/my-orders.json' },
     { id: 'wallet', label: 'Wallet' },
     { id: 'profile', label: 'Profile' },
   ];

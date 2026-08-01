@@ -1090,6 +1090,15 @@
 .bottom-nav button.has-lottie svg {
   display: block !important;
 }
+
+/* Stat cards with Lottie icons — styles.css hides stat-card SVGs globally */
+.stat-card.has-lottie:before {
+  display: none !important;
+}
+.stat-card.has-lottie svg {
+  display: block !important;
+  margin-bottom: 0 !important;
+}
 .stats-grid .stat-card:nth-child(4):before {
   content: '' !important;
   display: block !important;
