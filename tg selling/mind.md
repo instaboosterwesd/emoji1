@@ -545,6 +545,93 @@ JSX img tag       → direct inline icons के लिए (feature list, buy bu
 
 ---
 
+## Lottie animation on buttons / UI elements
+
+### How to use a Telegram premium emoji as a live animated icon in React
+
+**Packages needed:**
+
+```bash
+# already installed in tg selling/
+lottie-web
+```
+
+**Step 1 — Get the Lottie JSON**
+
+Download the emoji pack using EmojiSaver script:
+
+```bash
+cd /home/runner/workspace/EmojiSaver
+python download_pack.py <pack_name>
+```
+
+Or if you have a `.tgs` file (Telegram sticker), convert it:
+
+```python
+import gzip, json
+json_data = gzip.decompress(open("sticker.tgs","rb").read())
+open("sticker.json","wb").write(json_data)
+```
+
+Or the user can share the `.json` file directly (EmojiSaver outputs it too).
+
+**Step 2 — Put JSON in public folder**
+
+```bash
+cp sticker.json "tg selling/public/icons/new/my-emoji.json"
+```
+
+**Step 3 — Use the `LottieIcon` component (already in `src/main.jsx`)**
+
+```jsx
+<LottieIcon src="/icons/new/my-emoji.json" size={26} />
+```
+
+Props:
+- `src` — path to the Lottie JSON in `/public/`
+- `size` — width & height in px (default 24)
+- `loop` — true = loop forever (default), false = play once
+
+**Component code (already exists in `src/main.jsx` above `WalletView`):**
+
+```jsx
+function LottieIcon({ src, size = 24, loop = true, className = '' }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const anim = lottie.loadAnimation({
+      container: ref.current,
+      renderer: 'svg',
+      loop,
+      autoplay: true,
+      path: src,
+    });
+    return () => anim.destroy();
+  }, [src, loop]);
+  return (
+    <span
+      ref={ref}
+      className={className}
+      style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle' }}
+    />
+  );
+}
+```
+
+**Currently used on:**
+
+| Location | File | JSON |
+|---|---|---|
+| "I have paid" button in Scan & Pay dialog | `src/main.jsx` line ~630 | `/icons/new/verified-check.json` |
+
+**Important:** `lottie-web` import is at top of `src/main.jsx`:
+
+```js
+import lottie from 'lottie-web';
+```
+
+---
+
 ## Common next tasks
 
 1. Apply admin pricing rules to Buy page displayed prices.
