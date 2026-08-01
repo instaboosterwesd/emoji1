@@ -143,29 +143,36 @@
   filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(196, 141, 255, .22)) !important;
 }
 
-/* Balance card — money bag behind amount, out of layout flow */
+/* Balance card layout */
 .balance-card {
   position: relative;
   overflow: hidden;
 }
-
-.balance-money-emoji {
-  position: absolute !important;
-  top: 50%;
-  left: 18px;
-  transform: translateY(-22px); /* nudge to align behind strong text */
-  opacity: 0.48;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.balance-money-emoji svg { display: block !important; }
 
 .balance-card > span,
 .balance-card > strong,
 .balance-card > .add-funds {
   position: relative;
   z-index: 1;
+}
+
+/* Emoji + amount always inline, no overlap */
+.balance-amount {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: nowrap !important;
+}
+
+.balance-amount span {
+  display: inline !important;
+  font: inherit !important;
+  white-space: nowrap;
+}
+
+.balance-amount svg {
+  display: block !important;
+  flex-shrink: 0;
 }
 
 /* API settings button — Lottie icon, suppress CSS ::before */
