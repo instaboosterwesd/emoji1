@@ -1399,10 +1399,24 @@
   display: none !important;
 }
 
-/* Play badge — Lottie emoji replaces ▶ text; remove text offset, show SVG */
-.play-badge {
+/* Play badge — Lottie emoji replaces ▶ text; strip all background/border/glow */
+.play-badge,
+.product-card .play-badge {
   padding-left: 0 !important;
   font-size: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+  text-shadow: none !important;
+}
+.play-badge::before,
+.play-badge::after,
+.product-card .play-badge::before,
+.product-card .play-badge::after {
+  display: none !important;
 }
 .play-badge svg {
   display: block !important;
