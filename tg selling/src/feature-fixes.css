@@ -48,6 +48,11 @@
   z-index: 1;
 }
 
+.balance-card .add-funds {
+  position: relative;
+  z-index: 2;
+}
+
 /* API settings button — Lottie icon, suppress CSS ::before */
 .profile-actions button:nth-child(3).has-lottie:before {
   display: none !important;
