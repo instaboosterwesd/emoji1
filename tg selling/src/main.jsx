@@ -1750,7 +1750,7 @@ function AddFundPage({ session, onSessionChange }) {
               <div className="qr-wrap">
                 <img className="qr-image" src={qrUrl} alt="UPI QR code" />
                 <button type="button" className="qr-dl-btn" onClick={downloadQR}>
-                  <MatIcon name="download" size={15} /> Download QR
+                  <LottieIcon src="/icons/new/download-emoji.json" size={16} /> Download QR
                 </button>
               </div>
             )}
