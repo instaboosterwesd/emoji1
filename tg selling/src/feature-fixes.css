@@ -175,6 +175,14 @@
   flex-shrink: 0;
 }
 
+/* Change password button — Lottie icon, suppress CSS ::before shield */
+.profile-actions button:nth-child(2).has-lottie::before {
+  display: none !important;
+  content: none !important;
+  background-image: none !important;
+}
+.profile-actions button:nth-child(2).has-lottie svg { display: block !important; }
+
 /* API settings button — Lottie icon, suppress CSS ::before */
 .profile-actions button:nth-child(3).has-lottie:before {
   display: none !important;
