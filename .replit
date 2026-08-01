@@ -68,6 +68,7 @@ localPort = 8080
 externalPort = 8080
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "static"
 run = ["npx", "vite", "--host"]
-build = ["npm", "run", "build"]
+build = ["bash", "-c", "cd 'tg selling' && npm run build"]
+publicDir = "tg selling/dist"
