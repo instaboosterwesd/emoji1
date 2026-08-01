@@ -8,10 +8,6 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "packageManager": "npm@11.1.0",
   "dependencies": {
     "@vitejs/plugin-react": "^6.0.5",
     "country-telephone-data": "^0.6.3",
