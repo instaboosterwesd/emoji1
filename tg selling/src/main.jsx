@@ -224,7 +224,7 @@ function Login({ onSuccess }) {
             <h1>Sign in to continue</h1>
             <p className="intro">Enter your phone number to connect with your account.</p>
             <form onSubmit={sendOtp}>
-              <label htmlFor="phone">Phone number <LottieIcon src="/icons/new/phone-rocket.json" size={20} /></label>
+              <label htmlFor="phone">Phone number <LottieIcon src="/icons/new/phone-arrow.json" size={20} /></label>
               <div className="phone-field">
                 <button className="country-trigger" type="button" onClick={() => setCountryOpen(o => !o)}>
                   <span className="flag">{flag(country.iso2)}</span>
