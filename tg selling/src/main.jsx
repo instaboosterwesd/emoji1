@@ -971,7 +971,7 @@ function ProductsView({ session, onBuy }) {
               <div className={`product-head${product.features.length > 3 ? ' has-toggle' : ''}${expandedFeatures[product.pid] ? ' expanded' : ''}`}>
                 <div className="product-icon"><img src={productIconFor(product.name)} alt="" /></div>
                 <div><h3>{product.name}</h3><p className="muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p></div>
-                {product.features.length > 3 && <button className="feature-toggle" type="button" onClick={() => setExpandedFeatures(s => ({ ...s, [product.pid]: !s[product.pid] }))} aria-label="Toggle features">{expandedFeatures[product.pid] ? <MatIcon name="expand_less" size={17} /> : <LottieIcon src="/icons/new/phone-arrow.json" size={20} />}</button>}
+                {product.features.length > 3 && <button className="feature-toggle" type="button" onClick={() => setExpandedFeatures(s => ({ ...s, [product.pid]: !s[product.pid] }))} aria-label="Toggle features">{expandedFeatures[product.pid] ? <LottieIcon src="/icons/new/arrows-up-green.json" size={20} /> : <LottieIcon src="/icons/new/phone-arrow.json" size={20} />}</button>}
               </div>
               {product.features.length > 0 && (
                 <div className="feature-list">
