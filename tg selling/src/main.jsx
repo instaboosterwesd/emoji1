@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
+import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import countryData from 'country-telephone-data';
@@ -449,8 +450,39 @@ function WalletView({ session, profile, refreshProfile }) {
   useEffect(() => { loadData(); }, [loadData]);
 
   const qrUrl = paySettings.upiId
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`upi://pay?pa=${paySettings.upiId}&am=${amount}&cu=INR`)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(`upi://pay?pa=${paySettings.upiId}&am=${amount}&cu=INR&tn=WalletDeposit`)}`
     : '';
+
+  const upiPayLink = app => {
+    const pa = encodeURIComponent(paySettings.upiId);
+    const am = encodeURIComponent(amount);
+    const tn = encodeURIComponent('Wallet Deposit');
+    const base = `pa=${pa}&pn=DevX&am=${am}&cu=INR&tn=${tn}`;
+    if (app === 'gpay')    return `tez://upi/pay?${base}`;
+    if (app === 'phonepe') return `phonepe://pay?${base}`;
+    if (app === 'paytm')   return `paytmmp://pay?${base}`;
+    return `upi://pay?${base}`;
+  };
+
+  const downloadQR = () => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `pay-${paySettings.upiId}-${amount}.png`;
+      a.click();
+    };
+    img.onerror = () => {
+      // fallback: open in new tab so user can save manually
+      window.open(qrUrl, '_blank');
+    };
+    img.src = qrUrl + '&_t=' + Date.now(); // cache-bust for crossOrigin
+  };
 
   const handleAmountNext = e => {
     e.preventDefault();
@@ -543,8 +575,31 @@ function WalletView({ session, profile, refreshProfile }) {
                 </div>
                 <p className="muted dialog-sub">Send exactly <strong>{money(amount)}</strong> to:</p>
                 <p className="upi-id-display"><MatIcon name="payment" size={16} /> {paySettings.upiId}</p>
-                {qrUrl && <img className="qr-image" src={qrUrl} alt="UPI QR code" />}
-                <p className="muted qr-hint">Scan with any UPI app (PhonePe, GPay, Paytm…)</p>
+
+                {/* QR image + download */}
+                {qrUrl && (
+                  <div className="qr-wrap">
+                    <img className="qr-image" src={qrUrl} alt="UPI QR code" />
+                    <button type="button" className="qr-dl-btn" onClick={downloadQR}>
+                      <MatIcon name="download" size={15} /> Download QR
+                    </button>
+                  </div>
+                )}
+
+                {/* Direct pay buttons */}
+                <div className="upi-apps-row">
+                  <a href={upiPayLink('gpay')} className="upi-app-btn gpay">
+                    <SiGooglepay size={26} /> GPay
+                  </a>
+                  <a href={upiPayLink('phonepe')} className="upi-app-btn phonepe">
+                    <SiPhonepe size={20} /> PhonePe
+                  </a>
+                  <a href={upiPayLink('paytm')} className="upi-app-btn paytm">
+                    <SiPaytm size={20} /> Paytm
+                  </a>
+                </div>
+                <p className="muted qr-hint">Tap an app to pay directly, or scan the QR above</p>
+
                 <div className="modal-btn-row">
                   <button type="button" onClick={() => setDepositStep('amount')}>
                     <MatIcon name="arrow_back" size={16} /> Back

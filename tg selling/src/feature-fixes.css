@@ -771,20 +771,101 @@
   word-break: break-all;
 }
 
+/* QR wrap + image + download */
+.qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .qr-image {
   display: block;
-  margin: 0 auto 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 3px solid rgba(255,255,255,0.15);
-  max-width: 220px;
+  max-width: 210px;
   width: 100%;
+  background: #fff;
+  padding: 6px;
+  box-sizing: border-box;
 }
+
+.qr-dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px;
+  color: rgba(255,255,255,0.72);
+  font-size: 0.78rem;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.qr-dl-btn:hover {
+  background: rgba(99,179,255,0.14);
+  color: #fff;
+  border-color: rgba(99,179,255,0.35);
+}
+
+/* UPI direct pay app buttons */
+.upi-apps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.upi-app-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 6px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.82);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.12s;
+  letter-spacing: 0.3px;
+}
+.upi-app-btn:hover {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+.upi-app-btn:active { transform: scale(0.96); }
+
+/* individual brand accent colours */
+.upi-app-btn.gpay {
+  border-color: rgba(66,133,244,0.30);
+}
+.upi-app-btn.gpay:hover { background: rgba(66,133,244,0.14); border-color: rgba(66,133,244,0.55); }
+.upi-app-btn.gpay svg { color: #4285F4; }
+
+.upi-app-btn.phonepe {
+  border-color: rgba(83,0,235,0.30);
+}
+.upi-app-btn.phonepe:hover { background: rgba(83,0,235,0.14); border-color: rgba(83,0,235,0.55); }
+.upi-app-btn.phonepe svg { color: #a97ef9; }
+
+.upi-app-btn.paytm {
+  border-color: rgba(0,176,240,0.30);
+}
+.upi-app-btn.paytm:hover { background: rgba(0,176,240,0.14); border-color: rgba(0,176,240,0.55); }
+.upi-app-btn.paytm svg { color: #00b0f0; }
 
 .qr-hint {
   text-align: center;
-  font-size: 0.8rem;
-  color: rgba(255,255,255,0.45);
-  margin-bottom: 16px;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.38);
+  margin-bottom: 4px;
 }
 
 .modal-btn-row {
