@@ -873,6 +873,26 @@
   gap: 10px;
   margin-bottom: 18px;
 }
+.deposit-page-header .emoji-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.18s;
+}
+.deposit-page-header .emoji-back:hover {
+  background: rgba(255,255,255,0.08);
+}
+.deposit-page-header .emoji-back:active {
+  transform: scale(0.9);
+}
 .deposit-page-header h2 {
   margin: 0;
   flex: 1;
