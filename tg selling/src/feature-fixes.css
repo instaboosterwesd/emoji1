@@ -1091,6 +1091,17 @@
   display: block !important;
 }
 
+/* Pricing card duration label — Lottie timer + text row */
+.duration-label-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+.duration-label-row svg {
+  display: block !important;
+  flex: none !important;
+}
+
 /* Stat cards with Lottie icons — styles.css hides stat-card SVGs globally */
 .stat-card.has-lottie:before {
   display: none !important;

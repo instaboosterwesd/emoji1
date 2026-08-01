@@ -926,7 +926,7 @@ function ProductsView({ session, onBuy }) {
                       key={`${product.pid}-${item.label}`}
                       onClick={() => { setPricingOpen(s => ({ ...s, [product.pid]: false })); onBuy({ product, duration: item }); }}
                     >
-                      <span>{item.label}</span>
+                      <span className="duration-label-row"><LottieIcon src="/icons/new/timer.json" size={18} />{item.label}</span>
                       <b>{money(item.price)}</b>
                       {item.originalPrice && item.originalPrice !== item.price && <s className="original-price">{money(item.originalPrice)}</s>}
                     </button>
