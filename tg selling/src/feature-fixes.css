@@ -1069,6 +1069,18 @@
   margin-top: 16px;
 }
 
+/* ── Detail row label with icon ──────────────────────────────── */
+.detail-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  color: rgba(255,255,255,0.52) !important;
+}
+.detail-label img,
+.detail-label span {
+  flex-shrink: 0;
+}
+
 /* ── Transaction list (wallet) ────────────────────────────────── */
 .tx-list {
   display: flex;

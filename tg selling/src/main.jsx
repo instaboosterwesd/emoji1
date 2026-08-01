@@ -103,8 +103,15 @@ const productIconFor = name => productBrandIcons.find(b => b.test(name || ''))?.
 const SectionTitle = ({ title, subtitle }) => (
   <div className="section-title"><h1>{title}</h1><p>{subtitle}</p></div>
 );
-const Detail = ({ label, value }) => (
-  <div className="detail-row"><span>{label}</span><strong>{value}</strong></div>
+const Detail = ({ label, icon, lottieIcon, value }) => (
+  <div className="detail-row">
+    <span className="detail-label">
+      {icon && <img src={icon} style={{width:18,height:18,objectFit:'contain',borderRadius:5,flexShrink:0}} alt="" />}
+      {lottieIcon && <LottieIcon src={lottieIcon} size={18} />}
+      {label}
+    </span>
+    <strong>{value}</strong>
+  </div>
 );
 const Stat = ({ label, value, iconName, lottieIcon }) => (
   <div className={`stat-card${lottieIcon ? ' has-lottie' : ''}`}>
@@ -745,7 +752,11 @@ function WalletView({ session, profile, refreshProfile }) {
               <div className="tx-list">
                 {transactions.map(tx => (
                   <div className="tx-row" key={tx.id}>
-                    <span className="tx-icon"><MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} /></span>
+                    <span className="tx-icon">
+                      {tx.type === 'purchase'
+                        ? <img src={productIconFor((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
+                        : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
+                    </span>
                     <div className="tx-main">
                       <strong>{tx.note || tx.type || 'Transaction'}</strong>
                       <span>{fmtDate(tx.createdAt)}</span>
@@ -791,15 +802,14 @@ function OrdersView({ session }) {
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
         <SectionTitle title={selected.productName || selected.product || 'Order'} subtitle="Complete order details" />
         <div className="glass-card detail-card">
-          <div style={{ marginBottom: 8 }}><LottieIcon src="/icons/new/key-lottie.json" size={36} /></div>
-          <Detail label="Product" value={selected.productName || selected.product || '—'} />
-          <Detail label="Duration" value={selected.duration || '—'} />
-          <Detail label="Amount paid" value={money(selected.price)} />
-          <Detail label="Purchase date" value={fmtDate(selected.purchasedAt || selected.createdAt)} />
+          <Detail label="Product" icon={productIconFor(selected.productName || selected.product)} value={selected.productName || selected.product || '—'} />
+          <Detail label="Duration" lottieIcon="/icons/new/timer.json" value={selected.duration || '—'} />
+          <Detail label="Amount paid" lottieIcon="/icons/new/verified-badge.json" value={money(selected.price)} />
+          <Detail label="Purchase date" lottieIcon="/icons/new/calendar.json" value={fmtDate(selected.purchasedAt || selected.createdAt)} />
           <Detail label="Status" value={selected.status || 'active'} />
           <Detail label="Source" value={selected.source || 'api'} />
           <div className="key-reveal-box">
-            <label>License key</label>
+            <label><LottieIcon src="/icons/new/key-lottie.json" size={16} /> License key</label>
             <code>{selected.key || selected.keyCode || '—'}</code>
             {(selected.key || selected.keyCode) && (
               <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(selected.key || selected.keyCode); toast.success('Key copied!'); }}>
@@ -830,7 +840,7 @@ function OrdersView({ session }) {
             : filtered.map(k => (
               <button className="order-button" key={k.id} onClick={() => setSelected(k)}>
                 <div className="order-row">
-                  <div className="order-icon"><LottieIcon src="/icons/new/key-lottie.json" size={22} /></div>
+                  <div className="order-icon"><img src={productIconFor(k.productName || k.product)} style={{width:30,height:30,objectFit:'contain',borderRadius:9}} alt="" /></div>
                   <div className="order-main">
                     <strong>{k.productName || k.product || 'License key'}</strong>
                     <span>{k.duration || '—'} · {money(k.price)}</span>
