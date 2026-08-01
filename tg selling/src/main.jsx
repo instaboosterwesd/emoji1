@@ -501,18 +501,11 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
   );
 }
 
-/* ── WalletView — full deposit flow ─────────────────────────────── */
+/* ── WalletView — wallet home page ──────────────────────────────── */
 function WalletView({ session, profile, refreshProfile }) {
-  const [depositStep, setDepositStep] = useState('idle'); // idle | amount | qr | confirm | pending
-  const [amount, setAmount] = useState('');
-  const [senderUpi, setSenderUpi] = useState('');
   const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50 });
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [pendingId, setPendingId] = useState(null);
-
-  const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
 
   const loadData = useCallback(async () => {
     setTxLoading(true);
@@ -528,67 +521,6 @@ function WalletView({ session, profile, refreshProfile }) {
   }, [session.uid]);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  const qrUrl = paySettings.upiId
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(`upi://pay?pa=${paySettings.upiId}&am=${amount}&cu=INR&tn=WalletDeposit`)}`
-    : '';
-
-  const upiPayLink = app => {
-    const pa = encodeURIComponent(paySettings.upiId);
-    const am = encodeURIComponent(amount);
-    const tn = encodeURIComponent('Wallet Deposit');
-    const base = `pa=${pa}&pn=DevX&am=${am}&cu=INR&tn=${tn}`;
-    if (app === 'gpay')    return `tez://upi/pay?${base}`;
-    if (app === 'phonepe') return `phonepe://pay?${base}`;
-    if (app === 'paytm')   return `paytmmp://pay?${base}`;
-    return `upi://pay?${base}`;
-  };
-
-  const downloadQR = () => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `pay-${paySettings.upiId}-${amount}.png`;
-      a.click();
-    };
-    img.onerror = () => {
-      // fallback: open in new tab so user can save manually
-      window.open(qrUrl, '_blank');
-    };
-    img.src = qrUrl + '&_t=' + Date.now(); // cache-bust for crossOrigin
-  };
-
-  const handleAmountNext = e => {
-    e.preventDefault();
-    const val = Number(amount);
-    if (!val || val < paySettings.minDeposit) {
-      toast.error(`Minimum deposit is ${money(paySettings.minDeposit)}`);
-      return;
-    }
-    if (!paySettings.upiId) {
-      toast.error('Payment not configured yet. Contact admin.');
-      return;
-    }
-    setDepositStep('qr');
-  };
-
-  const submitDeposit = async e => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const id = await createPaymentRequest(session.uid, amount, senderUpi, profile.name || profile.phone);
-      setPendingId(id);
-      setDepositStep('pending');
-      await loadData();
-    } catch (err) { toast.error(err.message); }
-    finally { setBusy(false); }
-  };
 
   const txIcon = type => {
     if (type === 'deposit_approved') return 'add_circle';
@@ -609,120 +541,10 @@ function WalletView({ session, profile, refreshProfile }) {
       <div className="balance-card">
         <span>Available balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span>{money(profile.balance)}</span></strong>
-        <button className="add-funds has-lottie" onClick={() => setDepositStep('amount')}>
+        <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
       </div>
-
-      {/* ── Deposit flow — full pages ── */}
-      {depositStep !== 'idle' && depositStep === 'amount' && (
-        <div className="deposit-page">
-          <div className="deposit-page-header">
-            <button className="back-link" onClick={() => { setDepositStep('idle'); setAmount(''); setSenderUpi(''); }}>
-              <MatIcon name="arrow_back" size={16} /> Back
-            </button>
-            <h2>Add funds</h2>
-          </div>
-
-          <div className="deposit-page-card">
-            <p className="muted deposit-label">Choose amount</p>
-            <div className="quick-amounts">
-              {quickAmounts.map(a => (
-                <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
-                  {money(a)}
-                </button>
-              ))}
-            </div>
-            <p className="muted deposit-hint">Min. deposit: {money(paySettings.minDeposit)}</p>
-
-            <hr className="deposit-divider" />
-            <form onSubmit={handleAmountNext}>
-              <label htmlFor="dep-amount">Custom amount (₹)</label>
-              <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
-              <button className="deposit-proceed-btn" type="submit">
-                Proceed to pay <MatIcon name="arrow_forward" size={17} />
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {depositStep !== 'idle' && depositStep === 'qr' && (
-        <div className="deposit-page">
-          <div className="deposit-page-header">
-            <button className="back-link" onClick={() => setDepositStep('amount')}>
-              <MatIcon name="arrow_back" size={16} /> Back
-            </button>
-            <h2>Scan &amp; Pay</h2>
-          </div>
-
-          <p className="deposit-label">Send exactly <strong>{money(amount)}</strong> to:</p>
-          <p className="upi-id-display"><MatIcon name="payment" size={16} /> {paySettings.upiId}</p>
-
-          {qrUrl && (
-            <div className="qr-wrap">
-              <img className="qr-image" src={qrUrl} alt="UPI QR code" />
-              <button type="button" className="qr-dl-btn" onClick={downloadQR}>
-                <MatIcon name="download" size={15} /> Download QR
-              </button>
-            </div>
-          )}
-
-          <div className="upi-apps-row">
-            <a href={upiPayLink('gpay')} className="upi-app-btn gpay">
-              <SiGooglepay size={26} /> GPay
-            </a>
-            <a href={upiPayLink('phonepe')} className="upi-app-btn phonepe">
-              <SiPhonepe size={20} /> PhonePe
-            </a>
-            <a href={upiPayLink('paytm')} className="upi-app-btn paytm">
-              <SiPaytm size={20} /> Paytm
-            </a>
-          </div>
-          <p className="muted qr-hint">Tap an app to pay directly, or scan the QR above</p>
-
-          <button className="deposit-paid-btn" type="button" onClick={() => setDepositStep('confirm')}>
-            I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
-          </button>
-        </div>
-      )}
-
-      {depositStep !== 'idle' && depositStep === 'confirm' && (
-        <div className="deposit-page">
-          <div className="deposit-page-header">
-            <button className="back-link" onClick={() => setDepositStep('qr')}>
-              <MatIcon name="arrow_back" size={16} /> Back
-            </button>
-            <h2>Confirm payment</h2>
-          </div>
-
-          <p className="deposit-label">Enter the UPI ID you paid from so admin can verify.</p>
-          <form onSubmit={submitDeposit}>
-            <label htmlFor="sender-upi">Your UPI ID</label>
-            <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
-            <p className="muted qr-hint">Amount: <strong>{money(amount)}</strong> → {paySettings.upiId}</p>
-            <button className="deposit-proceed-btn" type="submit" disabled={busy}>
-              {busy ? 'Submitting…' : <><MatIcon name="check" size={17} /> Submit</>}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {depositStep !== 'idle' && depositStep === 'pending' && (
-        <div className="deposit-page">
-          <div className="deposit-page-header">
-            <h2>Request submitted</h2>
-          </div>
-
-          <div className="deposit-page-card pending">
-            <p className="muted">Your deposit of <strong>{money(amount)}</strong> is pending admin approval.</p>
-            <p className="muted">Request ID: <strong className="pending-id">{pendingId}</strong></p>
-            <button className="deposit-proceed-btn" type="button" onClick={() => { setDepositStep('idle'); setAmount(''); setSenderUpi(''); }}>
-              <MatIcon name="close" size={17} /> Close
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── Transaction history ── */}
       <div className="glass-card">
@@ -1793,14 +1615,230 @@ function AdminLocked({ iconName, title, text, action }) {
   );
 }
 
+/* ── AddFundPage — standalone deposit flow at /add-fund ────────── */
+function AddFundPage({ session, onSessionChange }) {
+  const [step, setStep] = useState('amount'); // amount | qr | confirm | pending
+  const [amount, setAmount] = useState('');
+  const [senderUpi, setSenderUpi] = useState('');
+  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50 });
+  const [busy, setBusy] = useState(false);
+  const [pendingId, setPendingId] = useState(null);
+  const [profile, setProfile] = useState(session);
+
+  useEffect(() => {
+    if (!session?.uid) return;
+    getPaymentSettings()
+      .then(setPaySettings)
+      .catch(err => toast.error(err.message));
+    getUserProfile(session.uid)
+      .then(next => { setProfile(next); onSessionChange(next); })
+      .catch(() => {});
+  }, [session?.uid]);
+
+  const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
+
+  const qrUrl = paySettings.upiId
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(`upi://pay?pa=${paySettings.upiId}&am=${amount}&cu=INR&tn=WalletDeposit`)}`
+    : '';
+
+  const upiPayLink = app => {
+    const pa = encodeURIComponent(paySettings.upiId);
+    const am = encodeURIComponent(amount);
+    const tn = encodeURIComponent('Wallet Deposit');
+    const base = `pa=${pa}&pn=DevX&am=${am}&cu=INR&tn=${tn}`;
+    if (app === 'gpay')    return `tez://upi/pay?${base}`;
+    if (app === 'phonepe') return `phonepe://pay?${base}`;
+    if (app === 'paytm')   return `paytmmp://pay?${base}`;
+    return `upi://pay?${base}`;
+  };
+
+  const downloadQR = () => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `pay-${paySettings.upiId}-${amount}.png`;
+      a.click();
+    };
+    img.onerror = () => window.open(qrUrl, '_blank');
+    img.src = qrUrl + '&_t=' + Date.now();
+  };
+
+  const handleAmountNext = e => {
+    e.preventDefault();
+    const val = Number(amount);
+    if (!val || val < paySettings.minDeposit) {
+      toast.error(`Minimum deposit is ${money(paySettings.minDeposit)}`);
+      return;
+    }
+    if (!paySettings.upiId) {
+      toast.error('Payment not configured yet. Contact admin.');
+      return;
+    }
+    setStep('qr');
+  };
+
+  const submitDeposit = async e => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const id = await createPaymentRequest(session.uid, amount, senderUpi, profile.name || profile.phone);
+      setPendingId(id);
+      setStep('pending');
+    } catch (err) { toast.error(err.message); }
+    finally { setBusy(false); }
+  };
+
+  const goBack = () => navigate('/');
+
+  return (
+    <main className="dashboard-page">
+      <video className="dashboard-backdrop" autoPlay muted loop playsInline aria-hidden="true">
+        <source src="/dashboard-dark.mp4" type="video/mp4" />
+      </video>
+      <div className="dashboard-veil" />
+      <div className="dash-content no-header">
+
+        {/* Step: amount */}
+        {step === 'amount' && (
+          <div className="deposit-page">
+            <div className="deposit-page-header">
+              <button className="back-link" onClick={goBack}>
+                <MatIcon name="arrow_back" size={16} /> Back
+              </button>
+              <h2>Add funds</h2>
+            </div>
+            <div className="deposit-page-card">
+              <p className="muted deposit-label">Choose amount</p>
+              <div className="quick-amounts">
+                {quickAmounts.map(a => (
+                  <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
+                    {money(a)}
+                  </button>
+                ))}
+              </div>
+              <p className="muted deposit-hint">Min. deposit: {money(paySettings.minDeposit)}</p>
+              <hr className="deposit-divider" />
+              <form onSubmit={handleAmountNext}>
+                <label htmlFor="dep-amount">Custom amount (₹)</label>
+                <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
+                <button className="deposit-proceed-btn" type="submit">
+                  Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Step: QR */}
+        {step === 'qr' && (
+          <div className="deposit-page">
+            <div className="deposit-page-header">
+              <button className="back-link" onClick={() => setStep('amount')}>
+                <MatIcon name="arrow_back" size={16} /> Back
+              </button>
+              <h2>Scan &amp; Pay</h2>
+            </div>
+            <p className="deposit-label">Send exactly <strong>{money(amount)}</strong> to:</p>
+            <p className="upi-id-display"><MatIcon name="payment" size={16} /> {paySettings.upiId}</p>
+            {qrUrl && (
+              <div className="qr-wrap">
+                <img className="qr-image" src={qrUrl} alt="UPI QR code" />
+                <button type="button" className="qr-dl-btn" onClick={downloadQR}>
+                  <MatIcon name="download" size={15} /> Download QR
+                </button>
+              </div>
+            )}
+            <div className="upi-apps-row">
+              <a href={upiPayLink('gpay')} className="upi-app-btn gpay">
+                <SiGooglepay size={26} /> GPay
+              </a>
+              <a href={upiPayLink('phonepe')} className="upi-app-btn phonepe">
+                <SiPhonepe size={20} /> PhonePe
+              </a>
+              <a href={upiPayLink('paytm')} className="upi-app-btn paytm">
+                <SiPaytm size={20} /> Paytm
+              </a>
+            </div>
+            <p className="muted qr-hint">Tap an app to pay directly, or scan the QR above</p>
+            <button className="deposit-paid-btn" type="button" onClick={() => setStep('confirm')}>
+              I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
+            </button>
+          </div>
+        )}
+
+        {/* Step: confirm */}
+        {step === 'confirm' && (
+          <div className="deposit-page">
+            <div className="deposit-page-header">
+              <button className="back-link" onClick={() => setStep('qr')}>
+                <MatIcon name="arrow_back" size={16} /> Back
+              </button>
+              <h2>Confirm payment</h2>
+            </div>
+            <p className="deposit-label">Enter the UPI ID you paid from so admin can verify.</p>
+            <form onSubmit={submitDeposit}>
+              <label htmlFor="sender-upi">Your UPI ID</label>
+              <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
+              <p className="muted qr-hint">Amount: <strong>{money(amount)}</strong> → {paySettings.upiId}</p>
+              <button className="deposit-proceed-btn" type="submit" disabled={busy}>
+                {busy ? 'Submitting…' : <><MatIcon name="check" size={17} /> Submit</>}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Step: pending */}
+        {step === 'pending' && (
+          <div className="deposit-page">
+            <div className="deposit-page-header">
+              <h2>Request submitted</h2>
+            </div>
+            <div className="deposit-page-card pending">
+              <p className="muted">Your deposit of <strong>{money(amount)}</strong> is pending admin approval.</p>
+              <p className="muted">Request ID: <strong className="pending-id">{pendingId}</strong></p>
+              <button className="deposit-proceed-btn" type="button" onClick={goBack}>
+                <MatIcon name="close" size={17} /> Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        <Toaster position="top-center" offset={18} theme="dark" toastOptions={toastOptions} />
+      </div>
+    </main>
+  );
+}
+
+/* ── Simple router — history.pushState based ──────────────────── */
+function usePathname() {
+  const [path, setPath] = useState(window.location.pathname);
+  useEffect(() => {
+    const handlePop = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
+  return path;
+}
+
+function navigate(to) {
+  window.history.pushState(null, '', to);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
 /* ── App root ───────────────────────────────────────────────────── */
 function App() {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [session, setSession] = useState(() => {
     try { return JSON.parse(localStorage.getItem('app_session') || 'null'); } catch { return null; }
   });
-  const path = window.location.pathname;
-  const knownPath = path === '/' || path === '/admin';
+  const path = usePathname();
+  const knownPath = path === '/' || path === '/admin' || path === '/add-fund';
 
   useEffect(() => {
     const upd = () => setOnline(navigator.onLine);
@@ -1828,10 +1866,10 @@ function App() {
 
   if (!online) return <ErrorTv mode="offline" />;
   if (!knownPath) return <ErrorTv mode="404" />;
+  if (!session) return <><Login onSuccess={updateSession} /><Toaster position="top-center" offset={18} theme="dark" toastOptions={toastOptions} /></>;
   if (path === '/admin') return <AdminPage session={session} onSessionChange={updateSession} />;
-  return session
-    ? <Dashboard session={session} onSessionChange={updateSession} onLogout={logout} />
-    : <><Login onSuccess={updateSession} /><Toaster position="top-center" offset={18} theme="dark" toastOptions={toastOptions} /></>;
+  if (path === '/add-fund') return <AddFundPage session={session} onSessionChange={updateSession} />;
+  return <Dashboard session={session} onSessionChange={updateSession} onLogout={logout} />;
 }
 
 /* ── Error TV ───────────────────────────────────────────────────── */
