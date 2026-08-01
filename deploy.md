@@ -1,51 +1,39 @@
-# Vercel Deployment
+# Deployment
 
-This project has been deployed to Vercel.
+## GitHub Repository
 
-## Deployment Info
+- **Repo**: [yikav542058956/tgselling](https://github.com/yikav542058956/tgselling)
+- Code has been pushed to the `main` branch.
 
-- **Vercel Token**: Saved as Replit secret `VERCEL_TOKEN` (not stored in plaintext for security)
-- **Vercel Project**: `tg-selling`
-- **Framework**: Vite (React)
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
+## Vercel Deploy (from GitHub)
 
-## Deployment URL
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import the **yikav542058956/tgselling** repository
+3. Set:
+   - **Root Directory**: `tg selling`
+   - **Framework**: Vite
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Click **Deploy**
 
-The project has been configured for Replit deployment. Click the Publish button to deploy it live.
+## Vercel Project (already created via API)
 
-## How to Publish (Replit)
+- **Project Name**: `tg-selling`
+- **Token**: Saved as Replit secret `VERCEL_TOKEN`
 
-1. Click the **Publish** button (suggested above)
-2. The app will build and deploy automatically
-3. You'll get a `.replit.app` URL or custom domain
+## Env Variables (needed in Vercel)
 
-## How to Redeploy to Vercel (if needed)
+Add these in Vercel project settings → Environment Variables:
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_DATABASE_URL`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_RESELLER_ENDPOINT`
+- `VITE_RESELLER_API_KEY`
+- `VITE_RESELLER_MASTER_KEY`
+- `VITE_PRODUCTS_ENDPOINT`
 
-The Vercel project `tg-selling` has been created. To redeploy:
-
-1. Make sure the Vercel token is set as `VERCEL_TOKEN` in Replit secrets
-2. Run `npm run build` in the `tg selling` directory
-3. Use the Vercel API:
-   ```bash
-   curl -X POST https://api.vercel.com/v13/deployments \
-     -H "Authorization: Bearer $VERCEL_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "name": "tg-selling",
-       "files": [],
-       "projectSettings": {
-         "framework": "vite",
-         "buildCommand": "npm run build",
-         "outputDirectory": "dist",
-         "installCommand": "npm install"
-       }
-     }'
-   ```
-
-## Notes
-
-- Vercel CLI could not be installed due to Replit package firewall
-- Vercel project was created via REST API but full deployment failed due to file upload API limitations
-- Replit's built-in deployment is the recommended path for this project
-- Vercel token is stored as Replit secret `VERCEL_TOKEN` (not in plaintext)
+(Values are in Replit secrets — copy them to Vercel)
