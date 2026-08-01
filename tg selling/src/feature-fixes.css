@@ -148,6 +148,8 @@
   position: relative;
   display: inline-block;
   margin: 6px 0 18px;
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 .balance-amount-wrap strong {
@@ -163,7 +165,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.55;
+  opacity: 0.5;
   z-index: 0;
   pointer-events: none;
   display: block;

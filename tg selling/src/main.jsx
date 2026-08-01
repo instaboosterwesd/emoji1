@@ -441,7 +441,7 @@ function DashboardHome({ profile, role, setTab }) {
       <div className="balance-card">
         <span>My balance</span>
         <div className="balance-amount-wrap">
-          <span className="balance-money-emoji"><LottieIcon src="/icons/new/money-bag.json" size={64} /></span>
+          <span className="balance-money-emoji"><LottieIcon src="/icons/new/money-bag.json" size={38} /></span>
           <strong>{money(profile.balance)}</strong>
         </div>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
@@ -603,7 +603,7 @@ function WalletView({ session, profile, refreshProfile }) {
       <div className="balance-card">
         <span>Available balance</span>
         <div className="balance-amount-wrap">
-          <span className="balance-money-emoji"><LottieIcon src="/icons/new/money-bag.json" size={64} /></span>
+          <span className="balance-money-emoji"><LottieIcon src="/icons/new/money-bag.json" size={38} /></span>
           <strong>{money(profile.balance)}</strong>
         </div>
         <button className="add-funds has-lottie" onClick={() => setDepositStep('amount')}>
