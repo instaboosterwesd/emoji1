@@ -341,7 +341,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
     { id: 'buy', label: 'Buy', lottieIcon: '/icons/new/shopping-cart.json' },
     { id: 'orders', label: 'My Orders', lottieIcon: '/icons/new/my-orders.json' },
     { id: 'wallet', label: 'Wallet', lottieIcon: '/icons/new/wallet-lottie.json' },
-    { id: 'profile', label: 'Profile' },
+    { id: 'profile', label: 'Profile', lottieIcon: '/icons/new/profile-lottie.json' },
   ];
 
   const section =
