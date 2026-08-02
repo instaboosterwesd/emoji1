@@ -771,7 +771,7 @@ function ProductsView({ session, onBuy }) {
   const [playingVideo, setPlayingVideo] = useState(null);
   const [pricingOpen, setPricingOpen] = useState({});
   const [expandedFeatures, setExpandedFeatures] = useState({});
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(3);
 
   const applyPricing = useCallback((product) => {
     return {
@@ -911,7 +911,7 @@ function ProductsView({ session, onBuy }) {
           );
         })}
         {!loading && !error && visibleCount < filtered.length && (
-          <button className="load-more glass-card" type="button" onClick={() => setVisibleCount(c => c + 5)}>Load more products</button>
+          <button className="load-more glass-card" type="button" onClick={() => setVisibleCount(c => c + 3)}>Load more products</button>
         )}
       </div>
     </>
