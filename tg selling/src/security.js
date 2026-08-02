@@ -253,7 +253,7 @@ export function initSecurity() {
 
   addSecurityMetaTags();
   initInputProtection();
-  initDevToolsBlocker();
+  // initDevToolsBlocker(); // temporarily disabled — user will ask to re-enable
 
   console.log('✓ Security initialized');
 }
