@@ -1002,8 +1002,8 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           <label><LottieIcon src="/icons/new/key-emoji.json" size={18} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
           <label><LottieIcon src="/icons/new/new-password-emoji.json" size={18} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}>Cancel</button>
-            <button className="modal-save" type="submit">Change</button>
+            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Change</button>
           </div>
         </form>
       )}
