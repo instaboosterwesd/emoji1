@@ -1,0 +1,335 @@
+// DevTools Blocker - Only activates in production mode
+// This script waits for Angular to set window.__ENABLE_DEVTOOLS_BLOCKING__ flag
+
+(function() {
+  'use strict';
+  
+  // Wait for Angular to set the flag
+  var checkProductionMode = function() {
+    return window.__ENABLE_DEVTOOLS_BLOCKING__ === true;
+  };
+  
+  // Poll for the flag with retry mechanism
+  var maxRetries = 20; // 20 attempts
+  var retryDelay = 100; // 100ms between attempts
+  var attempts = 0;
+  
+  var waitForAngular = function() {
+    attempts++;
+    
+    if (window.__ENABLE_DEVTOOLS_BLOCKING__ !== undefined) {
+      // Flag is set by Angular
+      if (checkProductionMode()) {
+        console.log('Production mode detected - initializing DevTools blocking');
+        initDevToolsBlocking();
+      } else {
+        console.log('DevTools blocking disabled (not in production mode)');
+      }
+    } else if (attempts < maxRetries) {
+      // Flag not set yet, retry
+      setTimeout(waitForAngular, retryDelay);
+    } else {
+      // Timeout - assume not production
+      console.log('DevTools blocking disabled (timeout waiting for Angular)');
+    }
+  };
+  
+  // Start polling after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForAngular);
+  } else {
+    waitForAngular();
+  }
+  
+  function initDevToolsBlocking() {
+    
+    // Check if this is running on a REAL mobile device or DESKTOP with emulation
+    var isRealDesktopDevice = function() {
+      var platform = navigator.platform.toLowerCase();
+      
+      // Check for DESKTOP operating system platform
+      // Desktop platforms: Windows, Mac, Linux, etc.
+      var isDesktopPlatform = /win|mac|linux/i.test(platform) ||
+      platform.indexOf('win') !== -1 ||
+      platform.indexOf('mac') !== -1 ||
+      platform.indexOf('linux') !== -1;
+      
+      return isDesktopPlatform;
+    };
+    
+    // Only apply DevTools blocking on desktop OS
+    if (!isRealDesktopDevice()) {
+      return; // Exit early for real mobile devices with mobile OS
+    }
+    
+    
+    const el = new Image();
+    let consoleIsOpen = false;
+    
+    Object.defineProperty(el, 'id', {
+      get: () => {
+        consoleIsOpen = true;
+      }
+    });
+    
+    console.log(consoleIsOpen);
+    
+    // Disable right-click
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+    
+    // Disable text selection
+    document.addEventListener('selectstart', function(e) {
+      if (e.target.nodeName !== 'INPUT' && e.target.nodeName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    });
+    
+    // Disable copy
+    document.addEventListener('copy', function(e) {
+      if (e.target.nodeName !== 'INPUT' && e.target.nodeName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    });
+    
+    // Detect DevTools
+    var devtools = { open: false, orientation: null };
+    var threshold = 160;
+    var warningShown = false;
+    var devtoolsEverOpened = false; // Track if DevTools were opened during current page session
+    
+    var showDevToolsWarning = function() {
+      if (!warningShown) {
+        warningShown = true;
+        
+        // Create modal overlay
+        var overlay = document.createElement('div');
+        overlay.id = 'devtools-warning-overlay';
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2147483647; display: flex; align-items: center; justify-content: center;';
+        
+        // Create modal content
+        var modal = document.createElement('div');
+        modal.style.cssText = 'background: white; padding: 40px; border-radius: 15px; max-width: 600px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);';
+        modal.innerHTML = '<div style="color: #dc3545; font-size: 64px; margin-bottom: 20px;">🚫</div>' +
+        '<h1 style="color: #dc3545; margin-bottom: 15px; font-family: Arial, sans-serif; font-size: 28px;">Access Denied</h1>' +
+        '<h2 style="color: #264e90; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 20px;">Developer Tools Detected</h2>' +
+        '<p style="color: #333; font-size: 16px; line-height: 1.8; margin-bottom: 25px; font-family: Arial, sans-serif;"><strong>This website cannot be accessed with browser developer tools open.</strong><br><br>Please close the developer tools (F12, Inspect Element, Console, or Device Toolbar) and reload the page to continue.</p>' +
+        '<div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 25px;">' +
+        '<p style="color: #856404; margin: 0; font-size: 14px; font-family: Arial, sans-serif;"><strong>Instructions:</strong><br>1. Close all DevTools windows<br>2. Press ESC key or close DevTools tab<br>3. Click the reload button below</p>' +
+        '</div>' +
+        '<button id="reload-btn" style="background: #264e90; color: white; border: none; padding: 14px 40px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif; transition: background 0.3s;">Reload Page</button>';
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Prevent closing the modal
+        overlay.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        
+        // Reload button functionality
+        document.getElementById('reload-btn').addEventListener('click', function() {
+          window.location.reload();
+        });
+        
+        // Completely hide and disable main content
+        var appRoot = document.querySelector('app-root');
+        if (appRoot) {
+          appRoot.style.display = 'none';
+        }
+        
+        // Hide entire body content except overlay
+        document.body.style.overflow = 'hidden';
+        
+        // Disable all interactions
+        document.body.style.pointerEvents = 'none';
+        overlay.style.pointerEvents = 'auto';
+      }
+    };
+    
+    var hideDevToolsWarning = function() {
+      var overlay = document.getElementById('devtools-warning-overlay');
+      if (overlay) {
+        overlay.remove();
+      }
+      
+      var appRoot = document.querySelector('app-root');
+      if (appRoot) {
+        appRoot.style.display = '';
+        appRoot.style.filter = 'none';
+        appRoot.style.pointerEvents = 'auto';
+      }
+      
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
+      
+      warningShown = false;
+    };
+    
+    var emitEvent = function(state, orientation) {
+      window.dispatchEvent(new CustomEvent('devtoolschange', {
+        detail: { open: state, orientation: orientation }
+      }));
+      
+      if (state) {
+        showDevToolsWarning();
+      } else {
+        hideDevToolsWarning();
+      }
+    };
+    
+    // Check for devtools using multiple methods
+    var checkDevTools = function() {
+      var widthDiff = window.outerWidth - window.innerWidth;
+      var heightDiff = window.outerHeight - window.innerHeight;
+      var viewportWidth = window.innerWidth;
+      var viewportHeight = window.innerHeight;
+      var screenWidth = window.screen.availWidth || window.screen.width;
+      var screenHeight = window.screen.availHeight || window.screen.height;
+      
+      var widthThreshold = widthDiff > threshold;
+      var heightThreshold = heightDiff > threshold;
+      var orientation = widthThreshold ? 'vertical' : 'horizontal';
+      
+      // DevTools detection: Check if there's significant dimension difference
+      var isDevToolsOpen = widthThreshold || heightThreshold;
+      
+      // Check for responsive/device mode ONLY on very large screens with very small viewport
+      // This catches Pixel 7 (412px) on desktop monitors (1920px+) but not small windows
+      var isVeryLargeScreen = screenWidth > 1600; // Only large desktop monitors
+      var isVeryTinyViewport = viewportWidth < 500; // Smaller than any reasonable browser window
+      
+      if (isVeryLargeScreen && isVeryTinyViewport) {
+        isDevToolsOpen = true;
+      }
+      
+      // Also check for Firebug
+      if (window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) {
+        isDevToolsOpen = true;
+      }
+      
+      // CRITICAL: Block when DevTools is currently open
+      if (isDevToolsOpen) {
+        if (!devtools.open || devtools.orientation !== orientation) {
+          devtoolsEverOpened = true; // Mark that DevTools were opened this page load
+          emitEvent(true, orientation);
+          devtools.open = true;
+          devtools.orientation = orientation;
+        }
+      } else {
+        // DevTools not detected, allow unblocking
+        if (devtools.open) {
+          emitEvent(false, null);
+          devtools.open = false;
+          devtools.orientation = null;
+          devtoolsEverOpened = false;
+        }
+      }
+    };
+    
+    
+    // Initial immediate check on page load
+    (function initialDevToolsCheck() {
+      // Check window dimensions immediately
+      var widthDiff = window.outerWidth - window.innerWidth;
+      var heightDiff = window.outerHeight - window.innerHeight;
+      var viewportWidth = window.innerWidth;
+      var screenWidth = window.screen.availWidth || window.screen.width;
+      
+      // Check 1: Significant dimension difference (DevTools panel open)
+      if (widthDiff > threshold || heightDiff > threshold) {
+        devtoolsEverOpened = true;
+        devtools.open = true;
+        showDevToolsWarning();
+        return;
+      }
+      
+      // Check 2: Device emulation mode - very small viewport on very large screen
+      var isVeryLargeScreen = screenWidth > 1600;
+      var isVeryTinyViewport = viewportWidth < 500;
+      
+      if (isVeryLargeScreen && isVeryTinyViewport) {
+        devtoolsEverOpened = true;
+        devtools.open = true;
+        showDevToolsWarning();
+        return;
+      }
+    })();
+    
+    // Run checks continuously
+    setInterval(checkDevTools, 200); // Check every 200ms for immediate detection
+    
+    // Monitor DOM changes to prevent removal of warning overlay while DevTools open
+    var observer = new MutationObserver(function(mutations) {
+      if (devtools.open) {
+        var overlay = document.getElementById('devtools-warning-overlay');
+        if (!overlay && warningShown) {
+          // Warning overlay was removed, restore it
+          warningShown = false;
+          showDevToolsWarning();
+        }
+      }
+    });
+    
+    // Observe the entire document for changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Also check immediately on window resize (catches responsive mode toggle)
+    window.addEventListener('resize', function() {
+      checkDevTools();
+    });
+    
+    // Check on viewport changes
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function() {
+        checkDevTools();
+      });
+    }
+    
+    // Disable keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // F12
+      if (e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+Shift+I
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+Shift+J
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+Shift+C
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+U
+      if (e.ctrlKey && e.keyCode === 85) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+S
+      if (e.ctrlKey && e.keyCode === 83) {
+        e.preventDefault();
+        return false;
+      }
+    });
+    
+    // Disable drag and drop
+    document.addEventListener('dragstart', function(e) {
+      e.preventDefault();
+    });
+    
+  } // End of initDevToolsBlocking function
+  
+})();
