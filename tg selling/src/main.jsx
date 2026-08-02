@@ -450,7 +450,7 @@ function DashboardHome({ profile, role, setTab }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle="Here's what is happening today" />
       <div className="balance-card">
         <span>My balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span><MoneyDisplay value={profile.balance} /></span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
         </button>
@@ -541,7 +541,7 @@ function WalletView({ session, profile, refreshProfile }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} /> Wallet</>} subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span><MoneyDisplay value={profile.balance} /></span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
