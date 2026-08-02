@@ -1675,17 +1675,6 @@
   text-align: center;
   color: #fff;
 }
-.perf-dialog-icon {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 12px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #229ed9, #7b5cf5);
-  font-size: 26px;
-  box-shadow: 0 8px 24px rgba(34,158,217,.35);
-}
 .perf-dialog h2 {
   font: 600 22px 'Space Grotesk', sans-serif;
   margin: 0 0 8px;
@@ -1734,19 +1723,37 @@
   font-size: 11px;
   color: rgba(255,255,255,.55);
 }
-.perf-dont-ask {
-  display: flex !important;
+.perf-dialog-footer {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 18px 0 0 !important;
-  cursor: pointer;
-  font-size: 12px !important;
-  color: rgba(255,255,255,.55);
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
 }
-.perf-dont-ask input {
-  width: 16px;
-  height: 16px;
-  accent-color: #229ed9;
+.perf-dont-ask {
   cursor: pointer;
+  font-size: 12px;
+  color: rgba(255,255,255,.45);
+  transition: color .2s;
+}
+.perf-dont-ask:hover {
+  color: rgba(255,255,255,.75);
+}
+.perf-close-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.6);
+  font-size: 14px;
+  cursor: pointer;
+  transition: .2s;
+}
+.perf-close-btn:hover {
+  background: rgba(255,255,255,.16);
+  color: #fff;
 }

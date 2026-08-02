@@ -588,32 +588,28 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
 }
 
 /* ── PerformanceDialog — first-visit device picker ─────────────── */
-function PerformanceDialog({ onSelect }) {
-  const [dontAsk, setDontAsk] = useState(false);
-
+function PerformanceDialog({ onSelect, onSkip }) {
   const pick = mode => {
     localStorage.setItem('perf_mode', mode);
-    if (dontAsk) localStorage.setItem('perf_dont_ask', '1');
     onSelect(mode);
   };
 
   return (
     <div className="perf-dialog-backdrop">
       <div className="perf-dialog liquid-dialog">
-        <div className="perf-dialog-icon">⚡</div>
-        <h2>Choose your experience</h2>
+        <h2>✨ Choose your experience</h2>
         <p className="perf-dialog-desc">
           Select your device performance level for the best experience.
         </p>
         <div className="perf-dialog-options">
-          <button className="perf-option perf-high" onClick={() => pick('high')}>
+          <button className="perf-option" onClick={() => pick('high')}>
             <span className="perf-option-icon">🚀</span>
             <div>
               <strong>High Performance Device</strong>
               <span className="perf-option-desc">Full animations &amp; effects</span>
             </div>
           </button>
-          <button className="perf-option perf-low" onClick={() => pick('low')}>
+          <button className="perf-option" onClick={() => pick('low')}>
             <span className="perf-option-icon">📱</span>
             <div>
               <strong>Low Performance Device</strong>
@@ -621,10 +617,10 @@ function PerformanceDialog({ onSelect }) {
             </div>
           </button>
         </div>
-        <label className="perf-dont-ask">
-          <input type="checkbox" checked={dontAsk} onChange={e => setDontAsk(e.target.checked)} />
-          <span>Don&apos;t ask again</span>
-        </label>
+        <div className="perf-dialog-footer">
+          <span className="perf-dont-ask" onClick={() => { localStorage.setItem('perf_dont_ask', '1'); localStorage.setItem('perf_mode', 'high'); onSelect('high'); }}>Don&apos;t ask again</span>
+          <button className="perf-close-btn" onClick={() => { localStorage.setItem('perf_mode', 'high'); onSelect('high'); }} aria-label="Close">✕</button>
+        </div>
       </div>
     </div>
   );
