@@ -890,7 +890,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
           </>
         ) : (
           <>
-            <h2>Confirm purchase</h2>
+            <h2>Confirm purchase <LottieIcon src="/icons/new/confirm-purchase-emoji.json" size={24} /></h2>
             <div className="purchase-summary">
               <div className="purchase-title">
                 <span>Selected product</span>
