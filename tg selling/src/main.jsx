@@ -347,9 +347,18 @@ function Terms() {
 
 /* ── Dashboard shell ────────────────────────────────────────────── */
 function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, onPerfSelect }) {
+  const prevPerf = useRef(perfMode);
   const [tab, setTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
+
+  /* ── Auto‑refresh when perf mode is permanently changed ── */
+  useEffect(() => {
+    if (prevPerf.current !== null && prevPerf.current !== perfMode) {
+      location.reload();
+    }
+    prevPerf.current = perfMode;
+  }, [perfMode]);
   const [profile, setProfile] = useState(session);
   const [apiState, setApiState] = useState({ apiKey: '', last4: session.apiKeyLast4 || '' });
   const [purchase, setPurchase] = useState(null);
@@ -586,7 +595,7 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
   }
 
   return (
-    <span ref={ref} className={className} style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle' }} />
+    <span ref={ref} className={className} style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle', overflow: 'hidden' }} />
   );
 }
 
