@@ -216,6 +216,15 @@
   display: block !important;
 }
 
+/* Gift code button — Lottie icon, suppress CSS ::before */
+.profile-actions button:nth-child(5).has-lottie::before {
+  display: none !important;
+  content: none !important;
+  background-image: none !important;
+}
+.profile-actions button:nth-child(5).has-lottie svg { display: block !important; }
+
+
 .profile-actions .danger:before {
   filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(255, 120, 120, .22)) !important;
 }
