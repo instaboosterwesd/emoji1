@@ -447,7 +447,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
 function DashboardHome({ profile, role, setTab }) {
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle="Here's what is happening today" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <LottieIcon src="/icons/new/today-emoji.json" size={18} /></>} />
       <div className="balance-card">
         <span>My balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
