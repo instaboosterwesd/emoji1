@@ -1013,8 +1013,8 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
           <p>This key enables Bot login. Keep it private.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}>Close</button>
-            <button className="modal-save" type="button" onClick={resetApi}>Reset key</button>
+            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Close</button>
+            <button className="modal-save has-lottie" type="button" onClick={resetApi}>Reset key</button>
           </div>
         </section>
       )}
