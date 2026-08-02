@@ -50,6 +50,7 @@ import {
 import './styles.css';
 import './feature-fixes.css';
 import './site-status.css';
+import './issues.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */
 const logo = '/devx-logo.png';
@@ -1156,6 +1157,68 @@ function UserHistoryDialog({ user, onClose }) {
   );
 }
 
+/* ── UserViewDialog — view user details from issues ───────────── */
+function UserViewDialog({ user, onClose }) {
+  const [profile, setProfile] = useState(null);
+  useEffect(() => {
+    if (!user?.uid) return;
+    getUserProfile(user.uid).then(setProfile).catch(() => setProfile({ ...user, balance: 0, status: 'unknown' }));
+  }, [user?.uid]);
+
+  if (!user) return null;
+  const p = profile || user;
+
+  return (
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="action-modal liquid-dialog" style={{ maxWidth: 420 }}>
+        <div className="dialog-title-row">
+          <MatIcon name="person" size={20} />
+          <h2>User details</h2>
+          <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
+        </div>
+        <div className="profile-detail-grid">
+          <div className="profile-detail-row">
+            <span><MatIcon name="badge" size={16} /> Name</span>
+            <strong>{p.name || '—'}</strong>
+          </div>
+          <div className="profile-detail-row">
+            <span><MatIcon name="phone" size={16} /> Phone</span>
+            <strong>{p.phone || '—'}</strong>
+          </div>
+          <div className="profile-detail-row">
+            <span><MatIcon name="email" size={16} /> Email</span>
+            <strong>{p.email || '—'}</strong>
+          </div>
+          <div className="profile-detail-row">
+            <span><MatIcon name="account_balance_wallet" size={16} /> Balance</span>
+            <strong><MoneyDisplay value={p.balance} /></strong>
+          </div>
+          <div className="profile-detail-row">
+            <span><MatIcon name="vpn_key" size={16} /> UID</span>
+            <strong style={{ fontSize: '11px', wordBreak: 'break-all' }}>{user.uid}</strong>
+          </div>
+          <div className="profile-detail-row">
+            <span><MatIcon name="badge" size={16} /> Role</span>
+            <strong>{p.role || 'user'}</strong>
+          </div>
+          <div className="profile-detail-row">
+            <span><MatIcon name="check_circle" size={16} /> Status</span>
+            <strong style={{ color: p.status === 'banned' ? '#f87171' : '#74e0a5' }}>{p.status || 'active'}</strong>
+          </div>
+        </div>
+        {p.phone && (
+          <a href={`tel:${p.phone}`} className="modal-save" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, textDecoration: 'none' }}>
+            <MatIcon name="call" size={16} /> Call {p.phone}
+          </a>
+        )}
+        <div className="modal-btn-row" style={{ justifyContent: 'center', marginTop: 8 }}>
+          <button type="button" onClick={onClose}><MatIcon name="close" size={16} /> Close</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 /* ── PricingEditDialog ──────────────────────────────────────────── */
 function PricingEditDialog({ product, onClose, onSave }) {
   const [rules, setRules] = useState({});
@@ -1267,8 +1330,9 @@ function AdminPage({ session, onSessionChange }) {
   // Manual keys
   const [manualKeyForm, setManualKeyForm] = useState({ pid: '', productName: '', duration: '', key: '' });
   const [manualKeys, setManualKeys] = useState([]);
-  // Admin alerts
+  // Admin alerts / Issues
   const [adminAlerts, setAdminAlerts] = useState([]);
+  const [viewIssueUser, setViewIssueUser] = useState(null);
   // Site status
   const [siteStatus, setSiteStatus] = useState('operational');
   const [siteStatusMsg, setSiteStatusMsg] = useState('');
@@ -1279,6 +1343,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'users', label: 'Users', icon: 'people' },
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
+    { id: 'issues', label: 'Issues', icon: 'error_outline' },
     { id: 'key-history', label: 'License History', icon: 'history' },
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
@@ -1569,6 +1634,48 @@ function AdminPage({ session, onSessionChange }) {
       </div>
     ),
 
+    issues: (
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <MatIcon name="error_outline" size={20} style={{ color: '#ff7089' }} />
+            <div><h3>Issues — keys exhausted</h3><p className="muted">Users who got blocked due to no keys</p></div>
+          </div>
+          {adminAlerts.some(a => !a.resolved) && (
+            <button className="danger-mini" onClick={() => safeAction(clearResolvedAlerts, 'Resolved alerts cleared')}>
+              <MatIcon name="clear_all" size={14} /> Clear resolved
+            </button>
+          )}
+        </div>
+        <AdminList items={adminAlerts} empty="No issues — all clear!" render={alert => (
+          <AdminRow
+            title={
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {alert.resolved ? <MatIcon name="check_circle" size={14} style={{ color: '#74e0a5' }} /> : <MatIcon name="error" size={14} style={{ color: '#ff7089' }} />}
+                {alert.productName || 'Unknown product'}
+              </span>
+            }
+            meta={`${alert.duration || '—'} · ${fmtDate(alert.timestamp)}`}
+            status={alert.resolved ? '✓ Resolved' : '⚠ Open'}
+          >
+            {alert.uid && (
+              <button onClick={() => {
+                setViewIssueUser({ uid: alert.uid, name: alert.userName, phone: alert.userPhone });
+              }}>
+                <MatIcon name="visibility" size={13} /> View user
+              </button>
+            )}
+            {!alert.resolved && (
+              <button className="modal-save" style={{ background: 'rgba(116,224,165,0.2)', color: '#74e0a5', border: '1px solid rgba(116,224,165,0.3)' }}
+                onClick={() => safeAction(() => resolveAdminAlert(alert.id), 'Issue resolved — user can purchase now')}>
+                <MatIcon name="check_circle" size={13} /> Resolve
+              </button>
+            )}
+          </AdminRow>
+        )} />
+      </div>
+    ),
+
     payments: (
       <div className="admin-card">
         <h3>Payment requests</h3>
@@ -1692,6 +1799,7 @@ function AdminPage({ session, onSessionChange }) {
       </div>
       <Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} />
       {historyUser && <UserHistoryDialog user={historyUser} onClose={() => setHistoryUser(null)} />}
+      {viewIssueUser && <UserViewDialog user={viewIssueUser} onClose={() => setViewIssueUser(null)} />}
       {pricingProduct && <PricingEditDialog product={pricingProduct} onClose={() => setPricingProduct(null)} onSave={loadAdmin} />}
     </main>
   );

@@ -577,6 +577,9 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
         productName: product.name,
         duration: duration.duration || duration.label,
         apiError: apiError.message,
+        uid,
+        userName: userName || uid,
+        userPhone: user.phone || '',
       }); } catch (_) { /* non-blocking */ }
       throw new Error('⛔ Server is currently down. Our team is working on it. Please try again in 1-2 hours. Your balance has been refunded.');
     }

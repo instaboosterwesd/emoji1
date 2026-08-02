@@ -1,0 +1,33 @@
+/* ── User View Dialog ──────────────────────────────────────────── */
+.profile-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.profile-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+}
+
+.profile-detail-row span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.6);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-detail-row strong {
+  color: #fff;
+  font-size: 13px;
+  text-align: right;
+}
