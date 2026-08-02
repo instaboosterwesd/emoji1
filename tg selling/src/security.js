@@ -1,10 +1,8 @@
 /**
- * Comprehensive Security Module — Strict Mode
+ * Security Module
  * - DevTools blocking (production only)
- * - Extension detection (VPN, proxy, interceptor)
  * - Rate limiting
  * - Input sanitization (XSS, SQL injection)
- * - VPN/Proxy detection
  * - Browser integrity checks
  * - Keyboard shortcut blocking
  * - View source / inspect protection
@@ -117,40 +115,6 @@ function detectSuspiciousExtensions() {
       }
     }
   } catch {}
-
-  return issues;
-}
-
-/* ── VPN / Proxy Detection (reliable checks only) ──────────── */
-async function detectVpnOrProxy() {
-  const issues = [];
-
-  // 1. WebRTC completely disabled — suspicious (VPN/proxy often kills WebRTC)
-  try {
-    const pc = new RTCPeerConnection({ iceServers: [] });
-    pc.createDataChannel('');
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    const gotCandidate = await new Promise(resolve => {
-      let has = false;
-      pc.onicecandidate = e => { if (e.candidate) has = true; };
-      setTimeout(() => { pc.close(); resolve(has); }, 1000);
-    });
-    if (!gotCandidate) issues.push('webrtc_blocked');
-  } catch {}
-
-  // 2. navigator.connection.type === 'vpn' (rare but definitive)
-  try {
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (conn?.type === 'vpn') issues.push('vpn_conn');
-  } catch {}
-
-  // 3. Extension-based VPN/proxy detection (DOM check)
-  const bodyHtml = document.body?.innerHTML?.toLowerCase() || '';
-  const vpnExtMarkers = ['__uv$', '__tampermonkey', '__vpn', '__proxy'];
-  vpnExtMarkers.forEach(m => {
-    if (bodyHtml.includes(m) || Object.keys(window).some(k => k.includes(m))) issues.push('vpn_ext');
-  });
 
   return issues;
 }
@@ -452,14 +416,6 @@ export function initSecurity() {
   }
 
   initDevToolsBlocker();
-  detectVpnOrProxy().then(issues => {
-    if (issues.length > 0 && !document.getElementById('sec-block-overlay')) {
-      showBlockOverlay({
-        title: 'VPN or Proxy Detected',
-        message: 'VPN or proxy usage is not allowed. Please disable it and reload the page.',
-      });
-    }
-  });
 
   // Start periodic security sweeps
   startSecuritySweep();
