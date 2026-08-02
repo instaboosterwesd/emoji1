@@ -6,6 +6,7 @@ import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import countryData from 'country-telephone-data';
+import { initSecurity } from './security.js';
 import {
   changeUserPassword,
   ensureGoogleUser,
@@ -1844,6 +1845,8 @@ function App() {
   });
   const path = usePathname();
   const knownPath = path === '/' || path === '/admin' || path === '/add-fund';
+
+  useEffect(() => { initSecurity(); }, []);
 
   useEffect(() => {
     const upd = () => setOnline(navigator.onLine);
