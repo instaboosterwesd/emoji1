@@ -121,43 +121,16 @@ function detectSuspiciousExtensions() {
   return issues;
 }
 
-/* ── VPN / Proxy Detection (strict) ─────────────────────────── */
+/* ── VPN / Proxy Detection (reliable checks only) ──────────── */
 async function detectVpnOrProxy() {
   const issues = [];
 
-  // 1. WebRTC IP Detection + public IP check
-  try {
-    const publicIp = await detectPublicIp();
-    if (publicIp) {
-      // Check if IP is from known VPN/proxy ranges
-      const ipParts = publicIp.split('.').map(Number);
-      if (ipParts.length === 4) {
-        // Known VPN/proxy provider IP ranges (first octet / common patterns)
-        const isVpnIp = await checkIpAgainstVpnServices(publicIp);
-        if (isVpnIp) issues.push('vpn_ip');
-      }
-    }
-  } catch {}
-
-  // 2. Timezone vs IP location mismatch (VPN indicator)
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz && !tz.includes('/')) issues.push('vpn_tz');
-  } catch {}
-
-  // 3. Check if navigator.connection type is unusual
-  try {
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (conn?.type === 'vpn') issues.push('vpn_conn');
-  } catch {}
-
-  // 4. WebRTC disabled entirely — suspicious (often VPN/proxy kills WebRTC)
+  // 1. WebRTC completely disabled — suspicious (VPN/proxy often kills WebRTC)
   try {
     const pc = new RTCPeerConnection({ iceServers: [] });
     pc.createDataChannel('');
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    // If we can't get any candidates at all after timeout, WebRTC may be disabled
     const gotCandidate = await new Promise(resolve => {
       let has = false;
       pc.onicecandidate = e => { if (e.candidate) has = true; };
@@ -166,52 +139,20 @@ async function detectVpnOrProxy() {
     if (!gotCandidate) issues.push('webrtc_blocked');
   } catch {}
 
-  return issues;
-}
+  // 2. navigator.connection.type === 'vpn' (rare but definitive)
+  try {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn?.type === 'vpn') issues.push('vpn_conn');
+  } catch {}
 
-function detectPublicIp() {
-  return new Promise(resolve => {
-    try {
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-      pc.createDataChannel('');
-      pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
-      pc.onicecandidate = e => {
-        if (!e.candidate) { pc.close(); resolve(null); return; }
-        const ip = e.candidate.candidate?.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
-        if (ip) {
-          const first = ip[0].split('.')[0];
-          // Skip private IPs
-          if (!['10.', '127.', '172.16', '172.17', '172.18', '172.19', '172.20', '172.21', '172.22', '172.23', '172.24', '172.25', '172.26', '172.27', '172.28', '172.29', '172.30', '172.31', '192.168', '0.'].some(prefix => ip[0].startsWith(prefix))) {
-            pc.close();
-            resolve(ip[0]);
-          }
-        }
-      };
-      setTimeout(() => { pc.close(); resolve(null); }, 3000);
-    } catch { resolve(null); }
+  // 3. Extension-based VPN/proxy detection (DOM check)
+  const bodyHtml = document.body?.innerHTML?.toLowerCase() || '';
+  const vpnExtMarkers = ['__uv$', '__tampermonkey', '__vpn', '__proxy'];
+  vpnExtMarkers.forEach(m => {
+    if (bodyHtml.includes(m) || Object.keys(window).some(k => k.includes(m))) issues.push('vpn_ext');
   });
-}
 
-async function checkIpAgainstVpnServices(ip) {
-  // Known VPN provider ASN / IP blocks (first octet patterns)
-  const knownVpnFirstOctets = [
-    '103.', '104.', '107.', '108.', '128.', '129.', '130.', '131.',
-    '132.', '133.', '134.', '135.', '136.', '137.', '138.', '139.',
-    '140.', '141.', '142.', '143.', '144.', '145.', '146.', '147.',
-    '148.', '149.', '150.', '151.', '152.', '153.', '154.', '155.',
-    '156.', '157.', '158.', '159.', '160.', '161.', '162.', '163.',
-    '164.', '165.', '166.', '167.', '168.', '169.', '170.', '171.',
-    '172.', '173.', '174.', '175.', '176.', '177.', '178.', '179.',
-    '180.', '181.', '182.', '183.', '184.', '185.', '186.', '187.',
-    '188.', '189.', '190.', '191.', '192.', '193.', '194.', '195.',
-    '196.', '197.', '198.', '199.', '200.', '201.', '202.', '203.',
-    '204.', '205.', '206.', '207.', '208.', '209.', '210.', '211.',
-    '212.', '213.', '214.', '215.', '216.', '217.', '218.', '219.',
-    '220.', '221.', '222.', '223.',
-  ];
-  // VPN services often use datacenter IPs in these ranges
-  const first = ip.split('.')[0] + '.';
-  return knownVpnFirstOctets.includes(first);
+  return issues;
 }
 
 /* ── Browser Integrity (stricter) ────────────────────────────── */
