@@ -909,7 +909,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
             <div className="modal-btn-row">
               <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
               <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
-                {busy ? 'Buying…' : <><LottieIcon src="/icons/new/confirm-buy-emoji.json" size={18} /> Confirm buy</>}
+                {busy ? 'Buying…' : <><video src="/icons/new/buy.webm" autoPlay loop muted playsInline style={{width:18,height:18,display:'inline-block',verticalAlign:'middle'}} /> Confirm buy</>}
               </button>
             </div>
           </>
