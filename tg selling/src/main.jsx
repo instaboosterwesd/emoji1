@@ -253,11 +253,11 @@ function Login({ onSuccess, siteStatus }) {
         {step === 'phone' && (
           <>
             <img className="devx-logo" src={logo} alt="Brand logo" />
-            <p className="eyebrow"><LottieIcon src="/icons/new/welcome-yoda.json" size={22} /> WELCOME BACK <LottieIcon src="/icons/new/welcome-yoda.json" size={22} /></p>
-            <h1><LottieIcon src="/icons/new/signin-flame.json" size={28} /> Sign in to continue</h1>
+            <p className="eyebrow"><LottieIcon src="/icons/new/welcome-yoda.json" size={22} emoji="👋" /> WELCOME BACK <LottieIcon src="/icons/new/welcome-yoda.json" size={22} emoji="👋" /></p>
+            <h1><LottieIcon src="/icons/new/signin-flame.json" size={28} emoji="🔥" /> Sign in to continue</h1>
             <p className="intro">Enter your phone number to connect with your account.</p>
             <form onSubmit={sendOtp}>
-              <label htmlFor="phone"><LottieIcon src="/icons/new/phone-spidey.json" size={20} /> Phone number <LottieIcon src="/icons/new/phone-arrow.json" size={20} /></label>
+              <label htmlFor="phone"><LottieIcon src="/icons/new/phone-spidey.json" size={20} emoji="📱" /> Phone number <LottieIcon src="/icons/new/phone-arrow.json" size={20} emoji="📲" /></label>
               <div className="phone-field">
                 <button className="country-trigger" type="button" onClick={() => setCountryOpen(o => !o)}>
                   <span className="flag">{flag(country.iso2)}</span>
@@ -280,12 +280,12 @@ function Login({ onSuccess, siteStatus }) {
                   </div>
                 )}
               </div>
-              <button className="primary" type="submit"><LottieIcon src="/icons/new/send-flash.json" size={22} /> Send OTP <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><LottieIcon src="/icons/new/send-flash.json" size={22} emoji="⚡" /> Send OTP <MatIcon name="arrow_forward" size={19} /></button>
             </form>
             <div className="divider"><span>or continue with</span></div>
             <div className="socials">
-              <button className="social" type="button" onClick={googleLogin}><LottieIcon src="/icons/new/google-lottie.json" size={24} /><span>Google</span></button>
-              <button className="social" type="button" onClick={() => setStep('api')}><LottieIcon src="/icons/new/telegram-lottie.json" size={24} /><span>Bot</span></button>
+              <button className="social" type="button" onClick={googleLogin}><LottieIcon src="/icons/new/google-lottie.json" size={24} emoji="G" /><span>Google</span></button>
+              <button className="social" type="button" onClick={() => setStep('api')}><LottieIcon src="/icons/new/telegram-lottie.json" size={24} emoji="✈️" /><span>Bot</span></button>
             </div>
             <Terms />
           </>
@@ -294,13 +294,13 @@ function Login({ onSuccess, siteStatus }) {
           <>
             <button className="back-link" type="button" onClick={() => setStep('phone')}><MatIcon name="arrow_back" size={16} /> Change number</button>
             <img className="devx-logo small" src={logo} alt="Brand logo" />
-            <p className="eyebrow"><LottieIcon src="/icons/new/shield-verify.json" size={20} /> SECURE VERIFICATION <LottieIcon src="/icons/new/shield-verify.json" size={20} /></p>
-            <h1><LottieIcon src="/icons/new/otp-clipboard.json" size={28} /> Enter your OTP</h1>
+            <p className="eyebrow"><LottieIcon src="/icons/new/shield-verify.json" size={20} emoji="🛡️" /> SECURE VERIFICATION <LottieIcon src="/icons/new/shield-verify.json" size={20} emoji="🛡️" /></p>
+            <h1><LottieIcon src="/icons/new/otp-clipboard.json" size={28} emoji="🔢" /> Enter your OTP</h1>
             <p className="intro">We sent a 4-digit code to +{country.dialCode} {phone}.</p>
             <form onSubmit={verifyOtp}>
               <label htmlFor="otp">Verification code</label>
               <input className="otp-input" id="otp" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} placeholder="0000" autoFocus required />
-              <button className="primary" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={22} /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={22} emoji="✅" /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
             </form>
           </>
         )}
@@ -314,7 +314,7 @@ function Login({ onSuccess, siteStatus }) {
             <form onSubmit={apiLogin}>
               <label htmlFor="api-key">API key</label>
               <input className="api-login-input" id="api-key" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="tg_..." autoFocus required />
-              <button className="primary" type="submit">Login with API <LottieIcon src="/icons/new/key-lottie.json" size={18} /></button>
+              <button className="primary" type="submit">Login with API <LottieIcon src="/icons/new/key-lottie.json" size={18} emoji="🔑" /></button>
             </form>
           </>
         )}
@@ -426,12 +426,12 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
         <header className="dash-header">
           <img src={logo} alt="Brand logo" />
           <div>
-            <span className="dash-kicker">WELCOME BACK <LottieIcon src="/icons/new/welcome-emoji.json" size={20} /></span>
+            <span className="dash-kicker">WELCOME BACK <LottieIcon src="/icons/new/welcome-emoji.json" size={20} emoji="👋" /></span>
             <h2>{profile?.name || 'User'}'s dashboard</h2>
           </div>
           <div className="header-actions">
             <button className="notif-bell-btn" onClick={openNotifs} aria-label="Notifications">
-              <LottieIcon src="/icons/new/bell.json" size={26} />
+              <LottieIcon src="/icons/new/bell.json" size={26} emoji="🔔" />
               {hasUnread && <span className="notif-dot" />}
             </button>
             <button className="theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
@@ -442,13 +442,13 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
       )}
       {siteStatus && siteStatus.status !== 'operational' && siteStatus.message && (
         <div className="site-status-banner down">
-          <LottieIcon src="/icons/new/feat-crystal-skull.json" size={18} />
+          <LottieIcon src="/icons/new/feat-crystal-skull.json" size={18} emoji="💀" />
           <span>{siteStatus.message}</span>
         </div>
       )}
       {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
         <div className="site-status-banner ok">
-          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <LottieIcon src="/icons/new/verified-check.json" size={18} emoji="✅" />
           <span>{siteStatus.message}</span>
         </div>
       )}
@@ -471,7 +471,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
             <div className="notif-dialog-header">
               <LottieIcon src="/icons/new/bell.json" size={26} />
               <h3>Notifications</h3>
-              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><LottieIcon src="/icons/new/close-emoji.json" size={16} /></button>
+              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><LottieIcon src="/icons/new/close-emoji.json" size={16} emoji="✕" /></button>
             </div>
             {notifs.length === 0
               ? <p className="muted empty-state" style={{ padding: '24px 0' }}>No notifications yet</p>
@@ -492,9 +492,9 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
         <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) return; }}>
           <section className="action-modal liquid-dialog resolved-issue-dialog">
             <div className="resolved-issue-icon">
-              <LottieIcon src="/icons/new/issue-resolved.json" size={64} />
+              <LottieIcon src="/icons/new/issue-resolved.json" size={64} emoji="✅" />
             </div>
-            <h2><LottieIcon src="/icons/new/verified-badge.json" size={22} /> Issue Resolved!</h2>
+            <h2><LottieIcon src="/icons/new/verified-badge.json" size={22} emoji="✅" /> Issue Resolved!</h2>
             <p className="muted" style={{ textAlign: 'center', fontSize: '14px', lineHeight: 1.6 }}>
               Your issue has been resolved by the admin. <br />
               You can now purchase your product.
@@ -507,7 +507,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
                 setResolvedNotif(null);
                 setTab('buy');
               }}>
-                <LottieIcon src="/icons/new/shopping-cart.json" size={18} /> Buy now
+                <LottieIcon src="/icons/new/shopping-cart.json" size={18} emoji="🛒" /> Buy now
               </button>
               <button type="button" onClick={() => {
                 if (session?.uid && resolvedNotif?.id) {
@@ -522,7 +522,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
         </div>
       )}
       <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
-      <Toaster position="top-center" offset={78} theme={theme} toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
+      <Toaster position="top-center" offset={78} theme={theme} toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} emoji="✅" /> }} />
     </main>
   );
 }
@@ -531,12 +531,12 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
 function DashboardHome({ profile, role, setTab }) {
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <LottieIcon src="/icons/new/today-emoji.json" size={18} /></>} />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} emoji="🏪" /> Dashboard</>} subtitle={<>Here's what is happening today <LottieIcon src="/icons/new/today-emoji.json" size={18} emoji="📅" /></>} />
       <div className="balance-card">
         <span>My balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} emoji="💰" /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
-          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
+          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} emoji="➕" /> Deposit
         </button>
       </div>
       <div className="stats-grid">
@@ -547,13 +547,13 @@ function DashboardHome({ profile, role, setTab }) {
       </div>
       {role === 'admin' && (
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
-          <LottieIcon src="/icons/new/crown.json" size={22} /> Open admin dashboard
+          <LottieIcon src="/icons/new/crown.json" size={22} emoji="👑" /> Open admin dashboard
         </button>
       )}
       <div className="glass-card">
         <div className="card-heading recent-heading">
           <div className="heading-title-row">
-            <span className="recent-line-icon"><LottieIcon src="/icons/new/key-lottie.json" size={22} /></span>
+            <span className="recent-line-icon"><LottieIcon src="/icons/new/key-lottie.json" size={22} emoji="🔑" /></span>
             <div><h3>Recent key sold</h3><p className="muted">Your latest key activity</p></div>
           </div>
         </div>
@@ -564,7 +564,7 @@ function DashboardHome({ profile, role, setTab }) {
 }
 
 /* ── LottieIcon — plays a Lottie JSON animation inline ─────────── */
-function LottieIcon({ src, size = 24, loop = true, className = '' }) {
+function LottieIcon({ src, size = 24, loop = true, className = '', emoji = '' }) {
   const perf = usePerf();
   const ref = useRef(null);
   useEffect(() => {
@@ -578,6 +578,16 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
     });
     return () => anim.destroy();
   }, [src, loop, perf]);
+
+  if (perf === 'low' && emoji) {
+    return (
+      <span
+        className={className}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, fontSize: Math.round(size * 0.8), verticalAlign: 'middle' }}
+      >{emoji}</span>
+    );
+  }
+
   return (
     <span
       ref={ref}
@@ -662,12 +672,12 @@ function WalletView({ session, profile, refreshProfile }) {
 
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} /> Wallet</>} subtitle="Manage your funds" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} emoji="👛" /> Wallet</>} subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} emoji="💰" /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
-          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
+          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} emoji="➕" /> Add funds
         </button>
       </div>
 
@@ -675,11 +685,11 @@ function WalletView({ session, profile, refreshProfile }) {
       <div className="glass-card">
         <div className="card-heading history-heading">
           <div className="heading-title-row">
-            <LottieIcon src="/icons/new/history-title-emoji.json" size={26} />
+            <LottieIcon src="/icons/new/history-title-emoji.json" size={26} emoji="📜" />
             <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
           </div>
           <button className="icon-button" onClick={loadData} aria-label="Refresh">
-            <LottieIcon src="/icons/new/history-emoji.json" size={26} />
+            <LottieIcon src="/icons/new/history-emoji.json" size={26} emoji="📋" />
           </button>
         </div>
         {txLoading
@@ -694,9 +704,9 @@ function WalletView({ session, profile, refreshProfile }) {
                       {tx.type === 'purchase'
                         ? <img src={productIconFor((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
                         : tx.type === 'deposit_approved'
-                          ? <LottieIcon src="/icons/new/add-funds-plus.json" size={22} />
+                          ? <LottieIcon src="/icons/new/add-funds-plus.json" size={22} emoji="➕" />
                           : tx.type === 'admin_add'
-                            ? <LottieIcon src="/icons/new/topup-emoji.json" size={22} />
+                            ? <LottieIcon src="/icons/new/topup-emoji.json" size={22} emoji="💳" />
                             : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
                     </span>
                     <div className="tx-main">
@@ -753,7 +763,7 @@ function OrdersView({ session }) {
           <Detail label="Source" lottieIcon="/icons/new/source-rocket.json" value={selected.source || 'api'} />
           <div className="key-reveal-box">
             <div className="key-reveal-header">
-              <label><LottieIcon src="/icons/new/key-lottie.json" size={16} /> License key</label>
+              <label><LottieIcon src="/icons/new/key-lottie.json" size={16} emoji="🔑" /> License key</label>
               {(selected.key || selected.keyCode) && (
                 <button type="button" className="eye-toggle-btn" onClick={() => setKeyVisible(v => !v)} aria-label={keyVisible ? 'Hide key' : 'Show key'}>
                   <MatIcon name={keyVisible ? 'visibility_off' : 'visibility'} size={16} />
@@ -774,13 +784,13 @@ function OrdersView({ session }) {
 
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle={<><LottieIcon src="/icons/new/track-emoji.json" size={16} /> Track your purchased license keys</>} />
+      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} emoji="📦" /> My Orders</>} subtitle={<><LottieIcon src="/icons/new/track-emoji.json" size={16} emoji="📍" /> Track your purchased license keys</>} />
       <div className="filter-row">
         <div className="search-box">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} emoji="🔍" />
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search orders" />
         </div>
-        <button className="icon-button" onClick={load} aria-label="Refresh orders"><LottieIcon src="/icons/new/refresh-emoji.json" size={22} /></button>
+        <button className="icon-button" onClick={load} aria-label="Refresh orders"><LottieIcon src="/icons/new/refresh-emoji.json" size={22} emoji="🔄" /></button>
       </div>
       <div className="glass-card">
         {loading
@@ -872,10 +882,10 @@ function ProductsView({ session, onBuy }) {
 
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>} subtitle="Live products with pricing" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} emoji="🛒" /> Buy Products</>} subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         <div className="search-box">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} emoji="🔍" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product or PID" />
         </div>
         <select className="product-select" value={filter} onChange={e => setFilter(e.target.value)}>
@@ -906,14 +916,14 @@ function ProductsView({ session, onBuy }) {
                 ) : (
                   <button className="video-thumb" type="button" onClick={() => product.videos[0] ? setPlayingVideo(product.pid) : null}>
                     {product.image ? <img src={product.image} alt={product.name} loading="lazy" /> : <div className="product-media-fallback"><MatIcon name="shopping_bag" size={30} style={{ filter: 'invert(0.5)' }} /></div>}
-                    {product.videos[0] && <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={54} /></span>}
+                    {product.videos[0] && <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={54} emoji="▶️" /></span>}
                   </button>
                 )}
               </div>
               <div className={`product-head${product.features.length > 3 ? ' has-toggle' : ''}${expandedFeatures[product.pid] ? ' expanded' : ''}`}>
                 <div className="product-icon"><img src={productIconFor(product.name)} alt="" /></div>
                 <div><h3>{product.name}</h3><p className="muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p></div>
-                {product.features.length > 3 && <button className="feature-toggle" type="button" onClick={() => setExpandedFeatures(s => ({ ...s, [product.pid]: !s[product.pid] }))} aria-label="Toggle features">{expandedFeatures[product.pid] ? <LottieIcon src="/icons/new/arrows-up-green.json" size={20} /> : <LottieIcon src="/icons/new/phone-arrow.json" size={20} />}</button>}
+                {product.features.length > 3 && <button className="feature-toggle" type="button" onClick={() => setExpandedFeatures(s => ({ ...s, [product.pid]: !s[product.pid] }))} aria-label="Toggle features">{expandedFeatures[product.pid] ? <LottieIcon src="/icons/new/arrows-up-green.json" size={20} emoji="🔼" /> : <LottieIcon src="/icons/new/phone-arrow.json" size={20} emoji="📲" />}</button>}
               </div>
               {product.features.length > 0 && (
                 <div className="feature-list">
@@ -931,12 +941,12 @@ function ProductsView({ session, onBuy }) {
                       '/icons/new/feat-gift-boxes.json',
                     ];
                     const hash = (product.pid + f).split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 0);
-                    return <div key={`${product.pid}-${f}`}><span><LottieIcon src={featIcons[hash % featIcons.length]} size={15} /></span>{f}</div>;
+                    return <div key={`${product.pid}-${f}`}><span><LottieIcon src={featIcons[hash % featIcons.length]} size={15} emoji="⭐" /></span>{f}</div>;
                   })}
                 </div>
               )}
               <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
-                <LottieIcon src="/icons/new/buy-now-btn.json" size={22} /> Buy Now <MatIcon name="arrow_forward" size={17} />
+                <LottieIcon src="/icons/new/buy-now-btn.json" size={22} emoji="🛒" /> Buy Now <MatIcon name="arrow_forward" size={17} />
               </button>
               {available && pricingOpen[product.pid] && (
                 <div className="duration-grid pricing-drop">
@@ -946,7 +956,7 @@ function ProductsView({ session, onBuy }) {
                       key={`${product.pid}-${item.label}`}
                       onClick={() => { setPricingOpen(s => ({ ...s, [product.pid]: false })); onBuy({ product, duration: item }); }}
                     >
-                      <span className="duration-label-row"><LottieIcon src="/icons/new/timer.json" size={18} />{item.label}</span>
+                      <span className="duration-label-row"><LottieIcon src="/icons/new/timer.json" size={18} emoji="⏱️" />{item.label}</span>
                       <b><MoneyDisplay value={item.price} /></b>
                       {item.originalPrice && item.originalPrice !== item.price && <s className="original-price"><MoneyDisplay value={item.originalPrice} /></s>}
                     </button>
@@ -1018,7 +1028,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
           </>
         ) : (
           <>
-            <h2><LottieIcon src="/icons/new/confirm-buy-emoji.json" size={24} /> Confirm purchase</h2>
+            <h2><LottieIcon src="/icons/new/confirm-buy-emoji.json" size={24} emoji="✅" /> Confirm purchase</h2>
             <div className="purchase-summary">
               <div className="purchase-title">
                 <span>Selected product</span>
@@ -1029,13 +1039,13 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
             </div>
             <div className="purchase-meta-grid">
               <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
-              <div><span><LottieIcon src="/icons/new/timer.json" size={18} /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
-              <div><span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
-              <div><span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
+              <div><span><LottieIcon src="/icons/new/timer.json" size={18} emoji="⏱️" /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
+              <div><span><LottieIcon src="/icons/new/money-bag.json" size={18} emoji="💼" /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
+              <div><span><LottieIcon src="/icons/new/platform-emoji.json" size={18} emoji="💻" /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
-            <p className="purchase-note"><LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Balance will be deducted. A key will be delivered instantly.</p>
+            <p className="purchase-note"><LottieIcon src="/icons/new/pig-emoji.json" size={18} emoji="🐷" /> Balance will be deducted. A key will be delivered instantly.</p>
             <div className="modal-btn-row">
-              <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+              <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} emoji="✕" /> Cancel</button>
               <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
                 {busy ? 'Buying…' : <><video src="/icons/new/buy.webm" autoPlay loop muted playsInline style={{width:18,height:18,display:'inline-block',verticalAlign:'middle'}} /> Confirm buy</>}
               </button>
@@ -1052,21 +1062,21 @@ function ProfileView({ profile, openDialog, openApi }) {
   const [giftOpen, setGiftOpen] = useState(false);
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/profile-lottie.json" size={26} /> Profile</>} subtitle="Manage your account" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/profile-lottie.json" size={26} emoji="👤" /> Profile</>} subtitle="Manage your account" />
       <div className="glass-card profile-card">
         <img src={profile.photoData || logo} alt="Profile" />
         <div>
-          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} /></h3>
+          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} emoji="✅" /></h3>
           <p className="muted">{profile.email || profile.phone || 'Verified account'}</p>
           <p className="muted">Balance <MoneyDisplay value={profile.balance} /> · {profile.status || 'active'}</p>
         </div>
       </div>
       <div className="glass-card profile-actions">
-        <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
-        <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
-        <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
-        <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
-        <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
+        <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} emoji="✏️" />Edit profile</button>
+        <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} emoji="🔒" />Change password</button>
+        <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} emoji="⚙️" />API settings</button>
+        <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} emoji="🎁" />Gift code</button>
+        <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} emoji="🚪" />Logout</button>
         <p className="version-tag">V1.0</p>
       </div>
       {giftOpen && <GiftCodeDialog uid={profile.uid} name={profile.name} phone={profile.phone} onClose={() => setGiftOpen(false)} />}
@@ -1092,7 +1102,7 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
     try {
       const res = await redeemGiftCode(uid, name, phone, code);
       setResult(res);
-      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={22} /> });
+      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={22} emoji="🎁" /> });
       setCode('');
       getUserGiftRedemptions(uid).then(setHistory).catch(() => {});
     } catch (err) { toast.error(err.message); }
@@ -1103,26 +1113,26 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="action-modal liquid-dialog" style={{ maxWidth: 420 }}>
         <div className="dialog-title-row">
-          <LottieIcon src="/icons/new/gift-code.json" size={24} />
+          <LottieIcon src="/icons/new/gift-code.json" size={24} emoji="🎁" />
           <h2>Gift code</h2>
-          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><LottieIcon src="/icons/new/close-emoji.json" size={22} /></button>
+          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><LottieIcon src="/icons/new/close-emoji.json" size={22} emoji="✕" /></button>
         </div>
         <form onSubmit={redeem} style={{ margin: '8px 0 14px' }}>
           <div className="gift-input-row">
-            <LottieIcon src="/icons/new/gift-code.json" size={22} />
+            <LottieIcon src="/icons/new/gift-code.json" size={22} emoji="🎁" />
             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter gift code" maxLength={10} required className="gift-input-wide" />
             <button type="button" className="gift-paste-btn" onClick={() => { navigator.clipboard.readText().then(t => setCode(t.toUpperCase())).catch(() => toast.error('Paste failed')); }}>
-              <LottieIcon src="/icons/new/download-emoji.json" size={16} /> Paste
+              <LottieIcon src="/icons/new/download-emoji.json" size={16} emoji="📋" /> Paste
             </button>
             <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
-              {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} /> Redeem</>}
+              {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} emoji="✅" /> Redeem</>}
             </button>
           </div>
         </form>
 
         {result && (
           <div className="gift-result-card">
-            <LottieIcon src="/icons/new/verified-badge.json" size={24} />
+            <LottieIcon src="/icons/new/verified-badge.json" size={24} emoji="✅" />
             <div>
               <strong>₹{result.amount} credited!</strong>
               <p className="muted">Code: {result.code}</p>
@@ -1131,14 +1141,14 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
         )}
 
         <h4 style={{ display:'flex', alignItems:'center', gap: 6, margin:'14px 0 6px' }}>
-          <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
+          <LottieIcon src="/icons/new/history-emoji.json" size={18} emoji="📋" /> Redemption history
         </h4>
         {history.length === 0
           ? <p className="muted empty-state">No redemptions yet</p>
           : <div className="gift-history-list">{
             history.map((h, i) => (
               <div key={i} className="gift-history-row">
-                <LottieIcon src="/icons/new/gift-code.json" size={18} />
+                <LottieIcon src="/icons/new/gift-code.json" size={18} emoji="🎁" />
                 <div className="tx-main">
                   <strong>{h.code}</strong>
                   <span>{fmtDate(h.redeemedAt)}</span>
@@ -1161,7 +1171,7 @@ function GiftCodeUsersDialog({ gc, onClose }) {
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="action-modal liquid-dialog" style={{ maxWidth: 400 }}>
         <div className="dialog-title-row">
-          <LottieIcon src="/icons/new/gift-code.json" size={22} />
+          <LottieIcon src="/icons/new/gift-code.json" size={22} emoji="🎁" />
           <h2>Code: {gc.code}</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
@@ -1171,7 +1181,7 @@ function GiftCodeUsersDialog({ gc, onClose }) {
           : <div className="gift-users-list">{
             users.map(([uid, data]) => (
               <div key={uid} className="gift-history-row">
-                <LottieIcon src="/icons/new/profile-lottie.json" size={18} />
+                <LottieIcon src="/icons/new/profile-lottie.json" size={18} emoji="👤" />
                 <div className="tx-main">
                   <strong>{data.name || uid}</strong>
                   <span>{data.phone ? `${data.phone} · ` : ''}{fmtDate(data.redeemedAt)}</span>
@@ -1229,44 +1239,44 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}>
       {type === 'edit' && (
         <form className="action-modal liquid-dialog" onSubmit={saveProfile}>
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/edit-title-emoji.json" size={24} /><h2>Edit profile</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/edit-title-emoji.json" size={24} emoji="✏️" /><h2>Edit profile</h2></div>
           <label>Display name<input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" /></label>
           <label className="file-upload-label">
-            <LottieIcon src="/icons/new/edit-profile.json" size={22} /> Profile image
+            <LottieIcon src="/icons/new/edit-profile.json" size={22} emoji="✏️" /> Profile image
             <input type="file" accept="image/*" onChange={pickPhoto} style={{ display: 'none' }} />
           </label>
           {photoData && <img src={photoData} alt="Preview" className="photo-preview" />}
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Save changes</button>
+            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} emoji="✕" /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} emoji="💾" /> Save changes</button>
           </div>
         </form>
       )}
       {type === 'password' && (
         <form className="action-modal liquid-dialog" onSubmit={savePassword}>
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/lock-emoji.json" size={24} /><h2>Change password</h2></div>
-          <label><LottieIcon src="/icons/new/key-emoji.json" size={18} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
-          <label><LottieIcon src="/icons/new/new-password-emoji.json" size={18} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/lock-emoji.json" size={24} emoji="🔒" /><h2>Change password</h2></div>
+          <label><LottieIcon src="/icons/new/key-emoji.json" size={18} emoji="🔑" /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
+          <label><LottieIcon src="/icons/new/new-password-emoji.json" size={18} emoji="🔐" /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Change</button>
+            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} emoji="✕" /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} emoji="💾" /> Change</button>
           </div>
         </form>
       )}
       {type === 'api' && (
         <section className="action-modal liquid-dialog">
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/key-lottie.json" size={24} /><h2>Private API</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/key-lottie.json" size={24} emoji="🔑" /><h2>Private API</h2></div>
           {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
           <p>This key enables Bot login. Keep it private.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Close</button>
-            <button className="modal-save has-lottie" type="button" onClick={resetApi}><LottieIcon src="/icons/new/refresh-emoji.json" size={18} /> Reset key</button>
+            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} emoji="✕" /> Close</button>
+            <button className="modal-save has-lottie" type="button" onClick={resetApi}><LottieIcon src="/icons/new/refresh-emoji.json" size={18} emoji="🔄" /> Reset key</button>
           </div>
         </section>
       )}
       {type === 'logout' && (
         <section className="action-modal liquid-dialog">
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/logout-flash.json" size={24} /><h2>Logout?</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/logout-flash.json" size={24} emoji="🚪" /><h2>Logout?</h2></div>
           <p>Your local session will be removed from this browser.</p>
           <div className="modal-btn-row">
             <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
@@ -1350,7 +1360,7 @@ function UserHistoryDialog({ user, onClose }) {
             <div className="history-scroll">
               {userKeys.length === 0 ? <p className="muted empty-state">No keys</p> : userKeys.slice(0, 20).map(k => (
                 <div className="tx-row compact" key={k.id}>
-                  <LottieIcon src="/icons/new/key-lottie.json" size={16} />
+                  <LottieIcon src="/icons/new/key-lottie.json" size={16} emoji="🔑" />
                   <div className="tx-main">
                     <strong>{k.productName || k.product}</strong>
                     <span>{k.duration} · {fmtDate(k.purchasedAt)}</span>
