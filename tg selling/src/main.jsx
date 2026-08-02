@@ -1000,7 +1000,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
         <form className="action-modal liquid-dialog" onSubmit={savePassword}>
           <div className="dialog-title-row"><LottieIcon src="/icons/new/lock-emoji.json" size={24} /><h2>Change password</h2></div>
           <label><LottieIcon src="/icons/new/key-emoji.json" size={18} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
-          <label>New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
+          <label><LottieIcon src="/icons/new/new-password-emoji.json" size={18} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
           <div className="modal-btn-row">
             <button type="button" onClick={close}>Cancel</button>
             <button className="modal-save" type="submit">Change</button>
