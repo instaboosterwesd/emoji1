@@ -6,19 +6,47 @@
   width: 100%;
 }
 
-.gift-input-row input {
+.gift-input-row input.gift-input-wide {
   flex: 1;
-  padding: 10px 12px;
+  min-width: 0;
+  padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08);
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 3px;
   text-transform: uppercase;
   text-align: center;
   font-family: 'Space Grotesk', monospace;
+}
+
+.gift-input-row input.gift-input-wide::placeholder {
+  letter-spacing: 1px;
+  font-weight: 400;
+  opacity: .5;
+}
+
+.gift-paste-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.7);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s ease;
+}
+
+.gift-paste-btn:hover {
+  background: rgba(255,255,255,.14);
+  color: #fff;
 }
 
 .gift-input-row input::placeholder {

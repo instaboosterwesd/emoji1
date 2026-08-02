@@ -1059,12 +1059,15 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
         <div className="dialog-title-row">
           <LottieIcon src="/icons/new/gift-code.json" size={24} />
           <h2>Gift code</h2>
-          <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
+          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto'}}><LottieIcon src="/icons/new/close-emoji.json" size={18} /></button>
         </div>
-        <form onSubmit={redeem} className="admin-form compact" style={{ margin: '8px 0 14px' }}>
+        <form onSubmit={redeem} style={{ margin: '8px 0 14px' }}>
           <div className="gift-input-row">
             <LottieIcon src="/icons/new/gift-code.json" size={22} />
-            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter gift code" maxLength={10} required />
+            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter gift code" maxLength={10} required className="gift-input-wide" />
+            <button type="button" className="gift-paste-btn" onClick={() => { navigator.clipboard.readText().then(t => setCode(t.toUpperCase())).catch(() => toast.error('Paste failed')); }}>
+              <MatIcon name="content_paste" size={15} /> Paste
+            </button>
             <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
               {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} /> Redeem</>}
             </button>
@@ -1217,7 +1220,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
       )}
       {type === 'logout' && (
         <section className="action-modal liquid-dialog">
-          <div className="dialog-title-row"><MatIcon name="logout" size={20} /><h2>Logout?</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/logout-flash.json" size={24} /><h2>Logout?</h2></div>
           <p>Your local session will be removed from this browser.</p>
           <div className="modal-btn-row">
             <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
@@ -1510,7 +1513,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
     { id: 'issues', label: 'Issues', icon: 'report' },
-    { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard' },
+    { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
     { id: 'key-history', label: 'License History', icon: 'history' },
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
@@ -2018,7 +2021,9 @@ function AdminPage({ session, onSessionChange }) {
           <div className="admin-tab-list">
             {adminTabs.map(({ id, label, icon }) => (
               <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-                {id === 'issues' ? <LottieIcon src="/icons/new/feat-crystal-skull.json" size={20} /> : <MatIcon name={icon} size={18} />}
+                {id === 'issues' ? <LottieIcon src="/icons/new/feat-crystal-skull.json" size={20} /> :
+                 id === 'gift-codes' ? <LottieIcon src="/icons/new/gift-code.json" size={20} /> :
+                 <MatIcon name={icon} size={18} />}
                 <span>{label}</span>
               </button>
             ))}
