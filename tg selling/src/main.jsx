@@ -464,7 +464,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
             <div className="notif-dialog-header">
               <LottieIcon src="/icons/new/bell.json" size={26} />
               <h3>Notifications</h3>
-              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}>✕</button>
+              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><LottieIcon src="/icons/new/close-emoji.json" size={16} /></button>
             </div>
             {notifs.length === 0
               ? <p className="muted empty-state" style={{ padding: '24px 0' }}>No notifications yet</p>

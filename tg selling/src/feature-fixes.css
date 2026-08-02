@@ -81,6 +81,12 @@
   gap: 0;
   animation: notif-drop .22s cubic-bezier(.22,1,.36,1);
 }
+.notif-dialog::-webkit-scrollbar { width: 4px; }
+.notif-dialog::-webkit-scrollbar-track { background: transparent; }
+.notif-dialog::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8ecff0, #8b6cff);
+  border-radius: 99px;
+}
 
 @keyframes notif-drop {
   from { opacity: 0; transform: translateY(-10px) scale(.97); }
