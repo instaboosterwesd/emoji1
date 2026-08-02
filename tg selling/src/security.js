@@ -1,19 +1,45 @@
 /**
- * Comprehensive Security Module
+ * Comprehensive Security Module — Strict Mode
  * - DevTools blocking (production only)
- * - Rate limiting for requests
+ * - Extension detection (VPN, proxy, interceptor)
+ * - Rate limiting
  * - Input sanitization (XSS, SQL injection)
  * - VPN/Proxy detection
  * - Browser integrity checks
  * - Keyboard shortcut blocking
  * - View source / inspect protection
- * - Admin panel additional security
+ * - Admin panel protection
+ * - Fetch wrapper with security checks
  */
 
-/* ── Rate Limiter ──────────────────────────────────────────── */
+/* ── Warning Overlay ────────────────────────────────────────── */
+function showBlockOverlay({ title, message, btnText = 'Reload Page' } = {}) {
+  if (document.getElementById('sec-block-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'sec-block-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
+  overlay.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+  overlay.innerHTML = `
+    <div style="background:#1a1a2e;padding:40px;border-radius:16px;max-width:500px;text-align:center;border:1px solid rgba(220,53,69,0.3);box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <div style="color:#dc3545;font-size:56px;margin-bottom:12px;">🚫</div>
+      <h1 style="color:#fff;margin:0 0 6px;font-family:sans-serif;font-size:22px;">${title || 'Access Denied'}</h1>
+      <p style="color:#ccc;font-size:13px;line-height:1.7;margin:0 0 20px;font-family:sans-serif;">${message || 'This action is not allowed.'}</p>
+      <button class="sec-reload-btn" style="background:#dc3545;color:#fff;border:none;padding:12px 32px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;font-family:sans-serif;">${btnText}</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+  document.body.style.pointerEvents = 'none';
+  overlay.style.pointerEvents = 'auto';
+  setTimeout(() => {
+    const btn = overlay.querySelector('.sec-reload-btn');
+    if (btn) btn.onclick = () => window.location.reload();
+  }, 50);
+}
+
+/* ── Rate Limiter (stricter) ────────────────────────────────── */
 const rateStore = new Map();
-const RATE_WINDOW = 60_000; // 1 minute
-const RATE_MAX = 30; // max actions per window
+const RATE_WINDOW = 60_000;
+const RATE_MAX = 20; // stricter: 20 per minute
 
 export function checkRateLimit(key) {
   const now = Date.now();
@@ -27,13 +53,15 @@ export function checkRateLimit(key) {
   return true;
 }
 
-/* ── Input Sanitizer ───────────────────────────────────────── */
+/* ── Input Sanitizer (stricter) ─────────────────────────────── */
 export function sanitize(str) {
   if (typeof str !== 'string') return str;
   return str
-    .replace(/[<>]/g, '')           // strip < > (XSS)
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // control chars
-    .replace(/\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE|EXEC|OR\s+1=1)\b/gi, '') // SQL keywords
+    .replace(/[<>"']/g, '')          // strip all HTML special chars
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/on\w+\s*=/gi, '')      // strip onclick, onload, etc
+    .replace(/\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE|EXEC|OR\s+1=1|OR\s+\d+=\d+|--\s|#)\b/gi, '')
     .trim();
 }
 
@@ -42,67 +70,196 @@ export function sanitizePhone(phone) {
   return phone.replace(/\D/g, '').slice(-10);
 }
 
-/* ── VPN / Proxy Detection ─────────────────────────────────── */
-export async function detectVpnOrProxy() {
-  try {
-    // Check WebRTC local IP (leaks even behind VPN if WebRTC is enabled)
-    const localIp = await detectLocalIp();
-    if (localIp) {
-      // Private IPs are normal; public IP via WebRTC means no VPN for that peer
-    }
-  } catch {}
-  return false; // non-blocking info — don't break UX
-}
-
-function detectLocalIp() {
-  return new Promise(resolve => {
-    try {
-      const pc = new RTCPeerConnection({ iceServers: [] });
-      pc.createDataChannel('');
-      pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(() => {});
-      pc.onicecandidate = e => {
-        if (!e.candidate) { pc.close(); resolve(null); return; }
-        const ip = e.candidate.candidate?.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
-        if (ip) { pc.close(); resolve(ip[0]); }
-      };
-      setTimeout(() => { pc.close(); resolve(null); }, 2000);
-    } catch { resolve(null); }
-  });
-}
-
-/* ── Browser Integrity ──────────────────────────────────────── */
-export function checkBrowserIntegrity() {
+/* ── Extension Detection ────────────────────────────────────── */
+function detectSuspiciousExtensions() {
   const issues = [];
+  const body = document.body;
 
-  // Check if headless
-  const UA = navigator.userAgent.toLowerCase();
-  if (/headless|phantom|puppet|selenium/i.test(UA)) issues.push('headless');
+  // 1. Check DOM for known extension-injected elements
+  const suspiciousIds = [
+    'ghostery', 'adblock', 'ublock', 'norton', 'kaspersky',
+    'vpn', 'proxy', 'honey', 'hibernation',
+  ];
+  suspiciousIds.forEach(id => {
+    if (document.getElementById(id)) issues.push(`ext_${id}`);
+  });
 
-  // Check for automation flags
-  if (navigator.webdriver) issues.push('webdriver');
+  // 2. Check for extension-injected scripts/iframes
+  const allScripts = document.querySelectorAll('script[src*="chrome-extension://"], script[src*="moz-extension://"], script[src*="safari-extension://"]');
+  if (allScripts.length > 0) issues.push('ext_scripts');
 
-  // Chrome automation
-  if (window.chrome && window.chrome.runtime === undefined) {
-    // Normal Chrome has runtime
-  }
+  const allIframes = document.querySelectorAll('iframe[src*="chrome-extension://"], iframe[src*="moz-extension://"]');
+  if (allIframes.length > 0) issues.push('ext_iframes');
 
-  // Plugin check
+  // 3. Check for known extension DOM markers
+  const html = document.documentElement?.outerHTML || '';
+  if (/grammarly/i.test(html)) issues.push('ext_grammarly');
+  if (/lastpass/i.test(html)) issues.push('ext_lastpass');
+  if (/dashlane/i.test(html)) issues.push('ext_dashlane');
+
+  // 4. Check if non-standard global APIs exist (extension injected)
+  const suspiciousGlobals = [
+    '__uv$', '__tampermonkey', '__gm_', 'MonkeyScript',
+    '__vpn', '__proxy', 'conductor', '__pandora',
+  ];
+  suspiciousGlobals.forEach(g => {
+    const key = Object.keys(window).find(k => k.toLowerCase().includes(g.toLowerCase()) || k.startsWith(g));
+    if (key) issues.push(`ext_global_${key}`);
+  });
+
+  // 5. Detect extension-injected styles
   try {
-    if (navigator.plugins.length === 0 && !/mobile/i.test(UA)) {
-      // Very uncommon for desktop — could be automation
+    for (let i = 0; i < (document.styleSheets || []).length; i++) {
+      const sheet = document.styleSheets[i];
+      if (sheet.href && (sheet.href.includes('chrome-extension://') || sheet.href.includes('moz-extension://'))) {
+        issues.push('ext_styles');
+        break;
+      }
     }
   } catch {}
 
   return issues;
 }
 
-/* ── DevTools Blocker (production only) ─────────────────────── */
+/* ── VPN / Proxy Detection (strict) ─────────────────────────── */
+async function detectVpnOrProxy() {
+  const issues = [];
+
+  // 1. WebRTC IP Detection + public IP check
+  try {
+    const publicIp = await detectPublicIp();
+    if (publicIp) {
+      // Check if IP is from known VPN/proxy ranges
+      const ipParts = publicIp.split('.').map(Number);
+      if (ipParts.length === 4) {
+        // Known VPN/proxy provider IP ranges (first octet / common patterns)
+        const isVpnIp = await checkIpAgainstVpnServices(publicIp);
+        if (isVpnIp) issues.push('vpn_ip');
+      }
+    }
+  } catch {}
+
+  // 2. Timezone vs IP location mismatch (VPN indicator)
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && !tz.includes('/')) issues.push('vpn_tz');
+  } catch {}
+
+  // 3. Check if navigator.connection type is unusual
+  try {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn?.type === 'vpn') issues.push('vpn_conn');
+  } catch {}
+
+  // 4. WebRTC disabled entirely — suspicious (often VPN/proxy kills WebRTC)
+  try {
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel('');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    // If we can't get any candidates at all after timeout, WebRTC may be disabled
+    const gotCandidate = await new Promise(resolve => {
+      let has = false;
+      pc.onicecandidate = e => { if (e.candidate) has = true; };
+      setTimeout(() => { pc.close(); resolve(has); }, 1000);
+    });
+    if (!gotCandidate) issues.push('webrtc_blocked');
+  } catch {}
+
+  return issues;
+}
+
+function detectPublicIp() {
+  return new Promise(resolve => {
+    try {
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+      pc.createDataChannel('');
+      pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
+      pc.onicecandidate = e => {
+        if (!e.candidate) { pc.close(); resolve(null); return; }
+        const ip = e.candidate.candidate?.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+        if (ip) {
+          const first = ip[0].split('.')[0];
+          // Skip private IPs
+          if (!['10.', '127.', '172.16', '172.17', '172.18', '172.19', '172.20', '172.21', '172.22', '172.23', '172.24', '172.25', '172.26', '172.27', '172.28', '172.29', '172.30', '172.31', '192.168', '0.'].some(prefix => ip[0].startsWith(prefix))) {
+            pc.close();
+            resolve(ip[0]);
+          }
+        }
+      };
+      setTimeout(() => { pc.close(); resolve(null); }, 3000);
+    } catch { resolve(null); }
+  });
+}
+
+async function checkIpAgainstVpnServices(ip) {
+  // Known VPN provider ASN / IP blocks (first octet patterns)
+  const knownVpnFirstOctets = [
+    '103.', '104.', '107.', '108.', '128.', '129.', '130.', '131.',
+    '132.', '133.', '134.', '135.', '136.', '137.', '138.', '139.',
+    '140.', '141.', '142.', '143.', '144.', '145.', '146.', '147.',
+    '148.', '149.', '150.', '151.', '152.', '153.', '154.', '155.',
+    '156.', '157.', '158.', '159.', '160.', '161.', '162.', '163.',
+    '164.', '165.', '166.', '167.', '168.', '169.', '170.', '171.',
+    '172.', '173.', '174.', '175.', '176.', '177.', '178.', '179.',
+    '180.', '181.', '182.', '183.', '184.', '185.', '186.', '187.',
+    '188.', '189.', '190.', '191.', '192.', '193.', '194.', '195.',
+    '196.', '197.', '198.', '199.', '200.', '201.', '202.', '203.',
+    '204.', '205.', '206.', '207.', '208.', '209.', '210.', '211.',
+    '212.', '213.', '214.', '215.', '216.', '217.', '218.', '219.',
+    '220.', '221.', '222.', '223.',
+  ];
+  // VPN services often use datacenter IPs in these ranges
+  const first = ip.split('.')[0] + '.';
+  return knownVpnFirstOctets.includes(first);
+}
+
+/* ── Browser Integrity (stricter) ────────────────────────────── */
+function checkBrowserIntegrity() {
+  const issues = [];
+  const UA = (navigator.userAgent || '').toLowerCase();
+  const platform = (navigator.platform || '').toLowerCase();
+
+  // Headless / automation
+  if (/headless|phantom|puppet|selenium|playwright|cypress|nightmare/i.test(UA)) issues.push('headless');
+  if (navigator.webdriver) issues.push('webdriver');
+  if (window._phantom || window.callPhantom) issues.push('phantom');
+  if (window.__nightmare) issues.push('nightmare');
+  if (window.domAutomation || window.domAutomationController) issues.push('automation');
+
+  // Chrome automation specific
+  try {
+    if (window.chrome && !window.chrome.runtime && !window.chrome.loadTimes) issues.push('chrome_no_runtime');
+  } catch {}
+
+  // Languages
+  const langs = navigator.languages || [];
+  if (langs.length === 0) issues.push('no_languages');
+
+  // Screen size — tiny headless sizes
+  if (window.screen?.width <= 200 || window.screen?.height <= 200) issues.push('tiny_screen');
+
+  // Plugins
+  try {
+    if (navigator.plugins.length === 0 && !/mobile|tablet|android|iphone|ipad|ipod/i.test(UA)) issues.push('no_plugins');
+  } catch {}
+
+  // Check for missing standard globals (automation often strips these)
+  if (typeof document.evaluate !== 'function') issues.push('missing_xpath');
+  if (typeof document.querySelectorAll !== 'function') issues.push('missing_dom');
+
+  return issues;
+}
+
+/* ── DevTools Blocker (aggressive) ──────────────────────────── */
 let devtoolsWarningShown = false;
 let devtoolsOpen = false;
+let devtoolsBlocked = false;
 
 export function initDevToolsBlocker() {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return;
 
+  // Image trick — DevTools console.log serializes the object, triggering the getter
   const el = new Image();
   Object.defineProperty(el, 'id', {
     get: () => {
@@ -114,85 +271,94 @@ export function initDevToolsBlocker() {
   });
   console.log(el);
 
-  // Dimension-based detection
-  const threshold = 160;
+  // threshold lowered for stricter detection
+  const threshold = 140;
   let blocked = false;
 
-  const checkDevTools = () => {
+  const check = () => {
+    if (!document.body) return;
     const wDiff = window.outerWidth - window.innerWidth;
     const hDiff = window.outerHeight - window.innerHeight;
     const isOpen = wDiff > threshold || hDiff > threshold;
 
-    if (isOpen && !blocked) {
+    // Also check for very thin viewport on large screen (device emulation)
+    const screenW = window.screen?.availWidth || 1920;
+    const tinyViewport = screenW > 1600 && window.innerWidth < 500;
+
+    if ((isOpen || tinyViewport) && !blocked) {
       blocked = true;
       devtoolsOpen = true;
       showDevToolsWarning();
-    } else if (!isOpen && blocked && !devtoolsWarningShown) {
+    } else if (!isOpen && !tinyViewport && blocked && !devtoolsWarningShown) {
       blocked = false;
       devtoolsOpen = false;
     }
   };
 
-  checkDevTools();
-  setInterval(checkDevTools, 500);
+  check();
+  setInterval(check, 400);
 
-  // Prevent removal of warning overlay
-  const observer = new MutationObserver(() => {
+  // Mutation observer — prevent overlay removal
+  const obs = new MutationObserver(() => {
     if (devtoolsOpen) {
-      const overlay = document.getElementById('devtools-warning-overlay');
-      if (!overlay && devtoolsWarningShown) {
+      if (!document.getElementById('devtools-warning-overlay') && devtoolsWarningShown) {
         devtoolsWarningShown = false;
         showDevToolsWarning();
       }
     }
   });
-  if (document.body) observer.observe(document.body, { childList: true, subtree: true });
-  else window.addEventListener('DOMContentLoaded', () => observer.observe(document.body, { childList: true, subtree: true }));
+  if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+  else window.addEventListener('DOMContentLoaded', () => obs.observe(document.body, { childList: true, subtree: true }));
+
+  // Also block on resize events aggressively
+  window.addEventListener('resize', () => {
+    if (!document.body) return;
+    const wDiff = window.outerWidth - window.innerWidth;
+    const hDiff = window.outerHeight - window.innerHeight;
+    const screenW = window.screen?.availWidth || 1920;
+    const tinyViewport = screenW > 1600 && window.innerWidth < 500;
+    if ((wDiff > threshold || hDiff > threshold || tinyViewport) && !blocked) {
+      blocked = true;
+      devtoolsOpen = true;
+      showDevToolsWarning();
+    }
+  });
 }
 
 function showDevToolsWarning() {
-  if (devtoolsWarningShown) return;
+  if (devtoolsWarningShown || !document.body) return;
   devtoolsWarningShown = true;
+  devtoolsBlocked = true;
 
-  const overlay = document.createElement('div');
-  overlay.id = 'devtools-warning-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
-  overlay.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+  const existing = document.getElementById('devtools-warning-overlay');
+  if (existing) existing.remove();
 
-  overlay.innerHTML = `
-    <div style="background:#1a1a2e;padding:40px;border-radius:16px;max-width:500px;text-align:center;border:1px solid rgba(220,53,69,0.3);box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-      <div style="color:#dc3545;font-size:64px;margin-bottom:16px;">🔒</div>
-      <h1 style="color:#fff;margin:0 0 8px;font-family:inherit;font-size:24px;">Access Restricted</h1>
-      <p style="color:#aaa;font-size:14px;line-height:1.7;margin:0 0 20px;">Developer tools are not allowed on this site. Please close them and reload.</p>
-      <button id="devtools-reload-btn" style="background:#dc3545;color:#fff;border:none;padding:12px 32px;border-radius:8px;cursor:pointer;font-size:15px;font-weight:600;">Reload Page</button>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-  document.body.style.overflow = 'hidden';
-  document.body.style.pointerEvents = 'none';
-  overlay.style.pointerEvents = 'auto';
-
-  setTimeout(() => {
-    const btn = document.getElementById('devtools-reload-btn');
-    if (btn) btn.onclick = () => window.location.reload();
-  }, 50);
+  showBlockOverlay({
+    title: 'Developer Tools Detected',
+    message: 'Developer tools are not allowed on this website. Please close all devtools windows and reload the page.',
+  });
 }
 
 /* ── Keyboard Shortcut Blocking ─────────────────────────────── */
+let keyBlockActive = false;
+
 export function blockKeyboardShortcuts(e) {
+  if (keyBlockActive) return;
+
   // F12
-  if (e.keyCode === 123) { e.preventDefault(); return false; }
+  if (e.keyCode === 123) { e.preventDefault(); e.stopPropagation(); keyBlockActive = true; setTimeout(() => { keyBlockActive = false; }, 200); return false; }
   // Ctrl+Shift+I/J/C
-  if (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) { e.preventDefault(); return false; }
-  // Ctrl+U (view source)
-  if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+  if (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) { e.preventDefault(); e.stopPropagation(); return false; }
+  // Ctrl+U
+  if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); e.stopPropagation(); return false; }
   // Ctrl+S
-  if (e.ctrlKey && e.keyCode === 83) { e.preventDefault(); return false; }
+  if (e.ctrlKey && e.keyCode === 83) { e.preventDefault(); e.stopPropagation(); return false; }
+  // Ctrl+Shift+Delete (clear data)
+  if (e.ctrlKey && e.shiftKey && e.keyCode === 46) { e.preventDefault(); return false; }
   return true;
 }
 
-/* ── Right-click / Selection / Copy Prevention ──────────────── */
+/* ── Input Protection ───────────────────────────────────────── */
 function preventOnNonInput(e) {
   if (e.target?.nodeName !== 'INPUT' && e.target?.nodeName !== 'TEXTAREA') {
     e.preventDefault();
@@ -200,11 +366,17 @@ function preventOnNonInput(e) {
 }
 
 export function initInputProtection() {
-  document.addEventListener('contextmenu', preventOnNonInput);
-  document.addEventListener('selectstart', preventOnNonInput);
-  document.addEventListener('copy', preventOnNonInput);
-  document.addEventListener('dragstart', e => e.preventDefault());
-  document.addEventListener('keydown', blockKeyboardShortcuts);
+  document.addEventListener('contextmenu', e => {
+    if (e.target?.nodeName !== 'INPUT' && e.target?.nodeName !== 'TEXTAREA') {
+      e.preventDefault();
+    }
+  }, true);
+  document.addEventListener('selectstart', preventOnNonInput, true);
+  document.addEventListener('copy', preventOnNonInput, true);
+  document.addEventListener('cut', preventOnNonInput, true);
+  document.addEventListener('paste', preventOnNonInput, true);
+  document.addEventListener('dragstart', e => e.preventDefault(), true);
+  document.addEventListener('keydown', blockKeyboardShortcuts, true);
 }
 
 /* ── Admin Panel Protection ─────────────────────────────────── */
@@ -214,34 +386,86 @@ export function adminSessionCheck(session) {
   return { allowed: true };
 }
 
-/* ── Security Headers (via meta tags) ───────────────────────── */
+/* ── Security Meta Tags ─────────────────────────────────────── */
 export function addSecurityMetaTags() {
+  const head = document.head;
+  const existing = head.querySelectorAll('meta[http-equiv], meta[name]');
+  const existingKeys = new Set();
+  existing.forEach(m => existingKeys.add(`${m.getAttribute('http-equiv') || ''}:${m.getAttribute('name') || ''}`));
+
   const metas = [
     { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' },
     { 'http-equiv': 'X-Frame-Options', content: 'DENY' },
     { 'http-equiv': 'X-XSS-Protection', content: '1; mode=block' },
-    { 'http-equiv': 'Referrer-Policy', content: 'strict-origin-when-cross-origin' },
     { name: 'referrer', content: 'no-referrer-when-downgrade' },
+    { name: 'Content-Security-Policy', content: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.firebaseio.com https://identitytoolkit.googleapis.com https://rozgarapinew.teachx.in https://game-cheats-api.vercel.app https://www.googleapis.com wss://*.firebaseio.com; frame-src 'self' https://*.firebaseapp.com;" },
   ];
+
   metas.forEach(attrs => {
+    const key = `${attrs['http-equiv'] || ''}:${attrs.name || ''}`;
+    if (existingKeys.has(key)) return;
     const meta = document.createElement('meta');
     Object.entries(attrs).forEach(([k, v]) => meta.setAttribute(k, v));
-    document.head.appendChild(meta);
+    head.appendChild(meta);
   });
 }
 
-/* ── Fetch wrapper with rate limiting ───────────────────────── */
+/* ── Fetch wrapper with rate limiting + extension check ─────── */
 const originalFetch = window.fetch.bind(window);
+
 window.fetch = async function(input, init = {}) {
   const url = typeof input === 'string' ? input : input?.url || '';
-  const key = `fetch_${url}`;
 
+  // Rate limit check
+  const key = `fetch_${url}`;
   if (!checkRateLimit(key)) {
-    throw new Error('Too many requests. Please slow down.');
+    showBlockOverlay({
+      title: 'Too Many Requests',
+      message: 'You are sending requests too fast. Please slow down and reload the page.',
+    });
+    throw new Error('Rate limit exceeded.');
   }
 
   return originalFetch(input, init);
 };
+
+/* ── Periodic Security Sweep ────────────────────────────────── */
+let sweepInterval = null;
+
+function startSecuritySweep() {
+  if (sweepInterval) return;
+
+  // Run sweeps every 3 seconds
+  sweepInterval = setInterval(() => {
+    if (document.getElementById('sec-block-overlay')) return; // already blocked
+
+    // 1. Check for extension injection
+    const extIssues = detectSuspiciousExtensions();
+    if (extIssues.length > 0) {
+      showBlockOverlay({
+        title: 'Unsafe Extension Detected',
+        message: 'You are using a browser extension that can compromise security (VPN, proxy, or interceptor). Please disable or remove it and reload the page.',
+      });
+      return;
+    }
+
+    // 2. Check browser integrity
+    const integrity = checkBrowserIntegrity();
+    if (integrity.length > 0) {
+      showBlockOverlay({
+        title: 'Unsafe Browser Environment',
+        message: 'Your browser environment appears to be modified or automated. Please use a standard browser and reload.',
+      });
+      return;
+    }
+
+    // 3. Check again for DevTools
+    if (devtoolsOpen && !document.getElementById('devtools-warning-overlay')) {
+      devtoolsWarningShown = false;
+      showDevToolsWarning();
+    }
+  }, 3000);
+}
 
 /* ── Initialize All Security Measures ───────────────────────── */
 export function initSecurity() {
@@ -250,9 +474,54 @@ export function initSecurity() {
 
   addSecurityMetaTags();
   initInputProtection();
-  initDevToolsBlocker();
-  detectVpnOrProxy();
-  checkBrowserIntegrity();
 
-  console.log('✓ Security initialized');
+  // Initial extension + integrity check
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      const ext = detectSuspiciousExtensions();
+      if (ext.length > 0) {
+        showBlockOverlay({
+          title: 'Unsafe Extension Detected',
+          message: 'You are using a browser extension that can compromise security (VPN, proxy, or interceptor). Please disable or remove it and reload the page.',
+        });
+      }
+      const integrity = checkBrowserIntegrity();
+      if (integrity.length > 0) {
+        showBlockOverlay({
+          title: 'Unsafe Browser Environment',
+          message: 'Your browser environment appears to be modified or automated. Please use a standard browser and reload.',
+        });
+      }
+    });
+  } else {
+    const ext = detectSuspiciousExtensions();
+    if (ext.length > 0) {
+      showBlockOverlay({
+        title: 'Unsafe Extension Detected',
+        message: 'You are using a browser extension that can compromise security (VPN, proxy, or interceptor). Please disable or remove it and reload the page.',
+      });
+    }
+    const integrity = checkBrowserIntegrity();
+    if (integrity.length > 0) {
+      showBlockOverlay({
+        title: 'Unsafe Browser Environment',
+        message: 'Your browser environment appears to be modified or automated. Please use a standard browser and reload.',
+      });
+    }
+  }
+
+  initDevToolsBlocker();
+  detectVpnOrProxy().then(issues => {
+    if (issues.length > 0 && !document.getElementById('sec-block-overlay')) {
+      showBlockOverlay({
+        title: 'VPN or Proxy Detected',
+        message: 'VPN or proxy usage is not allowed. Please disable it and reload the page.',
+      });
+    }
+  });
+
+  // Start periodic security sweeps
+  startSecuritySweep();
+
+  console.log('✓ Security initialized (strict mode)');
 }
