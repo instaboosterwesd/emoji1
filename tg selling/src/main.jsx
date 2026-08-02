@@ -1084,7 +1084,7 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
           </div>
         )}
 
-        <h4 style={{ display:'flex', alignItems:'center', justifyContent:'center', gap: 6, margin:'14px 0 6px' }}>
+        <h4 style={{ display:'flex', alignItems:'center', gap: 6, margin:'14px 0 6px' }}>
           <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
         </h4>
         {history.length === 0
