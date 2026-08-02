@@ -1084,14 +1084,9 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
           </div>
         )}
 
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'14px 0 6px' }}>
-          <h4 style={{ display:'flex', alignItems:'center', gap: 6, margin:0 }}>
-            <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
-          </h4>
-          <button className="icon-button" type="button" onClick={() => { getUserGiftRedemptions(uid).then(setHistory).catch(() => {}); }} title="Refresh history" style={{ width:30, height:30 }}>
-            <LottieIcon src="/icons/new/refresh-emoji.json" size={16} />
-          </button>
-        </div>
+        <h4 style={{ display:'flex', alignItems:'center', justifyContent:'center', gap: 6, margin:'14px 0 6px' }}>
+          <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
+        </h4>
         {history.length === 0
           ? <p className="muted empty-state">No redemptions yet</p>
           : <div className="gift-history-list">{
