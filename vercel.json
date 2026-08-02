@@ -1,1 +1,8 @@
-{ "rootDirectory": "tg selling" }
+{
+  "installCommand": "pnpm install",
+  "buildCommand": "cd tg selling && pnpm build",
+  "outputDirectory": "tg selling/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
