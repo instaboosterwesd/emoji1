@@ -59,10 +59,6 @@ import './site-status.css';
 import './issues.css';
 import './gift-code.css';
 
-/* ── Performance Context ────────────────────────────────────────── */
-const PerfCtx = React.createContext();
-const usePerf = () => React.useContext(PerfCtx);
-
 /* ── Constants ─────────────────────────────────────────────────── */
 const logo = '/devx-logo.webp';
 const telegramLogo = '/telegram-logo.png';
@@ -346,7 +342,7 @@ function Terms() {
 }
 
 /* ── Dashboard shell ────────────────────────────────────────────── */
-function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, onPerfSelect }) {
+function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   const [tab, setTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
@@ -417,9 +413,6 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
 
   return (
     <main className={`dashboard-page ${theme}`}>
-      {perfMode === null && (
-        <PerformanceDialog onSelect={onPerfSelect} />
-      )}
       <img key={theme} className="dashboard-backdrop" src={theme === 'dark' ? '/dashboard-dark-bg.webp' : '/dashboard-light-bg.webp'} alt="" aria-hidden="true" loading="lazy" />
       <div className="dashboard-veil" />
       {tab === 'dashboard' && (
@@ -565,10 +558,9 @@ function DashboardHome({ profile, role, setTab }) {
 
 /* ── LottieIcon — plays a Lottie JSON animation inline ─────────── */
 function LottieIcon({ src, size = 24, loop = true, className = '' }) {
-  const perf = usePerf();
   const ref = useRef(null);
   useEffect(() => {
-    if (perf !== 'high' || !ref.current) return;
+    if (!ref.current) return;
     const anim = lottie.loadAnimation({
       container: ref.current,
       renderer: 'svg',
@@ -577,56 +569,13 @@ function LottieIcon({ src, size = 24, loop = true, className = '' }) {
       path: src,
     });
     return () => anim.destroy();
-  }, [src, loop, perf]);
+  }, [src, loop]);
   return (
     <span
       ref={ref}
       className={className}
       style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle' }}
     />
-  );
-}
-
-/* ── PerformanceDialog — first-visit device picker ─────────────── */
-function PerformanceDialog({ onSelect }) {
-  const [dontAsk, setDontAsk] = useState(false);
-
-  const pick = mode => {
-    localStorage.setItem('perf_mode', mode);
-    if (dontAsk) localStorage.setItem('perf_dont_ask', '1');
-    onSelect(mode);
-  };
-
-  return (
-    <div className="perf-dialog-backdrop">
-      <div className="perf-dialog liquid-dialog">
-        <div className="perf-dialog-icon">⚡</div>
-        <h2>Choose your experience</h2>
-        <p className="perf-dialog-desc">
-          Select your device performance level for the best experience.
-        </p>
-        <div className="perf-dialog-options">
-          <button className="perf-option perf-high" onClick={() => pick('high')}>
-            <span className="perf-option-icon">🚀</span>
-            <div>
-              <strong>High Performance Device</strong>
-              <span className="perf-option-desc">Full animations &amp; effects</span>
-            </div>
-          </button>
-          <button className="perf-option perf-low" onClick={() => pick('low')}>
-            <span className="perf-option-icon">📱</span>
-            <div>
-              <strong>Low Performance Device</strong>
-              <span className="perf-option-desc">Static icons, smoother browsing</span>
-            </div>
-          </button>
-        </div>
-        <label className="perf-dont-ask">
-          <input type="checkbox" checked={dontAsk} onChange={e => setDontAsk(e.target.checked)} />
-          <span>Don&apos;t ask again</span>
-        </label>
-      </div>
-    </div>
   );
 }
 
@@ -2331,10 +2280,6 @@ function navigate(to) {
 function App() {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [siteStatus, setSiteStatus] = useState({ status: 'operational', message: '' });
-  const [perfMode, setPerfMode] = useState(() => {
-    if (localStorage.getItem('perf_dont_ask') === '1') return localStorage.getItem('perf_mode') || 'high';
-    return null;
-  });
   const [session, setSession] = useState(() => {
     try { return JSON.parse(localStorage.getItem('app_session') || 'null'); } catch { return null; }
   });
@@ -2380,24 +2325,12 @@ function App() {
     return () => { active = false; };
   }, []);
 
-  const perfValue = perfMode || 'high';
-  if (!online) return <PerfCtx.Provider value={perfValue}><ErrorTv mode="offline" /></PerfCtx.Provider>;
-  if (!knownPath) return <PerfCtx.Provider value={perfValue}><ErrorTv mode="404" /></PerfCtx.Provider>;
-  if (!session) return <PerfCtx.Provider value={perfValue}><Login onSuccess={updateSession} siteStatus={siteStatus} /><Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} /></PerfCtx.Provider>;
-  if (path === '/admin') return <PerfCtx.Provider value={perfValue}><AdminPage session={session} onSessionChange={updateSession} /></PerfCtx.Provider>;
-  if (path === '/add-fund') return <PerfCtx.Provider value={perfValue}><AddFundPage session={session} onSessionChange={updateSession} /></PerfCtx.Provider>;
-  return (
-    <PerfCtx.Provider value={perfValue}>
-      <Dashboard
-        session={session}
-        onSessionChange={updateSession}
-        onLogout={logout}
-        siteStatus={siteStatus}
-        perfMode={perfMode}
-        onPerfSelect={setPerfMode}
-      />
-    </PerfCtx.Provider>
-  );
+  if (!online) return <ErrorTv mode="offline" />;
+  if (!knownPath) return <ErrorTv mode="404" />;
+  if (!session) return <><Login onSuccess={updateSession} siteStatus={siteStatus} /><Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} /></>;
+  if (path === '/admin') return <AdminPage session={session} onSessionChange={updateSession} />;
+  if (path === '/add-fund') return <AddFundPage session={session} onSessionChange={updateSession} />;
+  return <Dashboard session={session} onSessionChange={updateSession} onLogout={logout} siteStatus={siteStatus} />;
 }
 
 /* ── Error TV ───────────────────────────────────────────────────── */
