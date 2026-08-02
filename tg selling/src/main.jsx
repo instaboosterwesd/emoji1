@@ -992,7 +992,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           {photoData && <img src={photoData} alt="Preview" className="photo-preview" />}
           <div className="modal-btn-row">
             <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save" type="submit">Save changes</button>
+            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Save changes</button>
           </div>
         </form>
       )}
