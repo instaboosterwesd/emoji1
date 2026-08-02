@@ -652,9 +652,44 @@ export async function getAdminAlerts() {
 
 export async function resolveAdminAlert(alertId) {
   if (!firebaseDb || !alertId) return;
+  // Get the alert to find the user
+  const snap = await get(ref(firebaseDb, `adminAlerts/${alertId}`));
+  const alert = snap.val();
   await update(ref(firebaseDb, `adminAlerts/${alertId}`), {
     resolved: true,
     resolvedAt: Date.now(),
+  });
+  // Save a notification for the affected user
+  if (alert?.uid) {
+    const notifId = `ir_${Date.now()}`;
+    await set(ref(firebaseDb, `userNotifications/${alert.uid}/${notifId}`), {
+      type: 'issue_resolved',
+      title: 'Issue Resolved',
+      message: 'Your issue is now resolved. Please purchase now.',
+      alertId,
+      productName: alert.productName || '',
+      createdAt: Date.now(),
+      dismissed: false,
+    });
+  }
+}
+
+export async function getUserResolvedNotification(uid) {
+  if (!firebaseDb || !uid) return null;
+  const snap = await get(ref(firebaseDb, `userNotifications/${uid}`));
+  if (!snap.exists()) return null;
+  const entries = Object.entries(snap.val())
+    .map(([id, val]) => ({ id, ...val }))
+    .filter(n => n.type === 'issue_resolved' && !n.dismissed)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return entries.length > 0 ? entries[0] : null;
+}
+
+export async function dismissUserNotification(uid, notifId) {
+  if (!firebaseDb || !uid || !notifId) return;
+  await update(ref(firebaseDb, `userNotifications/${uid}/${notifId}`), {
+    dismissed: true,
+    dismissedAt: Date.now(),
   });
 }
 

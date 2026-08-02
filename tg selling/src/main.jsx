@@ -46,6 +46,8 @@ import {
   clearResolvedAlerts,
   getSiteStatus,
   setSiteStatus,
+  getUserResolvedNotification,
+  dismissUserNotification,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -346,6 +348,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   const [notifs, setNotifs] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
+  const [resolvedNotif, setResolvedNotif] = useState(null);
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -367,6 +370,11 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   };
 
   useEffect(() => { setPageLoading(false); }, [tab]);
+
+  useEffect(() => {
+    if (!session?.uid) return;
+    getUserResolvedNotification(session.uid).then(n => { if (n) setResolvedNotif(n); }).catch(() => {});
+  }, [session?.uid]);
 
   const refreshProfile = useCallback(async () => {
     const next = await getUserProfile(session.uid);
@@ -468,6 +476,39 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
               }</div>
             }
           </div>
+        </div>
+      )}
+      {resolvedNotif && (
+        <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) return; }}>
+          <section className="action-modal liquid-dialog resolved-issue-dialog">
+            <div className="resolved-issue-icon">
+              <LottieIcon src="/icons/new/issue-resolved.json" size={64} />
+            </div>
+            <h2><LottieIcon src="/icons/new/verified-badge.json" size={22} /> Issue Resolved!</h2>
+            <p className="muted" style={{ textAlign: 'center', fontSize: '14px', lineHeight: 1.6 }}>
+              Your issue has been resolved by the admin. <br />
+              You can now purchase your product.
+            </p>
+            <div className="modal-btn-row" style={{ justifyContent: 'center', gap: 10 }}>
+              <button className="modal-save" type="button" onClick={() => {
+                if (session?.uid && resolvedNotif?.id) {
+                  dismissUserNotification(session.uid, resolvedNotif.id).catch(() => {});
+                }
+                setResolvedNotif(null);
+                setTab('buy');
+              }}>
+                <LottieIcon src="/icons/new/shopping-cart.json" size={18} /> Buy now
+              </button>
+              <button type="button" onClick={() => {
+                if (session?.uid && resolvedNotif?.id) {
+                  dismissUserNotification(session.uid, resolvedNotif.id).catch(() => {});
+                }
+                setResolvedNotif(null);
+              }}>
+                <MatIcon name="close" size={16} /> Dismiss
+              </button>
+            </div>
+          </section>
         </div>
       )}
       <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
