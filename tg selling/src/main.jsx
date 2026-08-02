@@ -569,7 +569,11 @@ function WalletView({ session, profile, refreshProfile }) {
                     <span className="tx-icon">
                       {tx.type === 'purchase'
                         ? <img src={productIconFor((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
-                        : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
+                        : tx.type === 'deposit_approved'
+                          ? <LottieIcon src="/icons/new/add-funds-plus.json" size={22} />
+                          : tx.type === 'admin_add'
+                            ? <LottieIcon src="/icons/new/topup-emoji.json" size={22} />
+                            : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
                     </span>
                     <div className="tx-main">
                       <strong>{tx.note || tx.type || 'Transaction'}</strong>
