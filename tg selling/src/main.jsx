@@ -900,14 +900,14 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
               <img src={productIconFor(product.name)} alt="" />
             </div>
             <div className="purchase-meta-grid">
-              <div><span>Game</span><strong>{product.game || 'Product'}</strong></div>
-              <div><span>Duration</span><strong>{duration.duration || duration.label}</strong></div>
-              <div><span>Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
-              <div><span>Platform</span><strong>{product.platform || 'Access key'}</strong></div>
+              <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
+              <div><span><LottieIcon src="/icons/new/timer.json" size={18} /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
+              <div><span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
+              <div><span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
             <p className="purchase-note">Balance will be deducted. A key will be delivered instantly.</p>
             <div className="modal-btn-row">
-              <button type="button" onClick={close} disabled={busy}>Cancel</button>
+              <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
               <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
                 {busy ? 'Buying…' : <><MatIcon name="shopping_cart" size={17} /> Confirm buy</>}
               </button>
@@ -1023,7 +1023,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           <div className="dialog-title-row"><MatIcon name="logout" size={20} /><h2>Logout?</h2></div>
           <p>Your local session will be removed from this browser.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}>Cancel</button>
+            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
             <button className="modal-danger" type="button" onClick={onLogout}>Logout</button>
           </div>
         </section>
@@ -1200,7 +1200,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
           })}
         </div>
         <div className="modal-btn-row">
-          <button type="button" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" onClick={onClose} disabled={saving}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
           <button className="modal-save" type="button" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : <><MatIcon name="check" size={17} /> Save pricing</>}
           </button>
