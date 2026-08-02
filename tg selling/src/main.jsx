@@ -657,7 +657,7 @@ function OrdersView({ session }) {
           <LottieIcon src="/icons/new/search-emoji.json" size={18} />
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search orders" />
         </div>
-        <button className="icon-button" onClick={load} aria-label="Refresh orders"><MatIcon name="refresh" size={17} /></button>
+        <button className="icon-button" onClick={load} aria-label="Refresh orders"><LottieIcon src="/icons/new/refresh-emoji.json" size={22} /></button>
       </div>
       <div className="glass-card">
         {loading
