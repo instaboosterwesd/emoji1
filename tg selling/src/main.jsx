@@ -646,7 +646,7 @@ function OrdersView({ session }) {
 
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle="Track your purchased license keys" />
+      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle={<><LottieIcon src="/icons/new/track-emoji.json" size={16} /> Track your purchased license keys</>} />
       <div className="filter-row">
         <div className="search-box">
           <LottieIcon src="/icons/new/search-emoji.json" size={18} />
