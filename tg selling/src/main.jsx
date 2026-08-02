@@ -352,9 +352,9 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
 
-  /* ── Auto‑refresh when perf mode is permanently changed ── */
+  /* ── Auto‑refresh when perf mode changes (including first selection) ── */
   useEffect(() => {
-    if (prevPerf.current !== null && prevPerf.current !== perfMode) {
+    if (prevPerf.current !== perfMode) {
       location.reload();
     }
     prevPerf.current = perfMode;
