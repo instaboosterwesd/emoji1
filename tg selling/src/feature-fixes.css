@@ -1639,3 +1639,102 @@
 .liquid-dialog, .action-modal, .deposit-modal-backdrop, .notif-overlay {
   contain: paint layout style;
 }
+
+/* ── Performance/dialog ───────────────────────────────────────── */
+.perf-dialog-backdrop {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3,6,18,.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: perf-fade-in .3s ease;
+}
+@keyframes perf-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.perf-dialog {
+  width: min(100%, 380px);
+  padding: 28px 24px 22px;
+  text-align: center;
+  color: #fff;
+}
+.perf-dialog-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #229ed9, #7b5cf5);
+  font-size: 26px;
+  box-shadow: 0 8px 24px rgba(34,158,217,.35);
+}
+.perf-dialog h2 {
+  font: 600 22px 'Space Grotesk', sans-serif;
+  margin: 0 0 8px;
+}
+.perf-dialog-desc {
+  color: rgba(255,255,255,.6);
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+.perf-dialog-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.perf-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: .2s;
+}
+.perf-option:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.28);
+  transform: translateY(-1px);
+}
+.perf-option-icon {
+  font-size: 28px;
+  flex: none;
+}
+.perf-option strong {
+  display: block;
+  font: 600 14px 'Space Grotesk', sans-serif;
+  margin-bottom: 2px;
+}
+.perf-option-desc {
+  display: block;
+  font-size: 11px;
+  color: rgba(255,255,255,.55);
+}
+.perf-dont-ask {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 0 !important;
+  cursor: pointer;
+  font-size: 12px !important;
+  color: rgba(255,255,255,.55);
+}
+.perf-dont-ask input {
+  width: 16px;
+  height: 16px;
+  accent-color: #229ed9;
+  cursor: pointer;
+}
