@@ -1615,3 +1615,27 @@
     margin-top: 7px !important;
   }
 }
+
+/* ── Low-end device / performance optimization ──────────── */
+/* prefers-reduced-motion: kill all animations & transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Low battery on Android Chrome — kill heavy GPU work */
+@media (prefers-reduced-transparency: reduce) {
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Contain paint for dialog/overlay to isolate repaints */
+.liquid-dialog, .action-modal, .deposit-modal-backdrop, .notif-overlay {
+  contain: paint layout style;
+}

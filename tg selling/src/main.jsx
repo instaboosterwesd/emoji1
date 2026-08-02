@@ -60,7 +60,7 @@ import './issues.css';
 import './gift-code.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */
-const logo = '/devx-logo.png';
+const logo = '/devx-logo.webp';
 const telegramLogo = '/telegram-logo.png';
 const money = v => Number(v || 0).toLocaleString('en-IN');
 const MoneyDisplay = ({ value }) => <strong className="inline-money">₹{money(value)}</strong>;
@@ -230,7 +230,7 @@ function Login({ onSuccess, siteStatus }) {
 
   return (
     <main className="page">
-      <video className="backdrop" autoPlay muted loop playsInline><source src="/splash.mp4" type="video/mp4" /></video>
+      <video className="backdrop" autoPlay muted loop playsInline playsInline poster="/splash-poster.jpg"><source src="/splash.webm" type="video/webm" /><source src="/splash.mp4" type="video/mp4" /></video>
       <div className="veil" />
       {siteStatus && siteStatus.status !== 'operational' && siteStatus.message && (
         <div className="site-status-banner down" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
@@ -413,7 +413,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
 
   return (
     <main className={`dashboard-page ${theme}`}>
-      <img key={theme} className="dashboard-backdrop" src={theme === 'dark' ? '/dashboard-dark-bg.png' : '/dashboard-light-bg.webp'} alt="" aria-hidden="true" />
+      <img key={theme} className="dashboard-backdrop" src={theme === 'dark' ? '/dashboard-dark-bg.webp' : '/dashboard-light-bg.webp'} alt="" aria-hidden="true" loading="lazy" />
       <div className="dashboard-veil" />
       {tab === 'dashboard' && (
         <header className="dash-header">
@@ -2005,7 +2005,7 @@ function AdminPage({ session, onSessionChange }) {
 
   return (
     <main className="dashboard-page admin-page">
-      <video className="dashboard-backdrop" autoPlay muted loop playsInline aria-hidden="true"><source src="/dashboard-dark.mp4" type="video/mp4" /></video>
+      <img className="dashboard-backdrop" src="/dashboard-dark-bg.webp" alt="" aria-hidden="true" loading="lazy" />
       <div className="dashboard-veil" />
       <div className={`admin-shell${collapsed ? ' collapsed' : ''}`}>
         <aside className="admin-tabs glass-card">
@@ -2145,9 +2145,7 @@ function AddFundPage({ session, onSessionChange }) {
 
   return (
     <main className="dashboard-page">
-      <video className="dashboard-backdrop" autoPlay muted loop playsInline aria-hidden="true">
-        <source src="/dashboard-dark.mp4" type="video/mp4" />
-      </video>
+      <img className="dashboard-backdrop" src="/dashboard-dark-bg.webp" alt="" aria-hidden="true" loading="lazy" />
       <div className="dashboard-veil" />
       <div className="dash-content no-header">
 
