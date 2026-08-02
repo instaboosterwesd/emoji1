@@ -1640,4 +1640,14 @@
   contain: paint layout style;
 }
 
-/* ── (performance dialog removed as requested) ──────────────────── */
+/* ── Version tag in profile card ──────────────────── */
+.profile-actions .version-tag {
+  text-align: center;
+  margin: 16px 0 -4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,.3);
+  border-top: 1px solid rgba(255,255,255,.07);
+  padding-top: 12px;
+}
