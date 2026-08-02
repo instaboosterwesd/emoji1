@@ -413,9 +413,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
 
   return (
     <main className={`dashboard-page ${theme}`}>
-      <video key={theme} className="dashboard-backdrop" autoPlay muted loop playsInline aria-hidden="true">
-        <source src={theme === 'dark' ? '/dashboard-dark.mp4' : '/dashboard-light.mp4'} type="video/mp4" />
-      </video>
+      <img key={theme} className="dashboard-backdrop" src={theme === 'dark' ? '/dashboard-dark-bg.png' : '/dashboard-light-bg.webp'} alt="" aria-hidden="true" />
       <div className="dashboard-veil" />
       {tab === 'dashboard' && (
         <header className="dash-header">

@@ -411,17 +411,19 @@ Do not rely only on UI hiding.
 Large public files:
 
 - `public/splash.mp4` ~4 MB
-- `public/dashboard-dark.mp4` ~3.2 MB
 - `public/devx-logo.png` ~2.3 MB
-- `public/dashboard-light.mp4` ~1.3 MB
+- `public/dashboard-dark-bg.png` — dark mode background image (blue night scene)
+- `public/dashboard-light-bg.webp` — light mode background image (warm golden night scene)
 - Some old 3D PNG icons are large but mostly overridden by `/icons/new/*`.
+
+Note: `dashboard-dark.mp4` and `dashboard-light.mp4` are still present in `public/` but are no longer used — the dashboard backdrop was switched from `<video>` to `<img>` to use these two static images instead.
 
 If mobile feels slow, first compress:
 
 - `devx-logo.png`
 - `splash.mp4`
-- `dashboard-dark.mp4`
-- `dashboard-light.mp4`
+- `dashboard-dark-bg.png` (convert to webp)
+- `dashboard-light-bg.webp`
 
 ### Material icons folder
 
