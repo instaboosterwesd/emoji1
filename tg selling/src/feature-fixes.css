@@ -1713,6 +1713,10 @@
   font-size: 28px;
   flex: none;
 }
+.perf-emoji {
+  font-size: 24px;
+  opacity: .85;
+}
 .perf-option strong {
   display: block;
   font: 600 14px 'Space Grotesk', sans-serif;

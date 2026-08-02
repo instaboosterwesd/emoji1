@@ -597,20 +597,20 @@ function PerformanceDialog({ onSelect, onSkip }) {
   return (
     <div className="perf-dialog-backdrop">
       <div className="perf-dialog liquid-dialog">
-        <h2>✨ Choose your experience</h2>
+        <h2>Choose your experience</h2>
         <p className="perf-dialog-desc">
           Select your device performance level for the best experience.
         </p>
         <div className="perf-dialog-options">
           <button className="perf-option" onClick={() => pick('high')}>
-            <span className="perf-option-icon">🚀</span>
+            <span className="perf-option-icon perf-emoji">&#x1F680;&#xFE0E;</span>
             <div>
               <strong>High Performance Device</strong>
               <span className="perf-option-desc">Full animations &amp; effects</span>
             </div>
           </button>
           <button className="perf-option" onClick={() => pick('low')}>
-            <span className="perf-option-icon">📱</span>
+            <span className="perf-option-icon perf-emoji">&#x1F4F1;&#xFE0E;</span>
             <div>
               <strong>Low Performance Device</strong>
               <span className="perf-option-desc">Static icons, smoother browsing</span>
