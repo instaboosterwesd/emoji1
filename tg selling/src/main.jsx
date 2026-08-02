@@ -890,7 +890,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
           </>
         ) : (
           <>
-            <h2>Confirm purchase <LottieIcon src="/icons/new/confirm-purchase-emoji.json" size={24} /></h2>
+            <h2><LottieIcon src="/icons/new/confirm-buy-emoji.json" size={24} /> Confirm purchase</h2>
             <div className="purchase-summary">
               <div className="purchase-title">
                 <span>Selected product</span>
@@ -905,7 +905,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
               <div><span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
               <div><span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
-            <p className="purchase-note">Balance will be deducted. A key will be delivered instantly.</p>
+            <p className="purchase-note"><LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Balance will be deducted. A key will be delivered instantly.</p>
             <div className="modal-btn-row">
               <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
               <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
