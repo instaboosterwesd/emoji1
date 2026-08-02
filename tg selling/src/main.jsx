@@ -352,10 +352,15 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
 
-  /* ── Auto‑refresh when perf mode changes (including first selection) ── */
+  /* ── Auto‑refresh when perf mode changes (including first selection) ──
+     perfMode === null means dialog is opening — never reload on that.
+     prevPerf.current === null means first-ever selection — always reload.
+     Otherwise reload only if mode actually changed value.              */
   useEffect(() => {
-    if (prevPerf.current !== perfMode) {
-      location.reload();
+    if (perfMode === null) return;                           // dialog opening, ignore
+    if (prevPerf.current === null || prevPerf.current !== perfMode) {
+      location.reload();                                    // first pick OR mode changed
+      return;
     }
     prevPerf.current = perfMode;
   }, [perfMode]);
