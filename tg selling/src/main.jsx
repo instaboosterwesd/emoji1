@@ -1333,6 +1333,7 @@ function AdminPage({ session, onSessionChange }) {
   // Admin alerts / Issues
   const [adminAlerts, setAdminAlerts] = useState([]);
   const [viewIssueUser, setViewIssueUser] = useState(null);
+  const [issueFilter, setIssueFilter] = useState('today'); // today | yesterday | all
   // Site status
   const [siteStatus, setSiteStatus] = useState('operational');
   const [siteStatusMsg, setSiteStatusMsg] = useState('');
@@ -1343,7 +1344,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'users', label: 'Users', icon: 'people' },
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
-    { id: 'issues', label: 'Issues', icon: 'error_outline' },
+    { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'key-history', label: 'License History', icon: 'history' },
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
@@ -1638,8 +1639,8 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="heading-title-row">
-            <MatIcon name="error_outline" size={20} style={{ color: '#ff7089' }} />
-            <div><h3>Issues — keys exhausted</h3><p className="muted">Users who got blocked due to no keys</p></div>
+            <LottieIcon src="/icons/new/feat-crystal-skull.json" size={24} />
+            <div><h3>Issues <span className="muted" style={{fontSize:'0.85rem',fontWeight:400}}>({adminAlerts.length})</span></h3><p className="muted">Users who got blocked due to no keys</p></div>
           </div>
           {adminAlerts.some(a => !a.resolved) && (
             <button className="danger-mini" onClick={() => safeAction(clearResolvedAlerts, 'Resolved alerts cleared')}>
@@ -1647,32 +1648,66 @@ function AdminPage({ session, onSessionChange }) {
             </button>
           )}
         </div>
-        <AdminList items={adminAlerts} empty="No issues — all clear!" render={alert => (
-          <AdminRow
-            title={
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {alert.resolved ? <MatIcon name="check_circle" size={14} style={{ color: '#74e0a5' }} /> : <MatIcon name="error" size={14} style={{ color: '#ff7089' }} />}
-                {alert.productName || 'Unknown product'}
-              </span>
-            }
-            meta={`${alert.duration || '—'} · ${fmtDate(alert.timestamp)}`}
-            status={alert.resolved ? '✓ Resolved' : '⚠ Open'}
-          >
-            {alert.uid && (
-              <button onClick={() => {
-                setViewIssueUser({ uid: alert.uid, name: alert.userName, phone: alert.userPhone });
-              }}>
-                <MatIcon name="visibility" size={13} /> View user
-              </button>
-            )}
-            {!alert.resolved && (
-              <button className="modal-save" style={{ background: 'rgba(116,224,165,0.2)', color: '#74e0a5', border: '1px solid rgba(116,224,165,0.3)' }}
-                onClick={() => safeAction(() => resolveAdminAlert(alert.id), 'Issue resolved — user can purchase now')}>
-                <MatIcon name="check_circle" size={13} /> Resolve
-              </button>
-            )}
-          </AdminRow>
-        )} />
+
+        {/* Filter row */}
+        <div className="issue-filter-row">
+          {['today','yesterday','all'].map(f => (
+            <button key={f} className={`issue-filter-btn${issueFilter === f ? ' active' : ''}`}
+              onClick={() => setIssueFilter(f)}>
+              {f === 'today' ? <><MatIcon name="today" size={14} /> Today</> :
+               f === 'yesterday' ? <><MatIcon name="date_range" size={14} /> Yesterday</> :
+               <><MatIcon name="list" size={14} /> All</>}
+            </button>
+          ))}
+          {adminAlerts.filter(a => a.resolved).length > 0 && (
+            <button className="danger-mini" style={{marginLeft:'auto'}} onClick={() => {
+              if (window.confirm('Clear all resolved issue history?')) safeAction(clearResolvedAlerts, 'Issue history cleared');
+            }}>
+              <MatIcon name="delete_sweep" size={14} /> Clear history
+            </button>
+          )}
+        </div>
+
+        {(() => {
+          const today = new Date();
+          const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+          const startYesterday = startToday - 86400000;
+          const endYesterday = startToday - 1;
+
+          const filtered = adminAlerts.filter(a => {
+            if (issueFilter === 'all') return true;
+            const ts = a.timestamp || 0;
+            if (issueFilter === 'today') return ts >= startToday;
+            return ts >= startYesterday && ts <= endYesterday;
+          });
+
+          return (
+            <AdminList items={filtered} empty={issueFilter === 'all' ? 'No issues — all clear!' : `No issues ${issueFilter}`} render={alert => (
+              <AdminRow
+                title={
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {alert.resolved ? <MatIcon name="check_circle" size={14} style={{ color: '#74e0a5' }} /> : <LottieIcon src="/icons/new/feat-crystal-skull.json" size={18} />}
+                    {alert.productName || 'Unknown product'}
+                  </span>
+                }
+                meta={`${alert.duration || '—'} · ${fmtDate(alert.timestamp)}`}
+                status={alert.resolved ? '✓ Resolved' : '⚠ Open'}
+              >
+                {alert.uid && (
+                  <button onClick={() => setViewIssueUser({ uid: alert.uid, name: alert.userName, phone: alert.userPhone })}>
+                    <MatIcon name="visibility" size={13} /> View user
+                  </button>
+                )}
+                {!alert.resolved && (
+                  <button className="modal-save" style={{ background: 'rgba(116,224,165,0.2)', color: '#74e0a5', border: '1px solid rgba(116,224,165,0.3)' }}
+                    onClick={() => safeAction(() => resolveAdminAlert(alert.id), 'Issue resolved — user can purchase now')}>
+                    <MatIcon name="check_circle" size={13} /> Resolve
+                  </button>
+                )}
+              </AdminRow>
+            )} />
+          );
+        })()}
       </div>
     ),
 
@@ -1778,7 +1813,7 @@ function AdminPage({ session, onSessionChange }) {
           <div className="admin-tab-list">
             {adminTabs.map(({ id, label, icon }) => (
               <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-                <MatIcon name={icon} size={18} />
+                {id === 'issues' ? <LottieIcon src="/icons/new/feat-crystal-skull.json" size={20} /> : <MatIcon name={icon} size={18} />}
                 <span>{label}</span>
               </button>
             ))}

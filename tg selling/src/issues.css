@@ -31,3 +31,38 @@
   font-size: 13px;
   text-align: right;
 }
+
+/* ── Issue Filter Row ──────────────────────────────────────────── */
+.issue-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.issue-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.6);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.issue-filter-btn:hover {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+}
+
+.issue-filter-btn.active {
+  background: rgba(142,207,240,.18);
+  border-color: rgba(142,207,240,.35);
+  color: #8ecff0;
+}
