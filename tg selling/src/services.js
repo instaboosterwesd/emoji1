@@ -570,9 +570,15 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
       source = 'manual';
       await update(ref(firebaseDb, `manualLicenseKeys/${fallback.id}`), { used: true, usedBy: uid, usedAt: Date.now() });
     } else {
-      // 5. Both failed — refund
+      // 5. Both failed — refund + alert admin
       await update(ref(firebaseDb, `users/${uid}`), { balance: currentBalance, updatedAt: Date.now() });
-      throw new Error(`Purchase failed: ${apiError.message}. No fallback keys available. Balance refunded.`);
+      try { await adminSaveAlert('keys_exhausted', {
+        productId: String(product.pid),
+        productName: product.name,
+        duration: duration.duration || duration.label,
+        apiError: apiError.message,
+      }); } catch (_) { /* non-blocking */ }
+      throw new Error('⛔ Server is currently down. Our team is working on it. Please try again in 1-2 hours. Your balance has been refunded.');
     }
   }
 
@@ -615,6 +621,66 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   });
 
   return { success: true, key: deliveredKey, source, keyId };
+}
+
+/* ── Admin Alerts (keys exhaustion) ─────────────────────────────── */
+
+export async function adminSaveAlert(type, data = {}) {
+  if (!firebaseDb) return;
+  const id = `alert_${Date.now()}`;
+  await set(ref(firebaseDb, `adminAlerts/${id}`), {
+    type,
+    ...data,
+    timestamp: Date.now(),
+    resolved: false,
+    resolvedAt: null,
+  });
+  return id;
+}
+
+export async function getAdminAlerts() {
+  if (!firebaseDb) return [];
+  const snap = await get(ref(firebaseDb, 'adminAlerts'));
+  if (!snap.exists()) return [];
+  return Object.entries(snap.val())
+    .map(([id, val]) => ({ id, ...val }))
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+}
+
+export async function resolveAdminAlert(alertId) {
+  if (!firebaseDb || !alertId) return;
+  await update(ref(firebaseDb, `adminAlerts/${alertId}`), {
+    resolved: true,
+    resolvedAt: Date.now(),
+  });
+}
+
+export async function clearResolvedAlerts() {
+  if (!firebaseDb) return;
+  const snap = await get(ref(firebaseDb, 'adminAlerts'));
+  if (!snap.exists()) return;
+  for (const [id, val] of Object.entries(snap.val())) {
+    if (val?.resolved) {
+      await set(ref(firebaseDb, `adminAlerts/${id}`), null);
+    }
+  }
+}
+
+/* ── Site Status (server-down / operational banner) ──────────────── */
+
+export async function setSiteStatus(status, message = '') {
+  if (!firebaseDb) throw new Error('Firebase not configured.');
+  await set(ref(firebaseDb, 'settings/siteStatus'), {
+    status,
+    message: message.trim() || '',
+    updatedAt: Date.now(),
+  });
+}
+
+export async function getSiteStatus() {
+  if (!firebaseDb) return { status: 'operational', message: '' };
+  const snap = await get(ref(firebaseDb, 'settings/siteStatus'));
+  return snap.exists() ? snap.val() : { status: 'operational', message: '' };
 }
 
 /* ── Delete Reseller ────────────────────────────────────────────── */

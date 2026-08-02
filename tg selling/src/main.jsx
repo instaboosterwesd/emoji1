@@ -41,9 +41,15 @@ import {
   adminDeleteReseller,
   checkResellerBalance,
   getAnnouncements,
+  getAdminAlerts,
+  resolveAdminAlert,
+  clearResolvedAlerts,
+  getSiteStatus,
+  setSiteStatus,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
+import './site-status.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */
 const logo = '/devx-logo.png';
@@ -155,7 +161,7 @@ const ProductSkeletonList = () => (
 );
 
 /* ── Login ──────────────────────────────────────────────────────── */
-function Login({ onSuccess }) {
+function Login({ onSuccess, siteStatus }) {
   const [step, setStep] = useState('phone');
   const [otpMeta, setOtpMeta] = useState(null);
   const [phone, setPhone] = useState('');
@@ -218,6 +224,18 @@ function Login({ onSuccess }) {
     <main className="page">
       <video className="backdrop" autoPlay muted loop playsInline><source src="/splash.mp4" type="video/mp4" /></video>
       <div className="veil" />
+      {siteStatus && siteStatus.status !== 'operational' && siteStatus.message && (
+        <div className="site-status-banner down" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
+          <LottieIcon src="/icons/new/feat-crystal-skull.json" size={18} />
+          <span>{siteStatus.message}</span>
+        </div>
+      )}
+      {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
+        <div className="site-status-banner ok" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
+          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <span>{siteStatus.message}</span>
+        </div>
+      )}
       <section className="login-card" onMouseMove={handleMove}>
         <div className="mouse-glow" />
         {step === 'phone' && (
@@ -316,7 +334,7 @@ function Terms() {
 }
 
 /* ── Dashboard shell ────────────────────────────────────────────── */
-function Dashboard({ session, onSessionChange, onLogout }) {
+function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   const [tab, setTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
@@ -403,6 +421,18 @@ function Dashboard({ session, onSessionChange, onLogout }) {
           </div>
         </header>
       )}
+      {siteStatus && siteStatus.status !== 'operational' && siteStatus.message && (
+        <div className="site-status-banner down">
+          <LottieIcon src="/icons/new/feat-crystal-skull.json" size={18} />
+          <span>{siteStatus.message}</span>
+        </div>
+      )}
+      {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
+        <div className="site-status-banner ok">
+          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <span>{siteStatus.message}</span>
+        </div>
+      )}
       <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'}`}>
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
@@ -440,7 +470,7 @@ function Dashboard({ session, onSessionChange, onLogout }) {
         </div>
       )}
       <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
-      <Toaster position="top-center" offset={18} theme={theme} toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
+      <Toaster position="top-center" offset={78} theme={theme} toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
     </main>
   );
 }
@@ -1237,6 +1267,11 @@ function AdminPage({ session, onSessionChange }) {
   // Manual keys
   const [manualKeyForm, setManualKeyForm] = useState({ pid: '', productName: '', duration: '', key: '' });
   const [manualKeys, setManualKeys] = useState([]);
+  // Admin alerts
+  const [adminAlerts, setAdminAlerts] = useState([]);
+  // Site status
+  const [siteStatus, setSiteStatus] = useState('operational');
+  const [siteStatusMsg, setSiteStatusMsg] = useState('');
 
   const adminTabs = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -1254,15 +1289,20 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList] = await Promise.all([
+      const [overview, productList, alerts, status] = await Promise.all([
         getAdminOverview(),
         fetchGameProducts().catch(() => []),
+        getAdminAlerts().catch(() => []),
+        getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
       ]);
       setData(overview);
       setProducts(productList);
       setUpiId(overview.upiId || '');
       setMinDeposit(String(overview.minDeposit || 50));
       setManualKeys(overview.manualKeys || []);
+      setAdminAlerts(alerts);
+      setSiteStatus(status.status || 'operational');
+      setSiteStatusMsg(status.message || '');
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -1348,6 +1388,35 @@ function AdminPage({ session, onSessionChange }) {
             <p className="muted"><MatIcon name="schedule" size={14} /> {deposits.filter(d => d.status === 'pending').length} pending payment requests</p>
           </div>
         </div>
+
+        {/* Admin Alerts */}
+        {adminAlerts.filter(a => !a.resolved).length > 0 && (
+          <div className="admin-card" style={{ borderColor: 'rgba(255,112,137,0.4)' }}>
+            <div className="admin-card-header">
+              <div className="heading-title-row">
+                <MatIcon name="error_outline" size={20} style={{ color: '#ff7089' }} />
+                <div><h3 style={{ color: '#ff7089' }}>Alerts</h3><p className="muted">Keys exhausted — admin action needed</p></div>
+              </div>
+              <button className="danger-mini" onClick={() => safeAction(clearResolvedAlerts, 'Resolved alerts cleared')}>
+                <MatIcon name="clear_all" size={14} /> Clear resolved
+              </button>
+            </div>
+            {adminAlerts.filter(a => !a.resolved).map(alert => (
+              <div key={alert.id} className="admin-alert-row">
+                <div className="admin-alert-info">
+                  <LottieIcon src="/icons/new/feat-crystal-skull.json" size={20} />
+                  <div>
+                    <strong>{alert.productName || 'Unknown product'}</strong>
+                    <p className="muted">{alert.duration ? `${alert.duration} · ` : ''}{fmtDate(alert.timestamp)}</p>
+                  </div>
+                </div>
+                <button className="modal-save" style={{ background: 'rgba(116,224,165,0.2)', color: '#74e0a5', border: '1px solid rgba(116,224,165,0.3)' }} onClick={() => safeAction(() => resolveAdminAlert(alert.id), 'Alert resolved — keys added')}>
+                  <MatIcon name="check_circle" size={14} /> Resolved
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </>
     ),
 
@@ -1538,6 +1607,26 @@ function AdminPage({ session, onSessionChange }) {
     ),
 
     settings: (
+      <><div className="admin-card">
+        <h3>Site status</h3>
+        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => setSiteStatus(siteStatus, siteStatusMsg), 'Site status updated'); }}>
+          <label>
+            <LottieIcon src="/icons/new/shield-verify.json" size={16} /> Status
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <MatIcon name={siteStatus === 'operational' ? 'check_circle' : 'warning'} size={18} style={{ color: siteStatus === 'operational' ? '#74e0a5' : '#ff7089' }} />
+              <select value={siteStatus} onChange={e => setSiteStatus(e.target.value)} style={{ flex: 1 }}>
+                <option value="operational">🟢 Operational — site working fine</option>
+                <option value="down">🔴 Down — keys exhausted, show alert</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            <LottieIcon src="/icons/new/bell.json" size={16} /> Banner message
+            <textarea value={siteStatusMsg} onChange={e => setSiteStatusMsg(e.target.value)} placeholder="e.g. Site is completely fine. You can purchase now." rows={2} style={{ marginTop: 4 }} />
+          </label>
+          <button className="modal-save" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={16} /> Update status</button>
+        </form>
+      </div>
       <div className="admin-card">
         <h3>UPI payment settings</h3>
         <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => adminSaveUpi(upiId, minDeposit), 'UPI settings saved'); }}>
@@ -1562,7 +1651,7 @@ function AdminPage({ session, onSessionChange }) {
             ? <img src={`https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(`upi://pay?pa=${upiId}`)}`} alt="UPI QR" />
             : <p className="muted">QR will appear after UPI ID is saved.</p>}
         </div>
-      </div>
+      </div></>
     ),
   }[tab];
 
@@ -1601,7 +1690,7 @@ function AdminPage({ session, onSessionChange }) {
           {loading ? <PageSkeleton tab="admin" /> : section}
         </section>
       </div>
-      <Toaster position="top-center" offset={18} theme="dark" toastOptions={toastOptions} />
+      <Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} />
       {historyUser && <UserHistoryDialog user={historyUser} onClose={() => setHistoryUser(null)} />}
       {pricingProduct && <PricingEditDialog product={pricingProduct} onClose={() => setPricingProduct(null)} onSave={loadAdmin} />}
     </main>
@@ -1816,7 +1905,7 @@ function AddFundPage({ session, onSessionChange }) {
           </div>
         )}
 
-        <Toaster position="top-center" offset={18} theme="dark" toastOptions={toastOptions} />
+        <Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} />
       </div>
     </main>
   );
@@ -1841,6 +1930,7 @@ function navigate(to) {
 /* ── App root ───────────────────────────────────────────────────── */
 function App() {
   const [online, setOnline] = useState(() => navigator.onLine);
+  const [siteStatus, setSiteStatus] = useState({ status: 'operational', message: '' });
   const [session, setSession] = useState(() => {
     try { return JSON.parse(localStorage.getItem('app_session') || 'null'); } catch { return null; }
   });
@@ -1848,6 +1938,12 @@ function App() {
   const knownPath = path === '/' || path === '/admin' || path === '/add-fund';
 
   useEffect(() => { initSecurity(); }, []);
+
+  useEffect(() => {
+    getSiteStatus().then(setSiteStatus).catch(() => {});
+    const interval = setInterval(() => { getSiteStatus().then(setSiteStatus).catch(() => {}); }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const upd = () => setOnline(navigator.onLine);
@@ -1875,10 +1971,10 @@ function App() {
 
   if (!online) return <ErrorTv mode="offline" />;
   if (!knownPath) return <ErrorTv mode="404" />;
-  if (!session) return <><Login onSuccess={updateSession} /><Toaster position="top-center" offset={18} theme="dark" toastOptions={toastOptions} /></>;
+  if (!session) return <><Login onSuccess={updateSession} siteStatus={siteStatus} /><Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} /></>;
   if (path === '/admin') return <AdminPage session={session} onSessionChange={updateSession} />;
   if (path === '/add-fund') return <AddFundPage session={session} onSessionChange={updateSession} />;
-  return <Dashboard session={session} onSessionChange={updateSession} onLogout={logout} />;
+  return <Dashboard session={session} onSessionChange={updateSession} onLogout={logout} siteStatus={siteStatus} />;
 }
 
 /* ── Error TV ───────────────────────────────────────────────────── */
