@@ -412,7 +412,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
     tab === 'orders' ? <OrdersView session={session} /> :
     tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} /> :
+    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => setPerfMode(null)} /> :
     <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
 
   return (
@@ -599,11 +599,11 @@ function PerformanceDialog({ onSelect }) {
         <p className="perf-dialog-desc">Select your device performance level for the best experience.</p>
         <div className="perf-dialog-options">
           <button className="perf-option" onClick={() => { localStorage.setItem('perf_mode', 'high'); onSelect('high'); }}>
-            <span className="perf-option-icon">🚀</span>
+            <span className="perf-option-icon"><img src="/icons/material/send-flash.svg" width="32" height="32" alt="" /></span>
             <div><strong>High Performance Device</strong><span className="perf-option-desc">Full animations &amp; effects</span></div>
           </button>
           <button className="perf-option" onClick={() => { localStorage.setItem('perf_mode', 'low'); onSelect('low'); }}>
-            <span className="perf-option-icon">📱</span>
+            <span className="perf-option-icon"><img src="/icons/material/phone-spidey.svg" width="32" height="32" alt="" /></span>
             <div><strong>Low Performance Device</strong><span className="perf-option-desc">Static icons, smoother browsing</span></div>
           </button>
         </div>
@@ -1038,7 +1038,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
 }
 
 /* ── ProfileView ────────────────────────────────────────────────── */
-function ProfileView({ profile, openDialog, openApi }) {
+function ProfileView({ profile, openDialog, openApi, onShowPerf }) {
   const [giftOpen, setGiftOpen] = useState(false);
   return (
     <>
@@ -1056,6 +1056,7 @@ function ProfileView({ profile, openDialog, openApi }) {
         <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
         <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
+        <button className="has-lottie" onClick={onShowPerf}><LottieIcon src="/icons/new/crown.json" size={24} />Device Performance</button>
         <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
         <p className="version-tag">V1.0</p>
       </div>
