@@ -934,7 +934,7 @@ function ProfileView({ profile, openDialog, openApi }) {
       </div>
       <div className="glass-card profile-actions">
         <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
-        <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/change-password.json" size={24} />Change password</button>
+        <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
         <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
       </div>
@@ -998,7 +998,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
       )}
       {type === 'password' && (
         <form className="action-modal liquid-dialog" onSubmit={savePassword}>
-          <div className="dialog-title-row"><MatIcon name="lock" size={20} /><h2>Change password</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/lock-emoji.json" size={24} /><h2>Change password</h2></div>
           <label>Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
           <label>New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
           <div className="modal-btn-row">
