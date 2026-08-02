@@ -48,12 +48,7 @@ import './feature-fixes.css';
 const logo = '/devx-logo.png';
 const telegramLogo = '/telegram-logo.png';
 const money = v => Number(v || 0).toLocaleString('en-IN');
-const MoneyDisplay = ({ value, size = 14 }) => <><LottieIcon src="/icons/new/rupee-emoji.json" size={size} style={{verticalAlign:'middle',marginRight:2}} /><NumberEmoji value={value} size={size} gap={0} /></>;
-const NumberEmoji = ({ value, size = 22, gap = 1 }) => {
-  const str = String(Math.floor(Number(value || 0)));
-  const digits = str.replace(/,/g, '').split('');
-  return <span style={{display:'inline-flex',alignItems:'center',gap}}>{digits.map((d, i) => <LottieIcon key={i} src={`/icons/new/digit-${d}.json`} size={size} />)}</span>;
-};
+const MoneyDisplay = ({ value }) => <strong className="inline-money">₹{money(value)}</strong>;
 const flag = iso2 => iso2.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397));
 const fmtDate = v => {
   if (!v) return '—';
@@ -455,7 +450,7 @@ function DashboardHome({ profile, role, setTab }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle="Here's what is happening today" />
       <div className="balance-card">
         <span>My balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><NumberEmoji value={profile.balance} /></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
         </button>
@@ -464,7 +459,7 @@ function DashboardHome({ profile, role, setTab }) {
         <Stat label="Today sales" value={<MoneyDisplay value={profile.todaySales} />} lottieIcon="/icons/new/today-sales.json" />
         <Stat label="Monthly sales" value={<MoneyDisplay value={profile.monthlySales} />} lottieIcon="/icons/new/monthly-sales.json" />
         <Stat label="My purchases" value={<MoneyDisplay value={profile.myPurchases} />} lottieIcon="/icons/new/shopping-cart.json" />
-        <Stat label="Active keys" value={<NumberEmoji value={profile.active || 0} />} lottieIcon="/icons/new/active-keys.json" />
+        <Stat label="Active keys" value={profile.active || 0} lottieIcon="/icons/new/active-keys.json" />
       </div>
       {role === 'admin' && (
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
@@ -546,7 +541,7 @@ function WalletView({ session, profile, refreshProfile }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} /> Wallet</>} subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><NumberEmoji value={profile.balance} /></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
@@ -1304,8 +1299,8 @@ function AdminPage({ session, onSessionChange }) {
       <>
         <div className="admin-stat-grid">
           <AdminStat iconName="trending_up" label="Total revenue" value={<MoneyDisplay value={data?.stats?.totalRevenue || 0} />} accent="green" />
-          <AdminStat iconName="people" label="Active users" value={<NumberEmoji value={data?.stats?.activeUsers || 0} />} accent="blue" />
-          <AdminStat iconName="vpn_key" label="Keys sold" value={<NumberEmoji value={data?.stats?.keysSold || 0} />} accent="purple" />
+          <AdminStat iconName="people" label="Active users" value={data?.stats?.activeUsers || 0} accent="blue" />
+          <AdminStat iconName="vpn_key" label="Keys sold" value={data?.stats?.keysSold || 0} accent="purple" />
           <AdminStat iconName="payment" label="Pending deposit" value={<MoneyDisplay value={data?.stats?.pendingDeposit || 0} />} accent="orange" />
         </div>
 

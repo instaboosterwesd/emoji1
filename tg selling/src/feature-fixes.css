@@ -175,6 +175,11 @@
   flex-shrink: 0;
 }
 
+/* Bold inline money display */
+.inline-money {
+  font-weight: 700 !important;
+}
+
 /* Edit profile button — Lottie icon, suppress CSS ::before */
 .profile-actions button:nth-child(1).has-lottie::before {
   display: none !important;
