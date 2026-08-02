@@ -468,13 +468,15 @@ function Dashboard({ session, onSessionChange, onLogout }) {
             </div>
             {notifs.length === 0
               ? <p className="muted empty-state" style={{ padding: '24px 0' }}>No notifications yet</p>
-              : notifs.map(n => (
-                <div key={n.id} className="notif-item">
-                  {n.title && <strong className="notif-title">{n.title}</strong>}
-                  <p className="notif-msg">{n.message}</p>
-                  <small className="notif-time muted">{fmtDate(n.createdAt)}</small>
-                </div>
-              ))
+              : <div className="notif-list">{
+                notifs.map(n => (
+                  <div key={n.id} className="notif-item">
+                    {n.title && <strong className="notif-title">{n.title}</strong>}
+                    <p className="notif-msg">{n.message}</p>
+                    <small className="notif-time muted">{fmtDate(n.createdAt)}</small>
+                  </div>
+                ))
+              }</div>
             }
           </div>
         </div>

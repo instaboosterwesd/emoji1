@@ -72,19 +72,17 @@
 
 .notif-dialog {
   width: min(340px, calc(100vw - 32px));
-  max-height: min(100%, calc(100svh - 140px));
-  height: fit-content;
-  overflow-y: auto;
   border-radius: 20px;
   padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
   animation: notif-drop .22s cubic-bezier(.22,1,.36,1);
 }
-.notif-dialog::-webkit-scrollbar { width: 4px; }
-.notif-dialog::-webkit-scrollbar-track { background: transparent; }
-.notif-dialog::-webkit-scrollbar-thumb {
+.notif-list {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.notif-list::-webkit-scrollbar { width: 4px; }
+.notif-list::-webkit-scrollbar-track { background: transparent; }
+.notif-list::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #8ecff0, #8b6cff);
   border-radius: 99px;
 }
