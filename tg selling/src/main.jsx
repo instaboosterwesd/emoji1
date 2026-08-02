@@ -986,7 +986,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           <div className="dialog-title-row"><MatIcon name="edit" size={20} /><h2>Edit profile</h2></div>
           <label>Display name<input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" /></label>
           <label className="file-upload-label">
-            <MatIcon name="photo_camera" size={18} /> Profile image
+            <LottieIcon src="/icons/new/edit-profile.json" size={22} /> Profile image
             <input type="file" accept="image/*" onChange={pickPhoto} style={{ display: 'none' }} />
           </label>
           {photoData && <img src={photoData} alt="Preview" className="photo-preview" />}
