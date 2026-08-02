@@ -564,9 +564,40 @@ function DashboardHome({ profile, role, setTab }) {
 }
 
 /* ── LottieIcon — plays a Lottie JSON animation inline ─────────── */
-function LottieIcon({ src, size = 24, loop = true, className = '', emoji = '' }) {
+const emojiMap = {
+  'bell': '🔔', 'close': '✕', 'search': '🔍', 'verified': '✅', 'shield': '🛡️',
+  'key': '🔑', 'lock': '🔒', 'save': '💾', 'edit': '✏️', 'gift': '🎁',
+  'wallet': '👛', 'balance': '💰', 'add-funds': '➕', 'plus': '➕',
+  'history': '📋', 'crown': '👑', 'timer': '⏱️', 'play': '▶️',
+  'shop': '🏪', 'store': '🏪', 'cart': '🛒', 'shopping': '🛒',
+  'orders': '📦', 'track': '📍', 'refresh': '🔄', 'download': '📋',
+  'profile': '👤', 'logout': '🚪', 'flash': '⚡', 'flame': '🔥',
+  'yoda': '👋', 'welcome': '👋', 'emoji': '✨', 'phone': '📱',
+  'arrow': '📲', 'send': '✈️', 'otp': '🔢', 'clipboard': '🔢',
+  'skull': '💀', 'crystal': '💎', 'today': '📅', 'money': '💰',
+  'rupee': '💰', 'pig': '🐷', 'platform': '💻', 'back': '⬅️',
+  'proceed': '➡️', 'bank': '🏦', 'qr': '📱', 'choose': '🎯',
+  'min': '📉', 'custom': '✏️', 'deposit': '🏦', 'send': '📤',
+  'up': '🔼', 'green': '🔼', 'arrow': '📲', 'verified-badge': '✅',
+  'issue': '💀', 'resolved': '✅', 'save-emoji': '💾', 'close-emoji': '✕',
+  'title': '✏️', 'password': '🔐', 'new-password': '🔐', 'old': '🔑',
+  'download-emoji': '📋', 'gift-code': '🎁',
+};
+const fallbackEmoji = '⬜';
+
+function emojiFor(src) {
+  if (!src) return fallbackEmoji;
+  const name = src.replace(/^.*\//, '').replace(/\.json$/, '');
+  for (const [key, val] of Object.entries(emojiMap)) {
+    if (name.includes(key)) return val;
+  }
+  return fallbackEmoji;
+}
+
+function LottieIcon({ src, size = 24, loop = true, className = '', emoji }) {
   const perf = usePerf();
   const ref = useRef(null);
+  const fallback = emoji !== undefined ? emoji : emojiFor(src);
   useEffect(() => {
     if (perf !== 'high' || !ref.current) return;
     const anim = lottie.loadAnimation({
@@ -579,12 +610,12 @@ function LottieIcon({ src, size = 24, loop = true, className = '', emoji = '' })
     return () => anim.destroy();
   }, [src, loop, perf]);
 
-  if (perf === 'low' && emoji) {
+  if (perf === 'low') {
     return (
       <span
         className={className}
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, fontSize: Math.round(size * 0.8), verticalAlign: 'middle' }}
-      >{emoji}</span>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, fontSize: Math.round(size * 0.8), verticalAlign: 'middle', color: '#fff', filter: 'brightness(0) invert(1)' }}
+      >{fallback}</span>
     );
   }
 
