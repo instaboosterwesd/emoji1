@@ -5,12 +5,34 @@ Run locally: python3 server.py
 Then tunnel: bore local 8080 --to bore.pub
 """
 from curl_cffi import requests
-import json, re
+import json, os, re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+
+# ── Turnstile Verification ──────────────────────────────────────
+TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET', '')
+TURNSTILE_VERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+
+@app.route('/api/verify-turnstile', methods=['POST'])
+def verify_turnstile():
+    data = request.get_json(silent=True) or {}
+    token = (data.get('token') or '').strip()
+    if not token:
+        return jsonify({"success": False, "error": "Missing token"}), 400
+    if not TURNSTILE_SECRET:
+        return jsonify({"success": False, "error": "Turnstile not configured"}), 500
+    try:
+        resp = requests.post(TURNSTILE_VERIFY, data={
+            'secret': TURNSTILE_SECRET,
+            'response': token,
+        }, timeout=10)
+        result = resp.json()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 FLATICON_SEARCH = "https://www.flaticon.com/search"
 FLATICON_AUTOCOMPLETE = "https://www.flaticon.com/ajax/autocomplete"

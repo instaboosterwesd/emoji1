@@ -1,0 +1,1091 @@
+Wire up server-side siteverify for my existing Turnstile widget in this project. Don't change the site key. Embed the widget on the right forms, add the canonical siteverify call in the backend, and validate.
+
+Widget: reversebypass (0x4AAAAAAEEMr2qc_eKU9ByY)
+
+Fetch the widget's secret via the Cloudflare API using your CLOUDFLARE_API_TOKEN — see the secret-retrieval decision tree in the inlined skill. Don't ask me to paste the secret unless the API path fails.
+
+Constraints:
+- Don't create a new widget; the one above already exists.
+- Store the secret as TURNSTILE_SECRET in the environment, never inline.
+- Use canonical siteverify (POST to challenges.cloudflare.com/turnstile/v0/siteverify). Don't deploy any extra infrastructure.
+
+This is a recovery flow against an existing widget — skip Step 8 (widget creation) in the wizard below and use the sitekey above instead.
+
+The full Turnstile Spin skill is inlined below so you can start immediately without fetching anything. Reference URL (only fetch if you need an updated copy): https://developers.cloudflare.com/turnstile/spin/?widget=0x4AAAAAAEEMr2qc_eKU9ByY
+
+---
+
+---
+name: turnstile-spin
+description: Set up Cloudflare Turnstile end-to-end in a project. Scan the codebase, create the widget via the Cloudflare API, embed it where user requests need bot verification (form submissions, SPA actions, API endpoints, download links, comment or vote submissions, etc.), wire canonical server-side siteverify in the customer's existing backend, validate, and persist the skill. Load this when a user asks to add Turnstile, set up CAPTCHA, protect a form or endpoint from bots, or fix a Turnstile integration. Mirrors developers.cloudflare.com/turnstile/spin.
+references:
+  - vanilla-html
+  - nextjs-app
+  - nextjs-pages
+  - astro
+  - sveltekit
+  - hugo
+---
+
+# Turnstile Spin skill
+
+Turns the prompt "set up Turnstile" into a working end-to-end integration: a widget, frontend snippets at every chosen insertion point, canonical server-side siteverify in the customer's existing backend, and a real validation pass before reporting success.
+
+You are the agent. Run the wizard below by invoking the scripts under `scripts/` and branching on their JSON output. The scripts hold the deterministic logic (API calls, retry/error handling); your job is orchestration, codebase reading, confirmation, and the frontend + backend edits.
+
+Canonical instructions live at [`developers.cloudflare.com/turnstile/spin`](https://developers.cloudflare.com/turnstile/spin/). If the docs page and this file disagree, trust the docs page.
+
+## When to load this skill
+
+Load when the user's prompt mentions any of:
+
+- "Turnstile", "CAPTCHA", "bot protection"
+- "siteverify", "cf-turnstile-response"
+- "protect this form", "protect this endpoint", "protect this button", "stop bot signups", "spam signups", "block bots on <target>"
+- A specific signup, login, contact form, download, comment, API endpoint, or other user-triggered request combined with "Cloudflare" or "bot"
+
+Do not load for unrelated Cloudflare tasks (Workers, Pages, R2, etc.) unless Turnstile is also mentioned.
+
+## Conversation flow
+
+The user pasted the prompt. You are in a multi-step dialog. Detect what you can, ask only when you have to, confirm before every irreversible step. Each numbered moment is one agent message. Items marked **[wait for user]** require a user response.
+
+1. **Brief acknowledge.** One sentence: "I'll run Turnstile setup end to end. That's: check auth, scan the codebase, create the widget, embed it where visitor requests need verification, wire server-side siteverify, validate. Proceed?" **[wait for user]** Do NOT present a plan yet. Auth + scan come first.
+
+2. **CLI check.** Spin's helper scripts use `curl` against `api.cloudflare.com`. Account enumeration in `auth-probe.sh` uses `wrangler whoami --json` only when `wrangler` is already on `PATH`; if it isn't, the script requires `$CLOUDFLARE_ACCOUNT_ID` to be exported explicitly. Widget creation in Step 8 prefers `wrangler turnstile widget create` when the subcommand is available (Wrangler 4.109+), falling back to the bundled curl script otherwise.
+
+3. **Auth + scope probe (FIRST irreversible action).** Run `scripts/auth-probe.sh`. Branch on `status`:
+   - `ok`: continue to Step 4. The script already picked the account (single-account token, or one matching `$CLOUDFLARE_ACCOUNT_ID`).
+   - `missing_token` or `missing_scope`: ask the user to create a token at https://dash.cloudflare.com/profile/api-tokens → Custom token → permission `Account.Turnstile:Edit` → include the target account in Account Resources. **Do NOT direct them to `wrangler login`** unless wrangler's OAuth scope includes `Account.Turnstile:Edit` (varies by wrangler version). Offer three ways to hand the token over, cleanest first:
+     1. **Export + relaunch** (token never enters chat): `export CLOUDFLARE_API_TOKEN=<token>` then restart the agent from that terminal.
+     2. **Save to file** (token in file with user-only perms, not in chat): `umask 077 && printf '%s' '<token>' > ~/.cf-turnstile-token`, then read with `TOKEN=$(cat ~/.cf-turnstile-token)`.
+     3. **Paste in chat** (fastest, but token lands in conversation log; user should rotate it after if the log is ever shared).
+     If the user picks option 3 (paste in chat), you can use the wait to run Steps 5, 6, 7 (Domain, Codebase scan, Insertion plan). Options 1 and 2 will restart your session, so do not pre-fetch state in those cases. When auth is established, re-run `auth-probe.sh`, then continue to Step 8.
+   - `multiple_accounts`: the token covers more than one account and `$CLOUDFLARE_ACCOUNT_ID` is unset. Present the numbered `accounts` list. **[wait for user]** Then export `CLOUDFLARE_ACCOUNT_ID=<chosen>` and re-run `auth-probe.sh`.
+   - `account_mismatch`: `$CLOUDFLARE_ACCOUNT_ID` is set but isn't one of the token's accounts. Show the `accounts` list and ask the user to either `unset CLOUDFLARE_ACCOUNT_ID` or set it to one of those IDs.
+
+4. **Account selection.** If `auth-probe.sh` returned `ok` after a `multiple_accounts` round-trip, this is already done. Otherwise the script picked the single account silently and you continue to Step 5.
+
+5. **Domain.** Always include `localhost` and `127.0.0.1`. For production, scan `package.json` `homepage`, `wrangler.toml`, `README.md`, `AGENTS.md`, git remote. Confirm: "I'll register for `localhost`, `127.0.0.1`, and `<domain>`. OK?" **[wait for user]** If no production domain is found, ask.
+
+6. **Codebase scan.** Detect three things silently:
+   - **Frontend framework** (Next.js, Astro, SvelteKit, Hugo, vanilla, etc.) → drives the widget embed snippet.
+   - **Backend handler location** (Express route, Next.js API route, Rails controller, Workers fetch handler, Pages Function, etc.) → drives the siteverify snippet.
+   - **Existing CAPTCHA** (reCAPTCHA / hCaptcha) → switches Step 7 to migration mode.
+
+7. **Insertion plan.** Show the candidate list with `[recommended]` / `[skip by default]` markers; ask the user to confirm (numbers, "all", "recommended", or a list). **[wait for user]** If an existing CAPTCHA was detected, present a migration plan instead (see "Migrating from another CAPTCHA").
+
+8. **Widget creation.** Prefer the wrangler CLI when its `turnstile widget` subcommand is available:
+
+   ```sh
+   npx wrangler turnstile widget create "<name>" \
+     --domain <d1> --domain <d2> ... --mode managed --json
+   ```
+
+   Parse `sitekey` and `secret` from stdout JSON. If wrangler is missing, older than the turnstile subcommand (`unknown command`), or otherwise fails, fall back to `scripts/widget-create.sh --account-id <id> --name <name> --domains <list> --mode managed`, which uses `curl` against the Cloudflare API directly. Report the sitekey. Capture the secret into a shell variable `WIDGET_SECRET`; never write it to disk except into the user's own env / secret store in Step 9.
+
+9. **Wire the integration.** State the contract: "I'll embed the widget at each chosen surface (form, SPA action, endpoint) and add a canonical siteverify call inside your existing handler, gated on `success === true`. The handler logic stays the same. The secret lives in your env as `TURNSTILE_SECRET`." Ask "yes" / "show". **[wait for user]** If "show", print unified diffs and ask again. Do NOT propose alternate behavior (mail delivery, custom backends).
+
+   Canonical server-side siteverify (Node / fetch idiom; adapt to the detected backend):
+
+   ```js
+   let result;
+   try {
+     const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+       body: new URLSearchParams({
+         secret: process.env.TURNSTILE_SECRET,
+         response: token,         // cf-turnstile-response from the request
+         remoteip: clientIp,      // X-Forwarded-For / req.ip / etc.
+       }),
+     });
+     if (!r.ok) throw new Error(`siteverify ${r.status}`);
+     result = await r.json();
+   } catch (err) {
+     // Network error, non-2xx, or non-JSON body from siteverify. Fail closed.
+     return res.status(403).send('forbidden');  // adapt to your framework
+   }
+   if (!result.success) {
+     return res.status(403).send('forbidden');
+   }
+   // existing handler logic runs here, unchanged
+   ```
+
+   Write the secret into the user's secret store (`.env` for Node/Rails/Python, `wrangler secret put TURNSTILE_SECRET` for Workers, the platform's secret manager for Vercel / Fly / Render / etc.). Never inline.
+
+10. **Validation.** Run `scripts/validate.sh`. Report each check as it passes. If any fails, surface the error and stop. **[wait for user if anything fails]**
+
+11. **Persist skill.** Ask: "Save the Spin skill to `.claude/skills/turnstile-spin/SKILL.md` so I can reuse it on follow-up tasks?" Default yes. **[wait for user]** Then run `scripts/persist-skill.sh --path <agent-specific-path>`.
+
+12. **Final report.** Print the structured summary: what was created, what was validated, what to do next.
+
+### Things you must NOT do
+
+- Do not write the Turnstile secret to disk except as part of the user's own env / secret store.
+- Do not skip validation.
+- Do not overwrite files without showing a diff.
+- Do not call siteverify from the browser. Always: browser → user's backend → siteverify.
+- Do not deploy any extra infrastructure (Workers, proxies, sidecars). The customer's existing backend calls siteverify directly.
+- Do not use `sudo` or install global packages without asking.
+- Do not propose features outside the wizard (custom Workers, custom domains, advanced WAF rules) unless asked.
+
+### Hard scope boundary: DO NOT ask the user about
+
+Spin validates the Turnstile token via canonical siteverify before the user's existing handler runs. Everything else is out of scope:
+
+- **Email / SMS / notification delivery.** Leave the existing submit handler alone (just gate it on `success === true`). Don't propose Resend, Mailchannels, SMTP, mailto.
+- **Adding a new backend.** If the form has no backend handler today (pure-static site, mailto-only contact form), say so and exit. Spin requires a server-side place to put siteverify.
+- **Database / payment / OAuth / form persistence.** Out of scope.
+- **Frontend framework migration, refactoring, or styling.** Edit only what's needed.
+- **reCAPTCHA v3 score thresholds.** Turnstile returns `success: true/false`.
+- **Pre-clearance-only setups.** If `clearance_level !== no_clearance`, siteverify is optional and Spin doesn't apply. Redirect the user and exit.
+
+### Recovery flow: respect existing widget configuration
+
+When the user has Cloudflare dashboard access, the in-dashboard **Fix with Spin** banner is a one-click recovery path: it shows a curated agent prompt for the existing widget. This skill's recovery flow below is the equivalent when the user is driving from their editor.
+
+If the user tells you they already have a Turnstile widget set up and want to wire siteverify to it without rotating the sitekey (e.g. "I have a sitekey but siteverify never worked", "set up Spin against my existing widget `<sitekey>`"):
+
+1. Skip Step 8 (widget creation). The sitekey already exists; get it from the user.
+2. Fetch the widget metadata via `scripts/fetch-secret.sh --account-id <id> --sitekey <key>`. Branch on `status`:
+   - `ok`: read `secret`, `clearance_level`, and `domains` from the response. Confirm `domains` includes the user's production hostname; if not, surface the gap before proceeding.
+   - `missing_read_scope`: tell the user to add `Account.Turnstile:Read` to the token, or fall back to asking them to paste the secret. In the paste path, you do not have `clearance_level` or `domains`; ask the user to confirm both.
+3. Check `clearance_level` from the response (or the user's answer):
+   - `no_clearance`: standard wire-up (Step 9).
+   - anything else: exit per the scope boundary. Spin does not apply to pre-clearance widgets; siteverify is optional there and the user should be redirected as described above. Do NOT prompt the user for permission to add siteverify on top.
+4. Continue from Step 9 (Wire the integration). Site key does not change; the existing widget keeps working throughout.
+5. Never recreate the widget to get a fresh secret. That breaks the existing sitekey everywhere it's deployed.
+
+### The frontend-edit contract
+
+When wiring an existing form or user-triggered endpoint (Step 9), the contract is: **gate, don't replace.** The user's existing handler keeps doing what it did. Spin only adds a validation step before it.
+
+Frontend (embeds the widget; submits to the user's existing endpoint):
+
+```html
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<form action="/signup" method="POST" id="cf-form">
+  <!-- existing inputs unchanged -->
+  <div class="cf-turnstile" data-sitekey="<SITEKEY>" data-action="turnstile-spin-v2"></div>
+  <button type="submit">Sign up</button>
+</form>
+<script>
+  // Turnstile tokens are single-use. If the page does not navigate after
+  // submit (server returned an inline error, client-side validation
+  // caught something), reset the widget so a retry gets a fresh token
+  // instead of being rejected as timeout-or-duplicate.
+  document.getElementById('cf-form').addEventListener('submit', () => {
+    setTimeout(() => window.turnstile?.reset(), 0);
+  });
+</script>
+```
+
+Backend: use the canonical siteverify fetch from Step 9 inside the existing handler. Read the token from `req.body['cf-turnstile-response']`, gate on `success === true`, and leave the rest of the handler alone. If the existing handler was a stub, Spin leaves it a stub gated on success. The user can replace the stub later; that's not Spin's job.
+
+**Token lifecycle: tokens are single-use.** A `cf-turnstile-response` token is redeemed exactly once at siteverify. If the server rejects (non-2xx or `success: false`), the browser still holds the redeemed token in the DOM; a naive retry submits the same token and Cloudflare's edge rejects the second attempt with `timeout-or-duplicate`. Always call `window.turnstile.reset()` before the user is allowed to retry. The framework references show the per-framework hook (submit listener for native forms, response handler for AJAX/SPA submits, `onError` for React components).
+
+## Migrating from another CAPTCHA
+
+During the Step 6 codebase scan, also look for existing reCAPTCHA or hCaptcha. If found, switch Step 7 to a migration plan.
+
+Detection signals:
+- reCAPTCHA: `https://www.google.com/recaptcha/api.js`, `class="g-recaptcha"`, `data-sitekey="6L..."`, backend POST to `/recaptcha/api/siteverify`
+- hCaptcha: `https://js.hcaptcha.com/1/api.js`, `class="h-captcha"`, backend POST to `https://hcaptcha.com/siteverify`
+
+Substitution:
+- Replace script tags with `https://challenges.cloudflare.com/turnstile/v0/api.js` (`async defer`).
+- Replace `class="g-recaptcha"` / `class="h-captcha"` divs with `class="cf-turnstile"`, update `data-sitekey` to the new Turnstile sitekey, add `data-action="turnstile-spin-v2"`.
+- Token field changes from `g-recaptcha-response` to `cf-turnstile-response`.
+- Backend siteverify URL points at `https://challenges.cloudflare.com/turnstile/v0/siteverify`. Drop `RECAPTCHA_SECRET` / `HCAPTCHA_SECRET` env vars; add `TURNSTILE_SECRET`.
+
+Edge cases to surface to the user:
+- **reCAPTCHA v3 score thresholds.** Turnstile has no score. Tell the user explicitly that migrated code will reject on `success === false`.
+- **reCAPTCHA Enterprise.** Don't auto-migrate. Point at [developers.cloudflare.com/turnstile/migration/recaptcha/](https://developers.cloudflare.com/turnstile/migration/recaptcha/).
+- **Custom `action=` values.** Preserve any custom action the user passed to `grecaptcha.execute` as `data-action` on the widget. Use `turnstile-spin-v2` only when no custom action exists.
+
+## Edge cases
+
+| Situation                                      | Action                                                                                                                                                                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wrangler whoami` fails or wrangler not on `PATH` | The auth probe uses `wrangler whoami --json` only when `wrangler` is already on `PATH` (it deliberately avoids `npx` to skip auto-install in non-interactive shells). When wrangler is missing or `whoami --json` returns malformed output, the script requires `$CLOUDFLARE_ACCOUNT_ID` to be exported explicitly. The `Account.Turnstile:Edit` token can't list accounts via `/accounts` (that endpoint is `Account.Read`-scoped), so the user must supply the account ID from the dashboard sidebar. Install path if the user wants enumeration back: `npm install --save-dev wrangler` (Node project) or `npm install -g wrangler` (other). |
+| Multiple Cloudflare accounts                   | `scripts/auth-probe.sh` returns all accounts; ask the user to choose, export `CLOUDFLARE_ACCOUNT_ID`                                                                                                                                  |
+| Cloudflare Pages project                       | Wire siteverify inside a Pages Function (or the equivalent for your framework). The Pages Plugin at [developers.cloudflare.com/pages/functions/plugins/turnstile](https://developers.cloudflare.com/pages/functions/plugins/turnstile/) is a shortcut. |
+| Cloudflare Workers backend                     | Use the canonical fetch idiom from Step 9 inside the Worker's request handler. `fetch` to `challenges.cloudflare.com` works the same way it does in Node.                                                                             |
+| `EXPECTED_HOSTNAME` mismatch                   | Update widget domains via PUT, not PATCH (PATCH returns `10405 Method not allowed`): `curl -X PUT .../widgets/$SITEKEY -d '{"name":"...","mode":"managed","domains":[...]}'`                                                          |
+| Token expired mid-flow                         | Stop, re-run `scripts/auth-probe.sh`, prompt for fresh credentials                                                                                                                                                                    |
+| Validation returns `invalid-input-secret`      | The secret didn't reach the backend. Re-check `TURNSTILE_SECRET` in the customer's env / secret manager. If it's a Workers backend, run `wrangler secret list` to confirm the secret is bound to the right script.                    |
+| Validation returns `invalid-input-response`    | Expected for a dummy probe token; that means the secret IS valid. validate.sh treats this as success.                                                                                                                                 |
+
+## Telemetry marker
+
+Every `cf-turnstile` div this skill writes must include `data-action="turnstile-spin-v2"`. Account-level aggregate telemetry, never per-user. Cloudflare uses it to measure activation. If the user removes the attribute, the integration still works; only the analytics segmentation is lost.
+
+Older widgets stamped `turnstile-spin-v1` (from the V1 agent flow that deployed a managed Worker) still exist in production accounts; preserve that marker if you encounter it on an existing widget you are modifying. Do not retag.
+
+---
+
+## Helper scripts (bootstrap before the wizard)
+
+The wizard above references deterministic helper scripts. Write these files under `/tmp/turnstile-spin-scripts/` before starting, then `export TURNSTILE_SPIN_SCRIPTS=/tmp/turnstile-spin-scripts` and `chmod +x /tmp/turnstile-spin-scripts/*.sh`.
+
+_If you have the `cloudflare/skills` bundle installed locally, skip this section. The scripts ship alongside the SKILL.md you are reading; this bootstrap is for the ad-hoc paste-into-agent case._
+
+### `/tmp/turnstile-spin-scripts/auth-probe.sh`
+
+```sh
+#!/usr/bin/env bash
+# Probes Cloudflare API auth state for the Turnstile Spin agent.
+#
+# Reads:
+#   $CLOUDFLARE_API_TOKEN  (required)
+#   $CLOUDFLARE_ACCOUNT_ID (optional; if set, must be one of the token's accounts)
+#
+# Requires: bash, curl, python3. Optional: wrangler (for account enumeration).
+#
+# Outputs JSON to stdout, always exits 0. The agent reads `status`:
+#   "ok"                ; selected account passed the Turnstile Edit-scope probe
+#   "missing_token"     ; no token set, python3 unavailable, or account enumeration failed
+#   "missing_scope"     ; token lacks Account.Turnstile:Edit on the selected account
+#   "multiple_accounts" ; token covers >1 accounts and $CLOUDFLARE_ACCOUNT_ID is unset
+#   "account_mismatch"  ; $CLOUDFLARE_ACCOUNT_ID is set but is not in the token's accounts list
+#
+# Account enumeration prefers `wrangler whoami --json` when wrangler is on PATH;
+# otherwise it falls back to $CLOUDFLARE_ACCOUNT_ID (the account must be supplied
+# by the caller since we cannot list accounts via a scoped API token).
+#
+# Human-readable diagnostics go to stderr.
+
+set -uo pipefail
+
+emit() {
+  echo "$1"
+  exit 0
+}
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "auth-probe: python3 is required but not found in PATH." >&2
+  emit '{"status":"missing_token","reason":"python3_not_available"}'
+fi
+
+token="${CLOUDFLARE_API_TOKEN:-}"
+declared_account="${CLOUDFLARE_ACCOUNT_ID:-}"
+
+if [ -z "$token" ]; then
+  echo "auth-probe: \$CLOUDFLARE_API_TOKEN is not set." >&2
+  emit '{"status":"missing_token","reason":"no_env_var"}'
+fi
+
+# Account enumeration. Try wrangler first (only if the binary is on PATH,
+# so we don't hang npx trying to install it in non-interactive shells).
+accounts_json=""
+account_count=0
+
+if command -v wrangler >/dev/null 2>&1; then
+  whoami_json=$(wrangler whoami --json 2>/dev/null || true)
+  if [ -n "$whoami_json" ] && [ "$(printf '%s' "$whoami_json" | head -c 1)" = "{" ]; then
+    accounts_json=$(printf '%s' "$whoami_json" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    print(json.dumps(d.get("accounts") or []))
+except Exception:
+    print("[]")
+')
+    account_count=$(printf '%s' "$accounts_json" | python3 -c '
+import json, sys
+try:
+    print(len(json.load(sys.stdin)))
+except Exception:
+    print(0)
+')
+  fi
+fi
+
+if [ "$account_count" = "0" ] && [ -n "$declared_account" ]; then
+  # No wrangler, but user gave us an account. Trust it and skip enumeration.
+  accounts_json="[{\"id\":$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1]))' "$declared_account")}]"
+  account_count=1
+fi
+
+if [ "$account_count" = "0" ]; then
+  echo "auth-probe: could not enumerate accounts. Install wrangler (\`npm i -g wrangler\`) or export \$CLOUDFLARE_ACCOUNT_ID." >&2
+  emit '{"status":"missing_token","reason":"no_accounts"}'
+fi
+
+if [ -n "$declared_account" ]; then
+  in_list=$(printf '%s' "$accounts_json" | python3 -c '
+import json, sys
+target = sys.argv[1]
+try:
+    accounts = json.load(sys.stdin)
+except Exception:
+    print("false"); sys.exit(0)
+print("true" if any((a or {}).get("id") == target for a in accounts) else "false")
+' "$declared_account")
+  if [ "$in_list" != "true" ]; then
+    echo "auth-probe: \$CLOUDFLARE_ACCOUNT_ID ($declared_account) is not one of the token's accounts." >&2
+    emit "$(python3 -c '
+import json, sys
+declared, accounts_raw = sys.argv[1], sys.argv[2]
+try:
+    accounts = json.loads(accounts_raw)
+except Exception:
+    accounts = []
+print(json.dumps({"status":"account_mismatch","declared":declared,"accounts":accounts}))
+' "$declared_account" "$accounts_json")"
+  fi
+  account_id="$declared_account"
+elif [ "$account_count" = "1" ]; then
+  account_id=$(printf '%s' "$accounts_json" | python3 -c '
+import json, sys
+try:
+    print(json.load(sys.stdin)[0]["id"])
+except Exception:
+    print("")
+')
+  if [ -z "$account_id" ]; then
+    echo "auth-probe: accounts list had one entry but no id field." >&2
+    emit '{"status":"missing_token","reason":"malformed_accounts"}'
+  fi
+else
+  echo "auth-probe: token covers $account_count accounts; ask the user to pick one, then export \$CLOUDFLARE_ACCOUNT_ID and re-run." >&2
+  emit "$(python3 -c '
+import json, sys
+try:
+    accounts = json.loads(sys.argv[1])
+except Exception:
+    accounts = []
+print(json.dumps({"status":"multiple_accounts","accounts":accounts}))
+' "$accounts_json")"
+fi
+
+# Edit-scope probe. A GET /challenges/widgets would authorize a Read-only
+# token; to verify Edit specifically, POST with an intentionally invalid
+# payload and interpret the response:
+#   401 or 403                                  → token lacks Edit
+#   200 with success:false, errors[0].code=10000 → token lacks Edit
+#   400/422 or 200 with validation error codes  → Edit scope OK
+#
+# The API rejects the empty-name/empty-domains payload with 400 today, so
+# no widget is created. If validation ever loosens and the probe accidentally
+# creates one, we detect the returned sitekey and DELETE it as a safety net
+# so the probe stays side-effect-free.
+account_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$account_id")
+
+tmp=$(mktemp "${TMPDIR:-/tmp}/auth-probe.body.XXXXXX") || {
+  echo "auth-probe: mktemp failed for response body tempfile." >&2
+  emit '{"status":"missing_token","reason":"mktemp_failed"}'
+}
+auth_headers=$(mktemp "${TMPDIR:-/tmp}/auth-probe.hdr.XXXXXX") || {
+  echo "auth-probe: mktemp failed for auth headers tempfile." >&2
+  rm -f "$tmp"
+  emit '{"status":"missing_token","reason":"mktemp_failed"}'
+}
+chmod 600 "$auth_headers"
+trap 'rm -f "$tmp" "$auth_headers"' EXIT
+
+printf 'Authorization: Bearer %s\n' "$token" > "$auth_headers"
+
+edit_code=$(curl -sS -w "%{http_code}" -o "$tmp" -X POST \
+  "https://api.cloudflare.com/client/v4/accounts/$account_enc/challenges/widgets" \
+  -H "@$auth_headers" \
+  -H "Content-Type: application/json" \
+  --data '{"name":"","domains":[]}' || echo "000")
+
+probe_output=$(python3 -c '
+import json, sys
+http_code = sys.argv[1]
+path = sys.argv[2]
+verdict = "unknown"
+created_sitekey = ""
+try:
+    with open(path) as f:
+        raw = f.read()
+    data = json.loads(raw) if raw else {}
+except Exception:
+    data = None
+if isinstance(data, dict):
+    errors = data.get("errors") or []
+    if not isinstance(errors, list):
+        errors = []
+    first = (errors[0] or {}) if errors else {}
+    if not isinstance(first, dict):
+        first = {}
+    first_code = first.get("code", 0)
+    if http_code in ("401", "403"):
+        verdict = "missing_scope"
+    elif http_code == "200" and data.get("success") is False and first_code == 10000:
+        verdict = "missing_scope"
+    elif http_code in ("400", "422"):
+        verdict = "scope_ok"
+    elif http_code == "200":
+        # Any 200 that got past auth means scope is fine (whether success or not).
+        verdict = "scope_ok"
+    else:
+        verdict = f"unexpected_{http_code}"
+    # Detect accidental widget creation (safety net if API validation ever
+    # accepts the empty-name/empty-domains probe payload).
+    result = data.get("result")
+    if isinstance(result, dict) and data.get("success") is True:
+        sk = result.get("sitekey", "")
+        if isinstance(sk, str) and sk:
+            created_sitekey = sk
+print(f"{verdict}|{created_sitekey}")
+' "$edit_code" "$tmp")
+verdict="${probe_output%%|*}"
+created_sitekey="${probe_output#*|}"
+[ "$created_sitekey" = "$probe_output" ] && created_sitekey=""
+
+# If the probe unexpectedly created a widget (API validation loosened),
+# DELETE it so the probe stays side-effect-free.
+if [ -n "$created_sitekey" ]; then
+  echo "auth-probe: probe unexpectedly created widget $created_sitekey; cleaning up..." >&2
+  sk_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$created_sitekey")
+  cleanup_code=$(curl -sS -o /dev/null -w "%{http_code}" -X DELETE \
+    "https://api.cloudflare.com/client/v4/accounts/$account_enc/challenges/widgets/$sk_enc" \
+    -H "@$auth_headers" || echo "000")
+  case "$cleanup_code" in
+    2*) echo "auth-probe: cleanup DELETE for widget $created_sitekey succeeded (HTTP $cleanup_code)." >&2 ;;
+    *)  echo "auth-probe: cleanup DELETE for widget $created_sitekey FAILED (HTTP $cleanup_code). Please remove it from the Turnstile dashboard manually." >&2 ;;
+  esac
+fi
+
+case "$verdict" in
+  scope_ok)
+    emit "$(python3 -c '
+import json, sys
+account_id, accounts_raw = sys.argv[1], sys.argv[2]
+try:
+    accounts = json.loads(accounts_raw)
+except Exception:
+    accounts = []
+print(json.dumps({"status":"ok","account_id":account_id,"accounts":accounts}))
+' "$account_id" "$accounts_json")"
+    ;;
+  missing_scope)
+    echo "auth-probe: token cannot write /challenges/widgets on account $account_id (HTTP $edit_code). Missing Account.Turnstile:Edit." >&2
+    emit "$(python3 -c '
+import json, sys
+account_id, http_code = sys.argv[1], sys.argv[2]
+try:
+    code_num = int(http_code)
+except ValueError:
+    code_num = 0
+print(json.dumps({"status":"missing_scope","account_id":account_id,"http_code":code_num}))
+' "$account_id" "$edit_code")"
+    ;;
+  *)
+    echo "auth-probe: unexpected response probing Edit scope on account $account_id (HTTP $edit_code)." >&2
+    emit "$(python3 -c '
+import json, sys
+account_id, http_code = sys.argv[1], sys.argv[2]
+try:
+    code_num = int(http_code)
+except ValueError:
+    code_num = 0
+print(json.dumps({"status":"missing_scope","account_id":account_id,"http_code":code_num,"reason":"unexpected_response"}))
+' "$account_id" "$edit_code")"
+    ;;
+esac
+```
+
+### `/tmp/turnstile-spin-scripts/fetch-secret.sh`
+
+```sh
+#!/usr/bin/env bash
+# Retrieves the secret for an existing Turnstile widget via the Cloudflare API.
+# Used by the recovery flow so the agent can wire canonical server-side
+# siteverify against an existing widget without rotating the sitekey.
+#
+# Reads:
+#   $CLOUDFLARE_API_TOKEN (required)
+#
+# Args:
+#   --account-id <id>   Cloudflare account ID
+#   --sitekey <key>     Widget sitekey to look up
+#
+# Requires: bash, curl, python3.
+#
+# Outputs JSON. Exit codes:
+#   0  success
+#   1  API failure or missing prerequisite
+#   2  invalid usage (missing/unknown flag or value)
+#   ok:        {"status":"ok","secret":"<secret>","clearance_level":"<level>","domains":[<list>]}
+#   no_scope:  {"status":"missing_read_scope","detail":"token lacks Account.Turnstile:Read"}
+#   not_found: {"status":"error","reason":"widget_not_found","http_code":<code>}
+#
+# The agent uses clearance_level to enforce the pre-clearance scope boundary
+# (Spin only applies to widgets where clearance_level == "no_clearance"; for
+# other levels siteverify is optional and the recovery flow should exit).
+#
+# Never propose recreating the widget to get a fresh secret; that breaks
+# the existing sitekey everywhere the user has it deployed in their frontend.
+
+set -uo pipefail
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "fetch-secret: python3 is required but not found in PATH." >&2
+  echo '{"status":"error","reason":"python3_not_available"}'
+  exit 1
+fi
+
+need_arg() {
+  if [ -z "${2-}" ] || [[ "$2" == --* ]]; then
+    echo "fetch-secret: missing value for $1" >&2
+    exit 2
+  fi
+}
+
+ACCOUNT_ID=""
+SITEKEY=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --account-id) need_arg "$1" "${2-}"; ACCOUNT_ID="$2"; shift 2 ;;
+    --sitekey)    need_arg "$1" "${2-}"; SITEKEY="$2"; shift 2 ;;
+    *) echo "fetch-secret: unknown arg $1" >&2; exit 2 ;;
+  esac
+done
+
+: "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN must be set}"
+[ -n "$ACCOUNT_ID" ] || { echo "fetch-secret: --account-id required" >&2; exit 2; }
+[ -n "$SITEKEY" ]    || { echo "fetch-secret: --sitekey required"    >&2; exit 2; }
+
+account_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$ACCOUNT_ID")
+sitekey_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$SITEKEY")
+
+tmp=$(mktemp "${TMPDIR:-/tmp}/fetch-secret.body.XXXXXX") || {
+  echo "fetch-secret: mktemp failed for response body tempfile." >&2
+  echo '{"status":"error","reason":"mktemp_failed"}'
+  exit 1
+}
+auth_headers=$(mktemp "${TMPDIR:-/tmp}/fetch-secret.hdr.XXXXXX") || {
+  echo "fetch-secret: mktemp failed for auth headers tempfile." >&2
+  echo '{"status":"error","reason":"mktemp_failed"}'
+  rm -f "$tmp"
+  exit 1
+}
+chmod 600 "$auth_headers"
+trap 'rm -f "$tmp" "$auth_headers"' EXIT
+
+printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" > "$auth_headers"
+
+http_code=$(curl -sS -w "%{http_code}" -o "$tmp" \
+  "https://api.cloudflare.com/client/v4/accounts/$account_enc/challenges/widgets/$sitekey_enc" \
+  -H "@$auth_headers" || echo "000")
+
+python3 -c '
+import json, sys
+http_code = sys.argv[1]
+path = sys.argv[2]
+try:
+    with open(path) as f:
+        raw = f.read()
+    data = json.loads(raw) if raw else {}
+except Exception as exc:
+    print(f"fetch-secret: non-JSON response (HTTP {http_code}): {exc}", file=sys.stderr)
+    print(json.dumps({"status":"error","reason":"non_json_response","http_code":http_code}))
+    sys.exit(1)
+
+if not isinstance(data, dict):
+    print(f"fetch-secret: response was not a JSON object (HTTP {http_code}).", file=sys.stderr)
+    print(json.dumps({"status":"error","reason":"non_object_response","http_code":http_code}))
+    sys.exit(1)
+
+errors = data.get("errors") or []
+if not isinstance(errors, list):
+    errors = []
+first = (errors[0] or {}) if errors else {}
+if not isinstance(first, dict):
+    first = {}
+first_code = first.get("code", 0)
+
+if http_code == "200" and data.get("success"):
+    result = data.get("result") or {}
+    if not isinstance(result, dict):
+        result = {}
+    secret = result.get("secret")
+    clearance = result.get("clearance_level") or "no_clearance"
+    domains = result.get("domains") or []
+    if not isinstance(domains, list):
+        domains = []
+    if not secret:
+        print("fetch-secret: widget lookup returned success but no secret.", file=sys.stderr)
+        print(json.dumps({"status":"error","reason":"no_secret_in_response","http_code":http_code}))
+        sys.exit(1)
+    print(json.dumps({
+        "status": "ok",
+        "secret": secret,
+        "clearance_level": clearance,
+        "domains": domains,
+    }))
+    sys.exit(0)
+
+if http_code == "403" and first_code == 10000:
+    print("fetch-secret: token can edit Turnstile widgets but cannot read the secret for this sitekey.", file=sys.stderr)
+    print("fetch-secret: add Account.Turnstile:Read to the token, or fall back to user paste.", file=sys.stderr)
+    print(json.dumps({"status":"missing_read_scope","detail":"token lacks Account.Turnstile:Read"}))
+    sys.exit(1)
+
+msg = first.get("message", "widget lookup failed") or "widget lookup failed"
+print(f"fetch-secret: widget lookup failed (HTTP {http_code}): {msg}", file=sys.stderr)
+try:
+    code_num = int(http_code)
+except ValueError:
+    code_num = 0
+print(json.dumps({"status":"error","reason":"widget_not_found","http_code":code_num}))
+sys.exit(1)
+' "$http_code" "$tmp"
+```
+
+### `/tmp/turnstile-spin-scripts/persist-skill.sh`
+
+```sh
+#!/usr/bin/env bash
+# Persists the canonical Spin skill bundle (SKILL.md + scripts/ + references/)
+# from cloudflare/skills to the user's repo so the agent can re-load it on
+# follow-up tasks without re-pasting the bootstrap prompt.
+#
+# Args:
+#   --path <path>   SKILL.md destination, e.g. .claude/skills/turnstile-spin/SKILL.md.
+#                   The bundle is extracted into the parent directory of <path>,
+#                   so scripts land at e.g. .claude/skills/turnstile-spin/scripts/.
+#
+# Requires: bash, python3, npx (for degit).
+#
+# Outputs JSON. Exit codes:
+#   0  bundle written
+#   1  fetch or write failure or missing prerequisite
+#   2  invalid usage (missing/unknown flag or value)
+#   ok:    {"status":"ok","path":"<path>","bundle_root":"<dir>","scripts":[<list>]}
+#   fail:  {"status":"error","reason":"<reason>"}
+
+set -uo pipefail
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "persist-skill: python3 is required but not found in PATH." >&2
+  echo '{"status":"error","reason":"python3_not_available"}'
+  exit 1
+fi
+
+if ! command -v npx >/dev/null 2>&1; then
+  echo "persist-skill: npx is required but not found in PATH (needed for degit)." >&2
+  echo '{"status":"error","reason":"npx_not_available"}'
+  exit 1
+fi
+
+need_arg() {
+  if [ -z "${2-}" ] || [[ "$2" == --* ]]; then
+    echo "persist-skill: missing value for $1" >&2
+    exit 2
+  fi
+}
+
+PATH_ARG=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --path) need_arg "$1" "${2-}"; PATH_ARG="$2"; shift 2 ;;
+    *) echo "persist-skill: unknown arg $1" >&2; exit 2 ;;
+  esac
+done
+
+[ -n "$PATH_ARG" ] || { echo "persist-skill: --path required" >&2; exit 2; }
+
+TARGET_DIR=$(dirname "$PATH_ARG")
+mkdir -p "$TARGET_DIR"
+
+# Install the canonical bundle from cloudflare/skills via degit. This writes
+# SKILL.md, scripts/, references/, templates/, tests/ into $TARGET_DIR.
+if ! npx --yes degit cloudflare/skills/skills/turnstile-spin "$TARGET_DIR" >/dev/null 2>&1; then
+  echo "persist-skill: degit failed; cannot fetch cloudflare/skills/skills/turnstile-spin." >&2
+  echo "persist-skill: ensure your network can reach github.com and try again, or install manually." >&2
+  echo '{"status":"error","reason":"degit_failed"}'
+  exit 1
+fi
+
+if [ ! -f "$TARGET_DIR/SKILL.md" ]; then
+  echo "persist-skill: bundle extracted but SKILL.md is missing at $TARGET_DIR/SKILL.md." >&2
+  echo '{"status":"error","reason":"skill_missing"}'
+  exit 1
+fi
+
+# Make scripts executable so the agent can invoke them directly.
+if [ -d "$TARGET_DIR/scripts" ]; then
+  chmod +x "$TARGET_DIR/scripts"/*.sh 2>/dev/null || true
+fi
+
+echo "persist-skill: wrote bundle to $TARGET_DIR" >&2
+python3 -c '
+import json, os, sys
+path_arg, bundle_root = sys.argv[1], sys.argv[2]
+scripts_dir = os.path.join(bundle_root, "scripts")
+try:
+    scripts = sorted(f for f in os.listdir(scripts_dir))
+except OSError:
+    scripts = []
+print(json.dumps({
+    "status": "ok",
+    "path": path_arg,
+    "bundle_root": bundle_root,
+    "scripts": scripts,
+}))
+' "$PATH_ARG" "$TARGET_DIR"
+```
+
+### `/tmp/turnstile-spin-scripts/validate.sh`
+
+```sh
+#!/usr/bin/env bash
+# Validates a Turnstile siteverify integration end-to-end.
+#
+# Reads:
+#   $TURNSTILE_SECRET      (required for the dummy-token check)
+#   $CLOUDFLARE_API_TOKEN  (optional — when set, also runs the widget-domains
+#                           sanity check; when unset, that check is skipped
+#                           so the post-dashboard flow can validate without
+#                           a manually-created token)
+#
+# Args:
+#   --account-id <id>             Cloudflare account ID (only used when CLOUDFLARE_API_TOKEN is set)
+#   --sitekey <key>               Widget sitekey
+#   --expected-domains <a,b,c>    Comma-separated domains that must appear in the widget's domains array (whitespace around each token is trimmed)
+#
+# Requires: bash, curl, python3.
+#
+# Outputs JSON. Exit codes:
+#   0  all checks passed
+#   1  any check failed or missing prerequisite
+#   2  invalid usage (missing/unknown flag or value)
+#   ok:    {"status":"ok","hostname_check":"ran"|"skipped"}
+#   fail:  {"status":"error","check":"dummy_siteverify|hostname|prerequisite","detail":"<msg>"}
+
+set -uo pipefail
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "validate: python3 is required but not found in PATH." >&2
+  echo '{"status":"error","check":"prerequisite","detail":"python3 not available"}'
+  exit 1
+fi
+
+need_arg() {
+  if [ -z "${2-}" ] || [[ "$2" == --* ]]; then
+    echo "validate: missing value for $1" >&2
+    exit 2
+  fi
+}
+
+ACCOUNT_ID=""
+SITEKEY=""
+EXPECTED_DOMAINS=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --account-id)       need_arg "$1" "${2-}"; ACCOUNT_ID="$2"; shift 2 ;;
+    --sitekey)          need_arg "$1" "${2-}"; SITEKEY="$2"; shift 2 ;;
+    --expected-domains) need_arg "$1" "${2-}"; EXPECTED_DOMAINS="$2"; shift 2 ;;
+    *) echo "validate: unknown arg $1" >&2; exit 2 ;;
+  esac
+done
+
+: "${TURNSTILE_SECRET:?TURNSTILE_SECRET must be set (the secret captured in Step 8)}"
+[ -n "$SITEKEY" ] || { echo "validate: --sitekey required" >&2; exit 2; }
+
+# Prepare all tempfiles up front so the trap covers everything.
+secret_file=$(mktemp "${TMPDIR:-/tmp}/validate.secret.XXXXXX") || {
+  echo "validate: mktemp failed for secret tempfile." >&2
+  echo '{"status":"error","check":"prerequisite","detail":"mktemp failed"}'
+  exit 1
+}
+auth_headers=$(mktemp "${TMPDIR:-/tmp}/validate.hdr.XXXXXX") || {
+  echo "validate: mktemp failed for auth headers tempfile." >&2
+  echo '{"status":"error","check":"prerequisite","detail":"mktemp failed"}'
+  rm -f "$secret_file"
+  exit 1
+}
+tmp=$(mktemp "${TMPDIR:-/tmp}/validate.body.XXXXXX") || {
+  echo "validate: mktemp failed for response body tempfile." >&2
+  echo '{"status":"error","check":"prerequisite","detail":"mktemp failed"}'
+  rm -f "$secret_file" "$auth_headers"
+  exit 1
+}
+chmod 600 "$secret_file" "$auth_headers"
+trap 'rm -f "$secret_file" "$auth_headers" "$tmp"' EXIT
+
+# Write secret without a trailing newline so curl url-encodes only the value.
+printf '%s' "$TURNSTILE_SECRET" > "$secret_file"
+
+# Check 1: dummy-token siteverify against challenges.cloudflare.com.
+# A valid secret + dummy token returns success:false with
+# error-codes:["invalid-input-response"]. That confirms the secret is
+# correctly bound to the widget; anything else is a real misconfiguration.
+dummy=$(curl -sS -X POST "https://challenges.cloudflare.com/turnstile/v0/siteverify" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "secret@$secret_file" \
+  --data-urlencode "response=XXXX.DUMMY.TOKEN.XXXX" || echo "")
+
+verdict=$(python3 -c '
+import json, sys
+raw = sys.stdin.read()
+if not raw:
+    print("error:dummy_siteverify:network_failure")
+    sys.exit(0)
+try:
+    d = json.loads(raw)
+except Exception:
+    print(f"error:dummy_siteverify:non_json:{raw[:120]}")
+    sys.exit(0)
+if not isinstance(d, dict):
+    print(f"error:dummy_siteverify:not_object:{raw[:120]}")
+    sys.exit(0)
+success = d.get("success")
+codes = d.get("error-codes") or []
+if not isinstance(codes, list):
+    codes = []
+if success is None:
+    print(f"error:dummy_siteverify:missing_success:{raw[:120]}")
+    sys.exit(0)
+if success is True:
+    print("error:dummy_siteverify:unexpected_true")
+    sys.exit(0)
+if "invalid-input-secret" in codes:
+    print("error:dummy_siteverify:invalid-input-secret")
+    sys.exit(0)
+if "invalid-input-response" in codes:
+    print("ok")
+    sys.exit(0)
+joined = ",".join(str(c) for c in codes)
+print(f"error:dummy_siteverify:unexpected_codes:{joined}")
+' <<< "$dummy")
+
+case "$verdict" in
+  ok)
+    ;;
+  error:dummy_siteverify:invalid-input-secret)
+    echo "validate: siteverify rejected the secret. TURNSTILE_SECRET does not match the widget's secret." >&2
+    echo '{"status":"error","check":"dummy_siteverify","detail":"invalid-input-secret"}'
+    exit 1
+    ;;
+  error:dummy_siteverify:*)
+    detail=${verdict#error:dummy_siteverify:}
+    echo "validate: siteverify returned unexpected result: $detail" >&2
+    python3 -c 'import json, sys; print(json.dumps({"status":"error","check":"dummy_siteverify","detail":sys.argv[1]}))' "$detail"
+    exit 1
+    ;;
+  *)
+    echo "validate: unexpected verdict from siteverify parse: $verdict" >&2
+    echo '{"status":"error","check":"dummy_siteverify","detail":"parse_failure"}'
+    exit 1
+    ;;
+esac
+
+# Check 2: hostname / widget domains registered. Optional — requires a
+# Cloudflare API token. When the token isn't available (e.g. post-dashboard
+# success-card flow), skip this check and report `hostname_check: skipped`.
+if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "$ACCOUNT_ID" ] || [ -z "$EXPECTED_DOMAINS" ]; then
+  echo "validate: skipping hostname check (CLOUDFLARE_API_TOKEN, --account-id, or --expected-domains not provided)" >&2
+  echo '{"status":"ok","hostname_check":"skipped"}'
+  exit 0
+fi
+
+printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" > "$auth_headers"
+
+account_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$ACCOUNT_ID")
+sitekey_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$SITEKEY")
+
+http_code=$(curl -sS -w "%{http_code}" -o "$tmp" \
+  "https://api.cloudflare.com/client/v4/accounts/$account_enc/challenges/widgets/$sitekey_enc" \
+  -H "@$auth_headers" || echo "000")
+
+python3 -c '
+import json, sys
+http_code = sys.argv[1]
+path = sys.argv[2]
+expected_csv = sys.argv[3]
+expected = [d.strip() for d in expected_csv.split(",") if d.strip()]
+
+try:
+    with open(path) as f:
+        raw = f.read()
+    data = json.loads(raw) if raw else {}
+except Exception as exc:
+    print(f"validate: widget lookup returned non-JSON (HTTP {http_code}): {exc}", file=sys.stderr)
+    print(json.dumps({"status":"error","check":"hostname","detail":f"non-JSON response (HTTP {http_code})"}))
+    sys.exit(1)
+
+if not isinstance(data, dict):
+    print(f"validate: widget lookup response was not a JSON object (HTTP {http_code}).", file=sys.stderr)
+    print(json.dumps({"status":"error","check":"hostname","detail":f"response was not a JSON object (HTTP {http_code})"}))
+    sys.exit(1)
+
+if http_code != "200" or not data.get("success"):
+    errors = data.get("errors") or []
+    if not isinstance(errors, list):
+        errors = []
+    first = (errors[0] or {}) if errors else {}
+    if not isinstance(first, dict):
+        first = {}
+    msg = first.get("message", "unknown")
+    print(f"validate: widget lookup failed (HTTP {http_code}): {msg}", file=sys.stderr)
+    print(json.dumps({"status":"error","check":"hostname","detail":f"HTTP {http_code}: {msg}"}))
+    sys.exit(1)
+
+result = data.get("result") or {}
+if not isinstance(result, dict):
+    result = {}
+registered = result.get("domains") or []
+if not isinstance(registered, list):
+    registered = []
+missing = [d for d in expected if d not in registered]
+if missing:
+    missing_str = " ".join(missing)
+    print(f"validate: hostname check failed; domains not on widget: {missing_str}", file=sys.stderr)
+    print(json.dumps({"status":"error","check":"hostname","detail":f"missing domains: {missing_str}"}))
+    sys.exit(1)
+
+print(json.dumps({"status":"ok","hostname_check":"ran"}))
+' "$http_code" "$tmp" "$EXPECTED_DOMAINS"
+```
+
+### `/tmp/turnstile-spin-scripts/widget-create.sh`
+
+```sh
+#!/usr/bin/env bash
+# Creates a Turnstile widget via the Cloudflare API.
+#
+# Reads:
+#   $CLOUDFLARE_API_TOKEN (required)
+#
+# Args:
+#   --account-id <id>        Cloudflare account ID
+#   --name <name>            Widget name (e.g. "myproject (Spin)")
+#   --domains <a,b,c>        Comma-separated domain list (include localhost,127.0.0.1)
+#   --mode <managed|invisible|non-interactive>  Default: managed
+#
+# Requires: bash, curl, python3.
+#
+# Outputs JSON to stdout. Exit codes:
+#   0  success
+#   1  API failure or missing prerequisite
+#   2  invalid usage (missing/unknown flag or value)
+# Diagnostics on stderr.
+#   ok:    {"status":"ok","sitekey":"<key>","secret":"<secret>"}
+#   error: {"status":"error","code":<code>,"message":"<msg>"}
+#     code 10000 → token lacks Account.Turnstile:Edit
+
+set -uo pipefail
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "widget-create: python3 is required but not found in PATH." >&2
+  echo '{"status":"error","code":0,"message":"python3 not available"}'
+  exit 1
+fi
+
+need_arg() {
+  if [ -z "${2-}" ] || [[ "$2" == --* ]]; then
+    echo "widget-create: missing value for $1" >&2
+    exit 2
+  fi
+}
+
+MODE="managed"
+ACCOUNT_ID=""
+NAME=""
+DOMAINS=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --account-id) need_arg "$1" "${2-}"; ACCOUNT_ID="$2"; shift 2 ;;
+    --name)       need_arg "$1" "${2-}"; NAME="$2"; shift 2 ;;
+    --domains)    need_arg "$1" "${2-}"; DOMAINS="$2"; shift 2 ;;
+    --mode)       need_arg "$1" "${2-}"; MODE="$2"; shift 2 ;;
+    *) echo "widget-create: unknown arg $1" >&2; exit 2 ;;
+  esac
+done
+
+: "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN must be set}"
+[ -n "$ACCOUNT_ID" ] || { echo "widget-create: --account-id required" >&2; exit 2; }
+[ -n "$NAME" ]       || { echo "widget-create: --name required"       >&2; exit 2; }
+[ -n "$DOMAINS" ]    || { echo "widget-create: --domains required"    >&2; exit 2; }
+
+body_json=$(python3 -c '
+import json, sys
+name, domains_csv, mode = sys.argv[1], sys.argv[2], sys.argv[3]
+print(json.dumps({
+  "name": name,
+  "domains": [d.strip() for d in domains_csv.split(",") if d.strip()],
+  "mode": mode,
+}))
+' "$NAME" "$DOMAINS" "$MODE")
+
+account_enc=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$ACCOUNT_ID")
+
+tmp=$(mktemp "${TMPDIR:-/tmp}/widget-create.body.XXXXXX") || {
+  echo "widget-create: mktemp failed for response body tempfile." >&2
+  echo '{"status":"error","code":0,"message":"mktemp failed"}'
+  exit 1
+}
+auth_headers=$(mktemp "${TMPDIR:-/tmp}/widget-create.hdr.XXXXXX") || {
+  echo "widget-create: mktemp failed for auth headers tempfile." >&2
+  echo '{"status":"error","code":0,"message":"mktemp failed"}'
+  rm -f "$tmp"
+  exit 1
+}
+chmod 600 "$auth_headers"
+trap 'rm -f "$tmp" "$auth_headers"' EXIT
+
+printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" > "$auth_headers"
+
+http_code=$(curl -sS -w "%{http_code}" -o "$tmp" -X POST \
+  "https://api.cloudflare.com/client/v4/accounts/$account_enc/challenges/widgets" \
+  -H "@$auth_headers" \
+  -H "Content-Type: application/json" \
+  --data "$body_json" || echo "000")
+
+python3 -c '
+import json, sys
+http_code = sys.argv[1]
+path = sys.argv[2]
+try:
+    with open(path) as f:
+        raw = f.read()
+    data = json.loads(raw) if raw else {}
+except Exception as exc:
+    print(f"widget-create: non-JSON response (HTTP {http_code}): {exc}", file=sys.stderr)
+    print(json.dumps({"status": "error", "code": 0, "message": f"non-JSON response (HTTP {http_code})"}))
+    sys.exit(1)
+
+if not isinstance(data, dict):
+    print(f"widget-create: response was not a JSON object (HTTP {http_code}).", file=sys.stderr)
+    print(json.dumps({"status": "error", "code": 0, "message": "response was not a JSON object"}))
+    sys.exit(1)
+
+errors = data.get("errors") or []
+if not isinstance(errors, list):
+    errors = []
+first = (errors[0] or {}) if errors else {}
+if not isinstance(first, dict):
+    first = {}
+code = first.get("code", 0)
+message = first.get("message", "unknown")
+
+if not data.get("success"):
+    print(f"widget-create: failed (HTTP {http_code}, code={code}): {message}", file=sys.stderr)
+    print(json.dumps({"status": "error", "code": code, "message": message}))
+    sys.exit(1)
+
+result = data.get("result") or {}
+if not isinstance(result, dict):
+    print(f"widget-create: unexpected result shape in response.", file=sys.stderr)
+    print(json.dumps({"status": "error", "code": 0, "message": "unexpected result shape"}))
+    sys.exit(1)
+
+sitekey = result.get("sitekey")
+secret = result.get("secret")
+if not sitekey or not secret:
+    print("widget-create: API returned success but no sitekey/secret in response.", file=sys.stderr)
+    print(json.dumps({"status": "error", "code": 0, "message": "missing sitekey/secret in response"}))
+    sys.exit(1)
+
+print(json.dumps({"status": "ok", "sitekey": sitekey, "secret": secret}))
+' "$http_code" "$tmp"
+```
