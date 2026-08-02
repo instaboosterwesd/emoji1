@@ -164,51 +164,10 @@ function Login({ onSuccess }) {
   const [countryOpen, setCountryOpen] = useState(false);
   const [countryQuery, setCountryQuery] = useState('');
   const [country, setCountry] = useState(countryData.allCountries.find(c => c.iso2 === 'in'));
-  const [cfToken, setCfToken] = useState('');
-  const cfWidgetId = useRef(null);
-  const cfContainer = useRef(null);
-  const cfApiWidgetId = useRef(null);
-  const cfApiContainer = useRef(null);
-
   const filtered = useMemo(
     () => countryData.allCountries.filter(c => `${c.name} ${c.dialCode}`.toLowerCase().includes(countryQuery.toLowerCase())).slice(0, 80),
     [countryQuery],
   );
-
-  const renderTurnstile = (container, widgetRef, onToken) => {
-    if (!container?.current || !window.turnstile) return;
-    if (widgetRef.current) {
-      try { window.turnstile.remove(widgetRef.current); } catch {}
-      widgetRef.current = null;
-    }
-    widgetRef.current = window.turnstile.render(container.current, {
-      sitekey: '0x4AAAAAAEEMr2qc_eKU9ByY',
-      theme: 'dark',
-      callback: token => onToken(token),
-      'expired-callback': () => { onToken(''); window.turnstile?.reset(widgetRef.current); },
-      'error-callback': () => { onToken(''); },
-    });
-  };
-
-  useEffect(() => {
-    setCfToken('');
-    if (step === 'phone') renderTurnstile(cfContainer, cfWidgetId, setCfToken);
-    else if (step === 'api') renderTurnstile(cfApiContainer, cfApiWidgetId, setCfToken);
-  }, [step]);
-
-  const verifyTurnstile = async () => {
-    if (!cfToken) throw new Error('Please complete the security check.');
-    const res = await fetch('/api/verify-turnstile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: cfToken }),
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error('Security verification failed. Please try again.');
-    // Reset widget for next use
-    if (cfWidgetId.current) window.turnstile?.reset(cfWidgetId.current);
-    setCfToken('');
-  };
 
   const handleMove = e => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -219,7 +178,6 @@ function Login({ onSuccess }) {
   const sendOtp = async e => {
     e.preventDefault();
     try {
-      await verifyTurnstile();
       const meta = await sendIndiaOtp(phone);
       setOtpMeta(meta);
       setStep('otp');
@@ -239,7 +197,6 @@ function Login({ onSuccess }) {
 
   const googleLogin = async () => {
     try {
-      await verifyTurnstile();
       const result = await signInWithGoogle();
       if (!result) return;
       const user = await ensureGoogleUser(result.user);
@@ -251,7 +208,6 @@ function Login({ onSuccess }) {
   const apiLogin = async e => {
     e.preventDefault();
     try {
-      await verifyTurnstile();
       const user = await loginWithApiKey(apiKey);
       toast.success('API login successful');
       onSuccess(user);
@@ -294,8 +250,7 @@ function Login({ onSuccess }) {
                   </div>
                 )}
               </div>
-              <div ref={cfContainer} className="cf-turnstile-wrap" style={{margin:'10px 0',display:'flex',justifyContent:'center'}}></div>
-              <button className="primary" type="submit" disabled={!cfToken} style={{opacity: cfToken ? 1 : 0.5}}><LottieIcon src="/icons/new/send-flash.json" size={22} /> Send OTP <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><LottieIcon src="/icons/new/send-flash.json" size={22} /> Send OTP <MatIcon name="arrow_forward" size={19} /></button>
             </form>
             <div className="divider"><span>or continue with</span></div>
             <div className="socials">
@@ -329,8 +284,7 @@ function Login({ onSuccess }) {
             <form onSubmit={apiLogin}>
               <label htmlFor="api-key">API key</label>
               <input className="api-login-input" id="api-key" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="tg_..." autoFocus required />
-              <div ref={cfApiContainer} className="cf-turnstile-wrap" style={{margin:'10px 0',display:'flex',justifyContent:'center'}}></div>
-              <button className="primary" type="submit" disabled={!cfToken} style={{opacity: cfToken ? 1 : 0.5}}>Login with API <LottieIcon src="/icons/new/key-lottie.json" size={18} /></button>
+              <button className="primary" type="submit">Login with API <LottieIcon src="/icons/new/key-lottie.json" size={18} /></button>
             </form>
           </>
         )}

@@ -16,11 +16,5 @@ export default defineConfig({
         '**/material-design-icons-4.0.0.zip',
       ],
     },
-    proxy: {
-      '/api/verify-turnstile': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-    },
   },
 });
