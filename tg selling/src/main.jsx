@@ -1059,14 +1059,14 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
         <div className="dialog-title-row">
           <LottieIcon src="/icons/new/gift-code.json" size={24} />
           <h2>Gift code</h2>
-          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto'}}><LottieIcon src="/icons/new/close-emoji.json" size={18} /></button>
+          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><LottieIcon src="/icons/new/close-emoji.json" size={18} /></button>
         </div>
         <form onSubmit={redeem} style={{ margin: '8px 0 14px' }}>
           <div className="gift-input-row">
             <LottieIcon src="/icons/new/gift-code.json" size={22} />
             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter gift code" maxLength={10} required className="gift-input-wide" />
             <button type="button" className="gift-paste-btn" onClick={() => { navigator.clipboard.readText().then(t => setCode(t.toUpperCase())).catch(() => toast.error('Paste failed')); }}>
-              <MatIcon name="content_paste" size={15} /> Paste
+              <LottieIcon src="/icons/new/download-emoji.json" size={16} /> Paste
             </button>
             <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
               {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} /> Redeem</>}
@@ -1084,9 +1084,14 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
           </div>
         )}
 
-        <h4 style={{ margin: '14px 0 6px', display:'flex', alignItems:'center', gap: 6 }}>
-          <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
-        </h4>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'14px 0 6px' }}>
+          <h4 style={{ display:'flex', alignItems:'center', gap: 6, margin:0 }}>
+            <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
+          </h4>
+          <button className="icon-button" type="button" onClick={() => { getUserGiftRedemptions(uid).then(setHistory).catch(() => {}); }} title="Refresh history">
+            <LottieIcon src="/icons/new/refresh-emoji.json" size={20} />
+          </button>
+        </div>
         {history.length === 0
           ? <p className="muted empty-state">No redemptions yet</p>
           : <div className="gift-history-list">{
