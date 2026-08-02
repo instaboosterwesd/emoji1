@@ -21,7 +21,7 @@ const rows = [
   ['HG CHEATS ANDROID PROXY FF NONROOT', '123', '1 DaYs [Stock: 207]10 DaYs [Stock: 70]30 DaYs [Stock: 41]7 DaYs [Stock: 97]'],
   ['HG CHEATS FF APKMOD NONROOT+ROOT', '65', '1 DaYs Root + Nonroot [Stock: 121]10 DaYs Root+Nonroot [Stock: 70]30 DaYs Root+Nonroot [Stock: 8]7 DaYs Root+Nonroot [Stock: 114]'],
   ['HIKARI MOD FF ROOT ANDROID', '72', '1 Days [Stock: 69]3 Days [Stock: 46]7 Days [Stock: 48]'],
-  ['IOS CLOUD CODM', '87', '30 DaYs [Stock: 2]'],
+  // ['IOS CLOUD CODM', '87', '30 DaYs [Stock: 2]'],
   ['IOS FLUORITE 8 BALL POOL', '86', '1 DaYs [Stock: 5]30 DaYs [Stock: 2]7 DaYs [Stock: 3]'],
   ['IOS IPHONE ALL GBOX CERTIFICATE', '85', '1 Year Ios Esign Gbox Certificate [Stock: 18]1 Year Ios Signer Gbox Certificate [Stock: 4]'],
   ['KOS 8 BALL POOL NONROOT ANDROID', '76', '1 DaYs Premium Access [Stock: 3]30 DaYs Mod [Stock: 2]30 DaYs Premium Access [Stock: 4]7 DaYs Premium Access [Stock: 14]'],

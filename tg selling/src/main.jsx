@@ -83,7 +83,7 @@ const MatIcon = ({ name, size = 20, className = '', style: extraStyle, ...rest }
 /* ── Brand icon map ─────────────────────────────────────────────── */
 const productBrandIcons = [
   { test: n => /apk mc/i.test(n), icon: '/icons/brands/apk-mc.png' },
-  { test: n => /ios cloud codm/i.test(n), icon: '/icons/brands/ios-cloud-codm.png' },
+  // { test: n => /ios cloud codm/i.test(n), icon: '/icons/brands/ios-cloud-codm.png' },
   { test: n => /ios iphone all gbox|gbox certificate|ios signer|ios esign/i.test(n), icon: '/icons/brands/gbox-certificate.png' },
   { test: n => /^br\b|br mod|br board/i.test(n), icon: '/icons/brands/br.png' },
   { test: n => /drip\s*client|dripclient/i.test(n), icon: '/icons/brands/dripclient.png' },

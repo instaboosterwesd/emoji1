@@ -68,94 +68,6 @@ export function sanitizePhone(phone) {
   return phone.replace(/\D/g, '').slice(-10);
 }
 
-/* ── Extension Detection ────────────────────────────────────── */
-function detectSuspiciousExtensions() {
-  const issues = [];
-  const body = document.body;
-
-  // 1. Check DOM for known extension-injected elements
-  const suspiciousIds = [
-    'ghostery', 'adblock', 'ublock', 'norton', 'kaspersky',
-    'vpn', 'proxy', 'honey', 'hibernation',
-  ];
-  suspiciousIds.forEach(id => {
-    if (document.getElementById(id)) issues.push(`ext_${id}`);
-  });
-
-  // 2. Check for extension-injected scripts/iframes
-  const allScripts = document.querySelectorAll('script[src*="chrome-extension://"], script[src*="moz-extension://"], script[src*="safari-extension://"]');
-  if (allScripts.length > 0) issues.push('ext_scripts');
-
-  const allIframes = document.querySelectorAll('iframe[src*="chrome-extension://"], iframe[src*="moz-extension://"]');
-  if (allIframes.length > 0) issues.push('ext_iframes');
-
-  // 3. Check for known extension DOM markers
-  const html = document.documentElement?.outerHTML || '';
-  if (/grammarly/i.test(html)) issues.push('ext_grammarly');
-  if (/lastpass/i.test(html)) issues.push('ext_lastpass');
-  if (/dashlane/i.test(html)) issues.push('ext_dashlane');
-
-  // 4. Check if non-standard global APIs exist (extension injected)
-  const suspiciousGlobals = [
-    '__uv$', '__tampermonkey', '__gm_', 'MonkeyScript',
-    '__vpn', '__proxy', 'conductor', '__pandora',
-  ];
-  suspiciousGlobals.forEach(g => {
-    const key = Object.keys(window).find(k => k.toLowerCase().includes(g.toLowerCase()) || k.startsWith(g));
-    if (key) issues.push(`ext_global_${key}`);
-  });
-
-  // 5. Detect extension-injected styles
-  try {
-    for (let i = 0; i < (document.styleSheets || []).length; i++) {
-      const sheet = document.styleSheets[i];
-      if (sheet.href && (sheet.href.includes('chrome-extension://') || sheet.href.includes('moz-extension://'))) {
-        issues.push('ext_styles');
-        break;
-      }
-    }
-  } catch {}
-
-  return issues;
-}
-
-/* ── Browser Integrity (stricter) ────────────────────────────── */
-function checkBrowserIntegrity() {
-  const issues = [];
-  const UA = (navigator.userAgent || '').toLowerCase();
-  const platform = (navigator.platform || '').toLowerCase();
-
-  // Headless / automation
-  if (/headless|phantom|puppet|selenium|playwright|cypress|nightmare/i.test(UA)) issues.push('headless');
-  if (navigator.webdriver) issues.push('webdriver');
-  if (window._phantom || window.callPhantom) issues.push('phantom');
-  if (window.__nightmare) issues.push('nightmare');
-  if (window.domAutomation || window.domAutomationController) issues.push('automation');
-
-  // Chrome automation specific
-  try {
-    if (window.chrome && !window.chrome.runtime && !window.chrome.loadTimes) issues.push('chrome_no_runtime');
-  } catch {}
-
-  // Languages
-  const langs = navigator.languages || [];
-  if (langs.length === 0) issues.push('no_languages');
-
-  // Screen size — tiny headless sizes
-  if (window.screen?.width <= 200 || window.screen?.height <= 200) issues.push('tiny_screen');
-
-  // Plugins
-  try {
-    if (navigator.plugins.length === 0 && !/mobile|tablet|android|iphone|ipad|ipod/i.test(UA)) issues.push('no_plugins');
-  } catch {}
-
-  // Check for missing standard globals (automation often strips these)
-  if (typeof document.evaluate !== 'function') issues.push('missing_xpath');
-  if (typeof document.querySelectorAll !== 'function') issues.push('missing_dom');
-
-  return issues;
-}
-
 /* ── DevTools Blocker (aggressive) ──────────────────────────── */
 let devtoolsWarningShown = false;
 let devtoolsOpen = false;
@@ -334,44 +246,6 @@ window.fetch = async function(input, init = {}) {
   return originalFetch(input, init);
 };
 
-/* ── Periodic Security Sweep ────────────────────────────────── */
-let sweepInterval = null;
-
-function startSecuritySweep() {
-  if (sweepInterval) return;
-
-  // Run sweeps every 3 seconds
-  sweepInterval = setInterval(() => {
-    if (document.getElementById('sec-block-overlay')) return; // already blocked
-
-    // 1. Check for extension injection
-    const extIssues = detectSuspiciousExtensions();
-    if (extIssues.length > 0) {
-      showBlockOverlay({
-        title: 'Unsafe Extension Detected',
-        message: 'You are using a browser extension that can compromise security (VPN, proxy, or interceptor). Please disable or remove it and reload the page.',
-      });
-      return;
-    }
-
-    // 2. Check browser integrity
-    const integrity = checkBrowserIntegrity();
-    if (integrity.length > 0) {
-      showBlockOverlay({
-        title: 'Unsafe Browser Environment',
-        message: 'Your browser environment appears to be modified or automated. Please use a standard browser and reload.',
-      });
-      return;
-    }
-
-    // 3. Check again for DevTools
-    if (devtoolsOpen && !document.getElementById('devtools-warning-overlay')) {
-      devtoolsWarningShown = false;
-      showDevToolsWarning();
-    }
-  }, 3000);
-}
-
 /* ── Initialize All Security Measures ───────────────────────── */
 export function initSecurity() {
   if (window.__SECURITY_INITIALIZED) return;
@@ -379,46 +253,7 @@ export function initSecurity() {
 
   addSecurityMetaTags();
   initInputProtection();
-
-  // Initial extension + integrity check
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      const ext = detectSuspiciousExtensions();
-      if (ext.length > 0) {
-        showBlockOverlay({
-          title: 'Unsafe Extension Detected',
-          message: 'You are using a browser extension that can compromise security (VPN, proxy, or interceptor). Please disable or remove it and reload the page.',
-        });
-      }
-      const integrity = checkBrowserIntegrity();
-      if (integrity.length > 0) {
-        showBlockOverlay({
-          title: 'Unsafe Browser Environment',
-          message: 'Your browser environment appears to be modified or automated. Please use a standard browser and reload.',
-        });
-      }
-    });
-  } else {
-    const ext = detectSuspiciousExtensions();
-    if (ext.length > 0) {
-      showBlockOverlay({
-        title: 'Unsafe Extension Detected',
-        message: 'You are using a browser extension that can compromise security (VPN, proxy, or interceptor). Please disable or remove it and reload the page.',
-      });
-    }
-    const integrity = checkBrowserIntegrity();
-    if (integrity.length > 0) {
-      showBlockOverlay({
-        title: 'Unsafe Browser Environment',
-        message: 'Your browser environment appears to be modified or automated. Please use a standard browser and reload.',
-      });
-    }
-  }
-
   initDevToolsBlocker();
 
-  // Start periodic security sweeps
-  startSecuritySweep();
-
-  console.log('✓ Security initialized (strict mode)');
+  console.log('✓ Security initialized');
 }
