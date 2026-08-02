@@ -1,6 +1,6 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "cd tg selling && npm run build",
+  "buildCommand": "cd \"tg selling\" && npm run build",
   "outputDirectory": "tg selling/dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
