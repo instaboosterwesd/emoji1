@@ -49,6 +49,11 @@ const logo = '/devx-logo.png';
 const telegramLogo = '/telegram-logo.png';
 const money = v => Number(v || 0).toLocaleString('en-IN');
 const MoneyDisplay = ({ value, size = 14 }) => <><LottieIcon src="/icons/new/rupee-emoji.json" size={size} style={{verticalAlign:'middle',marginRight:2}} />{money(value)}</>;
+const NumberEmoji = ({ value }) => {
+  const str = String(Math.floor(Number(value || 0)));
+  const digits = str.replace(/,/g, '').split('');
+  return <>{digits.map((d, i) => <LottieIcon key={i} src={`/icons/new/digit-${d}.json`} size={22} />)}</>;
+};
 const flag = iso2 => iso2.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397));
 const fmtDate = v => {
   if (!v) return '—';
@@ -450,7 +455,7 @@ function DashboardHome({ profile, role, setTab }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle="Here's what is happening today" />
       <div className="balance-card">
         <span>My balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><NumberEmoji value={profile.balance} /></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
         </button>
@@ -541,7 +546,7 @@ function WalletView({ session, profile, refreshProfile }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} /> Wallet</>} subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><NumberEmoji value={profile.balance} /></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
