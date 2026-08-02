@@ -177,7 +177,10 @@ function Login({ onSuccess }) {
 
   const renderTurnstile = (container, widgetRef, onToken) => {
     if (!container?.current || !window.turnstile) return;
-    if (widgetRef.current) { window.turnstile.reset(widgetRef.current); return; }
+    if (widgetRef.current) {
+      try { window.turnstile.remove(widgetRef.current); } catch {}
+      widgetRef.current = null;
+    }
     widgetRef.current = window.turnstile.render(container.current, {
       sitekey: '0x4AAAAAAEEMr2qc_eKU9ByY',
       theme: 'dark',
@@ -188,6 +191,7 @@ function Login({ onSuccess }) {
   };
 
   useEffect(() => {
+    setCfToken('');
     if (step === 'phone') renderTurnstile(cfContainer, cfWidgetId, setCfToken);
     else if (step === 'api') renderTurnstile(cfApiContainer, cfApiWidgetId, setCfToken);
   }, [step]);
