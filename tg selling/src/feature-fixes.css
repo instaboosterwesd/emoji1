@@ -1673,3 +1673,84 @@
 .perf-dont-ask:hover { color: rgba(255,255,255,.75); }
 .perf-close-btn { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.15); border-radius: 50%; background: rgba(255,255,255,.08); color: rgba(255,255,255,.6); font-size: 14px; cursor: pointer; transition: .2s; }
 .perf-close-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+
+/* ── Low-perf mode: static SVG icons in bottom nav ─────────────────
+   SVGs use stroke="currentColor" — <img> tag renders them as black
+   (no CSS color inheritance). Add invert filter so they appear white.  */
+.bottom-nav button.has-lottie span img {
+  filter: invert(1) opacity(0.72);
+  display: block !important;
+}
+.bottom-nav button.has-lottie.active span img {
+  filter: invert(1) opacity(1) sepia(0.6) saturate(4) hue-rotate(210deg);
+}
+
+/* ── Buy tab: contained scroll card ────────────────────────────────
+   Products load & scroll inside a glass card; nav stays fixed below. */
+.dashboard-page:has(.tab-buy) {
+  overflow: hidden;
+  height: 100svh;
+}
+.dash-content.tab-buy {
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100svh - 86px) !important;
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+.buy-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  min-height: 0;
+}
+.buy-view .section-title {
+  flex: none;
+}
+.buy-view .product-filter {
+  flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: rgba(9, 12, 24, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  margin: 0 0 8px !important;
+  padding: 8px 0 !important;
+  border-radius: 14px;
+}
+.products-scroll-inner {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 14, 28, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 12px 10px 10px;
+  min-height: 0;
+}
+.products-scroll-inner::-webkit-scrollbar {
+  width: 3px;
+}
+.products-scroll-inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+.products-scroll-inner::-webkit-scrollbar-thumb {
+  background: rgba(142, 207, 240, 0.28);
+  border-radius: 4px;
+}
+.products-scroll-inner .product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.products-scroll-inner .product-list .glass-card.product-card {
+  margin-top: 0 !important;
+}
+.products-scroll-inner .load-more {
+  margin-top: 10px !important;
+}

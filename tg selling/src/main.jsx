@@ -461,7 +461,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           <span>{siteStatus.message}</span>
         </div>
       )}
-      <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'}`}>
+      <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'} tab-${tab}`}>
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
       <nav className="bottom-nav">
@@ -875,7 +875,7 @@ function ProductsView({ session, onBuy }) {
   const visibleProducts = filtered.slice(0, visibleCount).map(applyPricing);
 
   return (
-    <>
+    <div className="buy-view">
       <SectionTitle title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>} subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         <div className="search-box">
@@ -894,6 +894,7 @@ function ProductsView({ session, onBuy }) {
         </select>
         <button className="icon-button" onClick={load} aria-label="Refresh"><MatIcon name="refresh" size={17} /></button>
       </div>
+      <div className="products-scroll-inner">
       <div className="product-list">
         {loading && <ProductSkeletonList />}
         {!loading && error && <div className="glass-card"><p className="muted empty-state">{error}</p></div>}
@@ -965,7 +966,8 @@ function ProductsView({ session, onBuy }) {
           <button className="load-more glass-card" type="button" onClick={() => setVisibleCount(c => c + 3)}>Load more products</button>
         )}
       </div>
-    </>
+      </div>
+    </div>
   );
 }
 
