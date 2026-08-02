@@ -983,7 +983,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}>
       {type === 'edit' && (
         <form className="action-modal liquid-dialog" onSubmit={saveProfile}>
-          <div className="dialog-title-row"><MatIcon name="edit" size={20} /><h2>Edit profile</h2></div>
+          <div className="dialog-title-row"><LottieIcon src="/icons/new/edit-title-emoji.json" size={24} /><h2>Edit profile</h2></div>
           <label>Display name<input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" /></label>
           <label className="file-upload-label">
             <LottieIcon src="/icons/new/edit-profile.json" size={22} /> Profile image
