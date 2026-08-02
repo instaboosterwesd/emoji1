@@ -649,7 +649,7 @@ function OrdersView({ session }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle="Track your purchased license keys" />
       <div className="filter-row">
         <div className="search-box">
-          <MatIcon name="search" size={16} style={{ filter: 'invert(0.5)' }} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search orders" />
         </div>
         <button className="icon-button" onClick={load} aria-label="Refresh orders"><MatIcon name="refresh" size={17} /></button>
@@ -747,7 +747,7 @@ function ProductsView({ session, onBuy }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>} subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         <div className="search-box">
-          <MatIcon name="search" size={16} style={{ filter: 'invert(0.5)' }} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product or PID" />
         </div>
         <select className="product-select" value={filter} onChange={e => setFilter(e.target.value)}>
@@ -1363,7 +1363,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Manage users</h3>
         <div className="search-box admin-search">
-          <MatIcon name="search" size={16} style={{ filter: 'invert(0.5)' }} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, phone, email" />
         </div>
         <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => { await adminAdjustUserFund(fundForm.uid, fundForm.amount, fundForm.mode); setFundForm({ uid: '', amount: '', mode: 'add' }); }, 'User fund updated'); }}>
@@ -1418,7 +1418,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
         <div className="search-box admin-search">
-          <MatIcon name="search" size={16} style={{ filter: 'invert(0.5)' }} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
         <AdminList items={filteredProducts} empty="No API products loaded" render={product => (
