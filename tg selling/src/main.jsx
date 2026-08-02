@@ -48,11 +48,16 @@ import {
   setSiteStatus,
   getUserResolvedNotification,
   dismissUserNotification,
+  redeemGiftCode,
+  getUserGiftRedemptions,
+  adminCreateGiftCode,
+  getGiftCodes,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
 import './site-status.css';
 import './issues.css';
+import './gift-code.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */
 const logo = '/devx-logo.png';
@@ -999,6 +1004,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
 
 /* ── ProfileView ────────────────────────────────────────────────── */
 function ProfileView({ profile, openDialog, openApi }) {
+  const [giftOpen, setGiftOpen] = useState(false);
   return (
     <>
       <SectionTitle title={<><LottieIcon src="/icons/new/profile-lottie.json" size={26} /> Profile</>} subtitle="Manage your account" />
@@ -1014,9 +1020,122 @@ function ProfileView({ profile, openDialog, openApi }) {
         <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
         <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
+        <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
         <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
       </div>
+      {giftOpen && <GiftCodeDialog uid={profile.uid} name={profile.name} phone={profile.phone} onClose={() => setGiftOpen(false)} />}
     </>
+  );
+}
+
+/* ── GiftCodeDialog ──────────────────────────────────────────────── */
+function GiftCodeDialog({ uid, name, phone, onClose }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    getUserGiftRedemptions(uid).then(setHistory).catch(() => {});
+  }, [uid]);
+
+  const redeem = async e => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const res = await redeemGiftCode(uid, name, phone, code);
+      setResult(res);
+      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={22} /> });
+      setCode('');
+      getUserGiftRedemptions(uid).then(setHistory).catch(() => {});
+    } catch (err) { toast.error(err.message); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="action-modal liquid-dialog" style={{ maxWidth: 420 }}>
+        <div className="dialog-title-row">
+          <LottieIcon src="/icons/new/gift-code.json" size={24} />
+          <h2>Gift code</h2>
+          <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
+        </div>
+        <form onSubmit={redeem} className="admin-form compact" style={{ margin: '8px 0 14px' }}>
+          <div className="gift-input-row">
+            <LottieIcon src="/icons/new/gift-code.json" size={22} />
+            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter gift code" maxLength={10} required />
+            <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
+              {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} /> Redeem</>}
+            </button>
+          </div>
+        </form>
+
+        {result && (
+          <div className="gift-result-card">
+            <LottieIcon src="/icons/new/verified-badge.json" size={24} />
+            <div>
+              <strong>₹{result.amount} credited!</strong>
+              <p className="muted">Code: {result.code}</p>
+            </div>
+          </div>
+        )}
+
+        <h4 style={{ margin: '14px 0 6px', display:'flex', alignItems:'center', gap: 6 }}>
+          <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
+        </h4>
+        {history.length === 0
+          ? <p className="muted empty-state">No redemptions yet</p>
+          : <div className="gift-history-list">{
+            history.map((h, i) => (
+              <div key={i} className="gift-history-row">
+                <LottieIcon src="/icons/new/gift-code.json" size={18} />
+                <div className="tx-main">
+                  <strong>{h.code}</strong>
+                  <span>{fmtDate(h.redeemedAt)}</span>
+                </div>
+                <b className="tx-amount" style={{color:'#74e0a5'}}>+<MoneyDisplay value={h.amount} /></b>
+              </div>
+            ))
+          }</div>
+        }
+      </section>
+    </div>
+  );
+}
+
+/* ── GiftCodeUsersDialog ──────────────────────────────────────────── */
+function GiftCodeUsersDialog({ gc, onClose }) {
+  if (!gc) return null;
+  const users = Object.entries(gc.redeemedBy || {});
+  return (
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="action-modal liquid-dialog" style={{ maxWidth: 400 }}>
+        <div className="dialog-title-row">
+          <LottieIcon src="/icons/new/gift-code.json" size={22} />
+          <h2>Code: {gc.code}</h2>
+          <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
+        </div>
+        <p className="muted" style={{ margin: '4px 0 10px' }}>₹{gc.amount} · Used {gc.totalRedeemed || 0}/{gc.maxRedeems}</p>
+        {users.length === 0
+          ? <p className="muted empty-state">No one has redeemed this code yet</p>
+          : <div className="gift-users-list">{
+            users.map(([uid, data]) => (
+              <div key={uid} className="gift-history-row">
+                <LottieIcon src="/icons/new/profile-lottie.json" size={18} />
+                <div className="tx-main">
+                  <strong>{data.name || uid}</strong>
+                  <span>{data.phone ? `${data.phone} · ` : ''}{fmtDate(data.redeemedAt)}</span>
+                </div>
+              </div>
+            ))
+          }</div>
+        }
+        <div className="modal-btn-row" style={{ justifyContent: 'center', marginTop: 8 }}>
+          <button type="button" onClick={onClose}><MatIcon name="close" size={16} /> Close</button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -1375,6 +1494,11 @@ function AdminPage({ session, onSessionChange }) {
   const [adminAlerts, setAdminAlerts] = useState([]);
   const [viewIssueUser, setViewIssueUser] = useState(null);
   const [issueFilter, setIssueFilter] = useState('today'); // today | yesterday | all
+  // Gift codes
+  const [gcAmount, setGcAmount] = useState('');
+  const [gcMaxRedeems, setGcMaxRedeems] = useState('1');
+  const [giftCodes, setGiftCodes] = useState([]);
+  const [viewGcUsers, setViewGcUsers] = useState(null);
   // Site status
   const [siteStatus, setSiteStatus] = useState('operational');
   const [siteStatusMsg, setSiteStatusMsg] = useState('');
@@ -1386,6 +1510,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
     { id: 'issues', label: 'Issues', icon: 'report' },
+    { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard' },
     { id: 'key-history', label: 'License History', icon: 'history' },
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
@@ -1396,7 +1521,7 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status] = await Promise.all([
+      const [overview, productList, alerts, status, gcList] = await Promise.all([
         getAdminOverview(),
         fetchGameProducts().catch(() => []),
         getAdminAlerts().catch(() => []),
@@ -1410,6 +1535,7 @@ function AdminPage({ session, onSessionChange }) {
       setAdminAlerts(alerts);
       setSiteStatus(status.status || 'operational');
       setSiteStatusMsg(status.message || '');
+      setGiftCodes(gcList);
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -1614,6 +1740,44 @@ function AdminPage({ session, onSessionChange }) {
             </button>
           </AdminRow>
         )} />
+      </div>
+    ),
+
+    'gift-codes': (
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <LottieIcon src="/icons/new/gift-code.json" size={24} />
+            <div><h3>Gift codes</h3><p className="muted">Create and manage gift codes for users</p></div>
+          </div>
+        </div>
+        <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => {
+          const res = await adminCreateGiftCode(gcAmount, gcMaxRedeems);
+          setGcAmount(''); setGcMaxRedeems('1');
+          toast.success(`Gift code ${res.code} created for ₹${res.amount}`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={20} /> });
+        }, 'Gift code created'); }}>
+          <div style={{display:'flex',alignItems:'center',gap:6,flex:1}}>
+            <LottieIcon src="/icons/new/rupee-emoji.json" size={18} />
+            <input value={gcAmount} onChange={e => setGcAmount(e.target.value)} placeholder="Amount" inputMode="numeric" required style={{flex:1}} />
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <MatIcon name="people" size={18} />
+            <input value={gcMaxRedeems} onChange={e => setGcMaxRedeems(e.target.value)} placeholder="Max users" inputMode="numeric" style={{width:60}} />
+          </div>
+          <button className="modal-save" type="submit"><LottieIcon src="/icons/new/gift-code.json" size={16} /> Create</button>
+        </form>
+        <AdminList items={giftCodes} empty="No gift codes created yet" render={gc => (
+          <AdminRow
+            title={<span style={{display:'flex',alignItems:'center',gap:6}}><LottieIcon src="/icons/new/gift-code.json" size={16} /> {gc.code}</span>}
+            meta={`₹${gc.amount} · ${gc.totalRedeemed || 0}/${gc.maxRedeems} used · ${fmtDate(gc.createdAt)}`}
+            status={gc.active ? '🟢 Active' : '🔴 Exhausted'}
+          >
+            <button onClick={() => setViewGcUsers(gc)}><MatIcon name="visibility" size={13} /> Users</button>
+          </AdminRow>
+        )} />
+        {viewGcUsers && (
+          <GiftCodeUsersDialog gc={viewGcUsers} onClose={() => setViewGcUsers(null)} />
+        )}
       </div>
     ),
 

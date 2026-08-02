@@ -704,6 +704,91 @@ export async function clearResolvedAlerts() {
   }
 }
 
+/* ── Gift Codes ──────────────────────────────────────────────────── */
+
+export async function adminCreateGiftCode(amount, maxRedeems) {
+  if (!firebaseDb) throw new Error('Firebase not configured.');
+  const value = Math.max(1, Number(amount || 0));
+  if (!value) throw new Error('Enter a valid amount.');
+  const maxR = Math.max(1, Math.min(100, Number(maxRedeems || 1)));
+  // Generate a random 8-char gift code
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  const id = `gc_${code}`;
+  await set(ref(firebaseDb, `giftCodes/${id}`), {
+    code,
+    id,
+    amount: value,
+    maxRedeems: maxR,
+    redeemedBy: {},
+    totalRedeemed: 0,
+    active: true,
+    createdAt: Date.now(),
+  });
+  return { code, amount: value, maxRedeems: maxR };
+}
+
+export async function getGiftCodes() {
+  if (!firebaseDb) return [];
+  const snap = await get(ref(firebaseDb, 'giftCodes'));
+  if (!snap.exists()) return [];
+  return Object.entries(snap.val()).map(([id, val]) => ({ id, ...val }))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export async function redeemGiftCode(uid, userName, userPhone, code) {
+  if (!firebaseDb || !uid) throw new Error('Not authenticated.');
+  const cleanCode = (code || '').trim().toUpperCase();
+  if (!cleanCode) throw new Error('Enter a gift code.');
+  // Find the gift code
+  const allGc = await getGiftCodes();
+  const gc = allGc.find(g => g.code === cleanCode && g.active);
+  if (!gc) throw new Error('Invalid or expired gift code.');
+  if (gc.totalRedeemed >= gc.maxRedeems) throw new Error('This gift code has reached its maximum redemptions.');
+  if (gc.redeemedBy && gc.redeemedBy[uid]) throw new Error('You have already redeemed this gift code.');
+  // Credit user
+  const userRef = ref(firebaseDb, `users/${uid}`);
+  const userSnap = await get(userRef);
+  const user = userSnap.exists() ? userSnap.val() : {};
+  const currentBalance = Number(user.balance || 0);
+  const newBalance = currentBalance + gc.amount;
+  await update(userRef, { balance: newBalance, updatedAt: Date.now() });
+  // Record redemption
+  const redeemedBy = { ...(gc.redeemedBy || {}), [uid]: { name: userName || uid, phone: userPhone || '', redeemedAt: Date.now() } };
+  await update(ref(firebaseDb, `giftCodes/${gc.id}`), {
+    redeemedBy,
+    totalRedeemed: (gc.totalRedeemed || 0) + 1,
+    ...(gc.totalRedeemed + 1 >= gc.maxRedeems ? { active: false } : {}),
+  });
+  // Create transaction record
+  const txId = `tx_gift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await set(ref(firebaseDb, `transactions/${txId}`), {
+    uid,
+    type: 'gift_redeem',
+    amount: gc.amount,
+    before: currentBalance,
+    after: newBalance,
+    note: `Gift code ${cleanCode} · Redeemed by ${userName || uid}`,
+    giftCode: cleanCode,
+    createdAt: Date.now(),
+  });
+  return { amount: gc.amount, code: cleanCode };
+}
+
+export async function getUserGiftRedemptions(uid) {
+  if (!firebaseDb || !uid) return [];
+  const allGc = await getGiftCodes();
+  return allGc
+    .filter(g => g.redeemedBy && g.redeemedBy[uid])
+    .map(g => ({
+      code: g.code,
+      amount: g.amount,
+      redeemedAt: g.redeemedBy[uid].redeemedAt,
+    }))
+    .sort((a, b) => (b.redeemedAt || 0) - (a.redeemedAt || 0));
+}
+
 /* ── Site Status (server-down / operational banner) ──────────────── */
 
 export async function setSiteStatus(status, message = '') {
