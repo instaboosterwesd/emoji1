@@ -1014,7 +1014,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           <p>This key enables Bot login. Keep it private.</p>
           <div className="modal-btn-row">
             <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Close</button>
-            <button className="modal-save has-lottie" type="button" onClick={resetApi}>Reset key</button>
+            <button className="modal-save has-lottie" type="button" onClick={resetApi}><LottieIcon src="/icons/new/refresh-emoji.json" size={18} /> Reset key</button>
           </div>
         </section>
       )}
