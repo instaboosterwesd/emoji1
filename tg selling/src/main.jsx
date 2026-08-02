@@ -47,7 +47,8 @@ import './feature-fixes.css';
 /* ── Constants ─────────────────────────────────────────────────── */
 const logo = '/devx-logo.png';
 const telegramLogo = '/telegram-logo.png';
-const money = v => `₹${Number(v || 0).toLocaleString('en-IN')}`;
+const money = v => Number(v || 0).toLocaleString('en-IN');
+const MoneyDisplay = ({ value, size = 14 }) => <><LottieIcon src="/icons/new/rupee-emoji.json" size={size} style={{verticalAlign:'middle',marginRight:2}} />{money(value)}</>;
 const flag = iso2 => iso2.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397));
 const fmtDate = v => {
   if (!v) return '—';
@@ -449,15 +450,15 @@ function DashboardHome({ profile, role, setTab }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle="Here's what is happening today" />
       <div className="balance-card">
         <span>My balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span>{money(profile.balance)}</span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span><MoneyDisplay value={profile.balance} size={24} /></span></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
         </button>
       </div>
       <div className="stats-grid">
-        <Stat label="Today sales" value={money(profile.todaySales)} lottieIcon="/icons/new/today-sales.json" />
-        <Stat label="Monthly sales" value={money(profile.monthlySales)} lottieIcon="/icons/new/monthly-sales.json" />
-        <Stat label="My purchases" value={money(profile.myPurchases)} lottieIcon="/icons/new/shopping-cart.json" />
+        <Stat label="Today sales" value={<MoneyDisplay value={profile.todaySales} />} lottieIcon="/icons/new/today-sales.json" />
+        <Stat label="Monthly sales" value={<MoneyDisplay value={profile.monthlySales} />} lottieIcon="/icons/new/monthly-sales.json" />
+        <Stat label="My purchases" value={<MoneyDisplay value={profile.myPurchases} />} lottieIcon="/icons/new/shopping-cart.json" />
         <Stat label="Active keys" value={profile.active || 0} lottieIcon="/icons/new/active-keys.json" />
       </div>
       {role === 'admin' && (
@@ -540,7 +541,7 @@ function WalletView({ session, profile, refreshProfile }) {
       <SectionTitle title={<><LottieIcon src="/icons/new/wallet-lottie.json" size={26} /> Wallet</>} subtitle="Manage your funds" />
       <div className="balance-card">
         <span>Available balance</span>
-        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span>{money(profile.balance)}</span></strong>
+        <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={36} /><span><MoneyDisplay value={profile.balance} size={24} /></span></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
           <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
         </button>
@@ -575,7 +576,7 @@ function WalletView({ session, profile, refreshProfile }) {
                       <span>{fmtDate(tx.createdAt)}</span>
                     </div>
                     <b className="tx-amount" style={{ color: txColor(tx.type) }}>
-                      {(tx.type === 'deposit_approved' || tx.type === 'admin_add') ? '+' : '-'}{money(tx.amount)}
+                      {(tx.type === 'deposit_approved' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} />
                     </b>
                   </div>
                 ))}
@@ -618,7 +619,7 @@ function OrdersView({ session }) {
         <div className="glass-card detail-card">
           <Detail label="Product" icon={productIconFor(selected.productName || selected.product)} value={selected.productName || selected.product || '—'} />
           <Detail label="Duration" lottieIcon="/icons/new/timer.json" value={selected.duration || '—'} />
-          <Detail label="Amount paid" lottieIcon="/icons/new/verified-badge.json" value={money(selected.price)} />
+          <Detail label="Amount paid" lottieIcon="/icons/new/verified-badge.json" value={<MoneyDisplay value={selected.price} />} />
           <Detail label="Purchase date" lottieIcon="/icons/new/calendar.json" value={fmtDate(selected.purchasedAt || selected.createdAt)} />
           <Detail label="Status" lottieIcon="/icons/new/status-mail.json" value={selected.status || 'active'} />
           <Detail label="Source" lottieIcon="/icons/new/source-rocket.json" value={selected.source || 'api'} />
@@ -664,7 +665,7 @@ function OrdersView({ session }) {
                   <div className="order-icon has-brand-img"><img src={productIconFor(k.productName || k.product)} style={{width:30,height:30,objectFit:'contain',borderRadius:9}} alt="" /></div>
                   <div className="order-main">
                     <strong>{k.productName || k.product || 'License key'}</strong>
-                    <span>{k.duration || '—'} · {money(k.price)}</span>
+                    <span>{k.duration || '—'} · <MoneyDisplay value={k.price} /></span>
                     <small>{fmtDate(k.purchasedAt || k.createdAt)}</small>
                   </div>
                   <b className="active-status">{k.status || 'active'}</b>
@@ -818,8 +819,8 @@ function ProductsView({ session, onBuy }) {
                       onClick={() => { setPricingOpen(s => ({ ...s, [product.pid]: false })); onBuy({ product, duration: item }); }}
                     >
                       <span className="duration-label-row"><LottieIcon src="/icons/new/timer.json" size={18} />{item.label}</span>
-                      <b>{money(item.price)}</b>
-                      {item.originalPrice && item.originalPrice !== item.price && <s className="original-price">{money(item.originalPrice)}</s>}
+                      <b><MoneyDisplay value={item.price} /></b>
+                      {item.originalPrice && item.originalPrice !== item.price && <s className="original-price"><MoneyDisplay value={item.originalPrice} /></s>}
                     </button>
                   ))}
                 </div>
@@ -901,7 +902,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
             <div className="purchase-meta-grid">
               <div><span>Game</span><strong>{product.game || 'Product'}</strong></div>
               <div><span>Duration</span><strong>{duration.duration || duration.label}</strong></div>
-              <div><span>Price</span><strong>{money(duration.price)}</strong></div>
+              <div><span>Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
               <div><span>Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
             <p className="purchase-note">Balance will be deducted. A key will be delivered instantly.</p>
@@ -928,7 +929,7 @@ function ProfileView({ profile, openDialog, openApi }) {
         <div>
           <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} /></h3>
           <p className="muted">{profile.email || profile.phone || 'Verified account'}</p>
-          <p className="muted">Balance {money(profile.balance)} · {profile.status || 'active'}</p>
+          <p className="muted">Balance <MoneyDisplay value={profile.balance} /> · {profile.status || 'active'}</p>
         </div>
       </div>
       <div className="glass-card profile-actions">
@@ -1094,7 +1095,7 @@ function UserHistoryDialog({ user, onClose }) {
                     <span>{fmtDate(tx.createdAt)}</span>
                   </div>
                   <b style={{ color: tx.type === 'purchase' ? '#f87171' : '#4ade80', fontSize: '0.85rem' }}>
-                    {tx.type === 'purchase' ? '-' : '+'}{money(tx.amount)}
+                    {tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} />
                   </b>
                 </div>
               ))}
@@ -1108,7 +1109,7 @@ function UserHistoryDialog({ user, onClose }) {
                     <strong>{k.productName || k.product}</strong>
                     <span>{k.duration} · {fmtDate(k.purchasedAt)}</span>
                   </div>
-                  <b style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{money(k.price)}</b>
+                  <b style={{ color: '#94a3b8', fontSize: '0.8rem' }}><MoneyDisplay value={k.price} /></b>
                 </div>
               ))}
             </div>
@@ -1177,12 +1178,12 @@ function PricingEditDialog({ product, onClose, onSave }) {
               <div className="pricing-edit-row" key={dur}>
                 <div className="pricing-edit-label">
                   <strong>{dur}</strong>
-                  <span className="muted">API: {money(item.price)}</span>
+                  <span className="muted">API: <MoneyDisplay value={item.price} /></span>
                 </div>
                 <input
                   className="pricing-edit-input"
                   type="number"
-                  placeholder="Custom ₹"
+                  placeholder="Custom amount"
                   value={rule.price}
                   onChange={e => setRule(dur, 'price', e.target.value)}
                   min={0}
@@ -1297,10 +1298,10 @@ function AdminPage({ session, onSessionChange }) {
     dashboard: (
       <>
         <div className="admin-stat-grid">
-          <AdminStat iconName="trending_up" label="Total revenue" value={money(data?.stats?.totalRevenue || 0)} accent="green" />
+          <AdminStat iconName="trending_up" label="Total revenue" value={<MoneyDisplay value={data?.stats?.totalRevenue || 0} />} accent="green" />
           <AdminStat iconName="people" label="Active users" value={data?.stats?.activeUsers || 0} accent="blue" />
           <AdminStat iconName="vpn_key" label="Keys sold" value={data?.stats?.keysSold || 0} accent="purple" />
-          <AdminStat iconName="payment" label="Pending deposit" value={money(data?.stats?.pendingDeposit || 0)} accent="orange" />
+          <AdminStat iconName="payment" label="Pending deposit" value={<MoneyDisplay value={data?.stats?.pendingDeposit || 0} />} accent="orange" />
         </div>
 
         {/* API Status Card */}
@@ -1378,7 +1379,7 @@ function AdminPage({ session, onSessionChange }) {
           <AdminRow
             title={user.name || user.uid}
             meta={`${user.phone || user.email || user.uid} · ${fmtDate(user.createdAt)}`}
-            status={`${user.role || 'user'} · ${user.status || 'active'} · ${money(user.balance)}`}
+            status={<>{user.role || 'user'} · {user.status || 'active'} · <MoneyDisplay value={user.balance} /></>}
           >
             <button onClick={() => setFundForm({ uid: user.uid, amount: '', mode: 'add' })}><MatIcon name="account_balance_wallet" size={13} /> Fund</button>
             <button onClick={() => setHistoryUser(user)}><MatIcon name="history" size={13} /> History</button>
@@ -1403,7 +1404,7 @@ function AdminPage({ session, onSessionChange }) {
           <button className="modal-save"><MatIcon name="verified_user" size={15} /> Save reseller</button>
         </form>
         <AdminList items={resellers} empty="No resellers yet" render={item => (
-          <AdminRow title={item.username || item.id} meta={`Fund ${money(item.fund || 0)} · Created ${fmtDate(item.createdAt || item.updatedAt)}`} status={item.status || 'active'}>
+          <AdminRow title={item.username || item.id} meta={<>Fund <MoneyDisplay value={item.fund || 0} /> · Created {fmtDate(item.createdAt || item.updatedAt)}</>} status={item.status || 'active'}>
             <button onClick={() => setHistoryUser({ uid: item.id, name: item.username })}><MatIcon name="history" size={13} /> History</button>
             <button className="danger-mini" onClick={() => { if (window.confirm(`Delete reseller ${item.username}?`)) safeAction(() => adminDeleteReseller(item.id), 'Reseller deleted'); }}>
               <MatIcon name="delete" size={13} /> Delete
@@ -1499,7 +1500,7 @@ function AdminPage({ session, onSessionChange }) {
         <AdminList items={deposits} empty="No payment requests" render={payment => (
           <AdminRow
             title={payment.user || payment.uid || 'User'}
-            meta={`${money(payment.amount || 0)} · ${payment.method || 'UPI'} · From: ${payment.senderUpi || '—'} · ${fmtDate(payment.createdAt)}`}
+            meta={<><MoneyDisplay value={payment.amount || 0} /> · {payment.method || 'UPI'} · From: {payment.senderUpi || '—'} · {fmtDate(payment.createdAt)}</>}
             status={payment.status || 'pending'}
           >
             {payment.status === 'pending' && (
@@ -1523,7 +1524,7 @@ function AdminPage({ session, onSessionChange }) {
         <AdminList items={transactions} empty="No transactions yet" render={tx => (
           <AdminRow
             title={tx.type || 'Transaction'}
-            meta={`${tx.uid || 'User'} · ${money(tx.amount || 0)} · ${fmtDate(tx.createdAt)}`}
+            meta={<>{tx.uid || 'User'} · <MoneyDisplay value={tx.amount || 0} /> · {fmtDate(tx.createdAt)}</>}
             status={tx.note || tx.status || 'record'}
           />
         )} />
@@ -1542,7 +1543,7 @@ function AdminPage({ session, onSessionChange }) {
             </div>
           </label>
           <label>
-            Minimum deposit (₹)
+            <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Minimum deposit
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <MatIcon name="account_balance_wallet" size={18} />
               <input value={minDeposit} onChange={e => setMinDeposit(e.target.value)} placeholder="50" inputMode="numeric" style={{ flex: 1 }} />
@@ -1718,15 +1719,15 @@ function AddFundPage({ session, onSessionChange }) {
               <div className="quick-amounts">
                 {quickAmounts.map(a => (
                   <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
-                    {money(a)}
+                    <MoneyDisplay value={a} />
                   </button>
                 ))}
               </div>
-              <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: {money(paySettings.minDeposit)}</p>
+              <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
               <hr className="deposit-divider" />
               <form onSubmit={handleAmountNext}>
-                <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> Custom amount (₹)</label>
-                <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={`Min ${money(paySettings.minDeposit)}`} required />
+                <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Custom amount</label>
+                <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={'Min ' + money(paySettings.minDeposit)} required />
                 <button className="deposit-proceed-btn" type="submit">
                   <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                 </button>
@@ -1744,7 +1745,7 @@ function AddFundPage({ session, onSessionChange }) {
               </button>
               <h2>Scan &amp; Pay</h2>
             </div>
-            <p className="deposit-label"><LottieIcon src="/icons/new/send-emoji.json" size={18} /> Send exactly <strong>{money(amount)}</strong> to:</p>
+            <p className="deposit-label"><LottieIcon src="/icons/new/send-emoji.json" size={18} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
             <p className="upi-id-display"><LottieIcon src="/icons/new/bank-emoji.json" size={20} /> {paySettings.upiId}</p>
             {qrUrl && (
               <div className="qr-wrap">
@@ -1785,7 +1786,7 @@ function AddFundPage({ session, onSessionChange }) {
             <form onSubmit={submitDeposit}>
               <label htmlFor="sender-upi">Your UPI ID</label>
               <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
-              <p className="muted qr-hint">Amount: <strong>{money(amount)}</strong> → {paySettings.upiId}</p>
+              <p className="muted qr-hint">Amount: <strong><MoneyDisplay value={amount} /></strong> → {paySettings.upiId}</p>
               <button className="deposit-proceed-btn" type="submit" disabled={busy}>
                 {busy ? 'Submitting…' : <><MatIcon name="check" size={17} /> Submit</>}
               </button>
@@ -1800,7 +1801,7 @@ function AddFundPage({ session, onSessionChange }) {
               <h2>Request submitted</h2>
             </div>
             <div className="deposit-page-card pending">
-              <p className="muted">Your deposit of <strong>{money(amount)}</strong> is pending admin approval.</p>
+              <p className="muted">Your deposit of <strong><MoneyDisplay value={amount} /></strong> is pending admin approval.</p>
               <p className="muted">Request ID: <strong className="pending-id">{pendingId}</strong></p>
               <button className="deposit-proceed-btn" type="button" onClick={goBack}>
                 <MatIcon name="close" size={17} /> Close
