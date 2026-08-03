@@ -2119,3 +2119,135 @@
   max-width: 120px;
 }
 
+/* ── Reseller Benefits Dialog ───────────────────────────────────── */
+.reseller-benefits-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0);
+  backdrop-filter: blur(0px);
+  transition: background 0.3s ease, backdrop-filter 0.3s ease;
+  padding: 20px;
+}
+.reseller-benefits-backdrop.visible {
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+}
+.reseller-benefits-dialog {
+  background: linear-gradient(160deg, #1a1525 0%, #0f0b1a 100%);
+  border: 1px solid rgba(199,149,255,0.2);
+  border-radius: 24px;
+  max-width: 420px;
+  width: 100%;
+  padding: 32px 28px 28px;
+  position: relative;
+  transform: translateY(40px) scale(0.95);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.reseller-benefits-dialog.visible {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.reseller-benefits-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 0;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.6);
+  transition: background 0.2s, color 0.2s;
+}
+.reseller-benefits-close:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+.reseller-benefits-header {
+  text-align: center;
+  margin-bottom: 6px;
+}
+.reseller-benefits-header h2 {
+  margin: 8px 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+}
+.reseller-benefits-subtitle {
+  text-align: center;
+  font-size: 13px;
+  margin-bottom: 22px;
+}
+.reseller-benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+.reseller-benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  animation: benefitFadeIn 0.4s ease both;
+}
+.reseller-benefit-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(199,149,255,0.15), rgba(157,94,255,0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #c795ff;
+}
+.reseller-benefit-text {
+  flex: 1;
+  min-width: 0;
+}
+.reseller-benefit-text strong {
+  font-size: 14px;
+  display: block;
+  margin-bottom: 2px;
+}
+.reseller-benefit-text p {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.reseller-benefits-footer {
+  text-align: center;
+}
+.reseller-benefits-footer .reseller-unlock-btn {
+  font-size: 16px;
+  padding: 14px 32px;
+}
+
+@keyframes benefitFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Reseller profile button ────────────────────────────────────── */
+.reseller-profile-btn {
+  border: 1px solid rgba(199,149,255,0.25) !important;
+  background: linear-gradient(135deg, rgba(199,149,255,0.08), rgba(157,94,255,0.04)) !important;
+}
+.reseller-profile-btn:hover {
+  border-color: rgba(199,149,255,0.5) !important;
+  background: linear-gradient(135deg, rgba(199,149,255,0.15), rgba(157,94,255,0.08)) !important;
+}
+
