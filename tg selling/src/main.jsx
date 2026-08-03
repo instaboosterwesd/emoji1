@@ -357,6 +357,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
      prevPerf.current === null means first-ever selection — always reload.
      Otherwise reload only if mode actually changed value.              */
   useEffect(() => {
+    if (window.__LOW_MODE__) return;                       // low app manages itself
     if (perfMode === null) return;                           // dialog opening, ignore
     if (prevPerf.current === null || prevPerf.current !== perfMode) {
       location.reload();                                    // first pick OR mode changed
@@ -621,7 +622,7 @@ function PerformanceDialog({ onSelect }) {
             <span className="perf-option-icon"><img src="/icons/material/send-flash.svg" width="32" height="32" alt="" /></span>
             <div><strong>High Performance Device</strong><span className="perf-option-desc">Full animations &amp; effects</span></div>
           </button>
-          <button className="perf-option" onClick={() => pick('low')}>
+          <button className="perf-option" onClick={() => { localStorage.setItem('perf_dont_ask', '1'); window.location.href = '/low/'; }}>
             <span className="perf-option-icon"><img src="/icons/material/phone-spidey.svg" width="32" height="32" alt="" /></span>
             <div><strong>Low Performance Device</strong><span className="perf-option-desc">Static icons, smoother browsing</span></div>
           </button>
@@ -1262,7 +1263,7 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf }) {
         <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
         <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
-        <button className="has-lottie" onClick={onShowPerf}><LottieIcon src="/icons/new/crown.json" size={24} />Device Performance</button>
+        {!window.__LOW_MODE__ && <button className="has-lottie" onClick={onShowPerf}><LottieIcon src="/icons/new/crown.json" size={24} />Device Performance</button>}
         <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
         <p className="version-tag">V1.0</p>
       </div>
@@ -2648,4 +2649,7 @@ function ErrorTv({ mode }) {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+if (!window.__LOW_MODE__) {
+  createRoot(document.getElementById('root')).render(<App />);
+}
+export default App;
