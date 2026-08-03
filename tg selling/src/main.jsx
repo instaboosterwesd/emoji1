@@ -992,6 +992,7 @@ function ProductsView({ session, onBuy }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const applyPricing = useCallback((product) => {
+    const isReseller = session?.role === 'reseller';
     return {
       ...product,
       pricing: product.pricing.map(item => {
@@ -1000,12 +1001,18 @@ function ProductsView({ session, onBuy }) {
         if (!rule) return item;
         const basePrice = Number(item.price || 0);
         let finalPrice = basePrice;
-        if (rule.price !== '' && rule.price !== undefined && rule.price !== null) finalPrice = Number(rule.price);
-        else if (rule.percent !== '' && rule.percent !== undefined && rule.percent !== null) finalPrice = Math.round(basePrice * (1 + Number(rule.percent) / 100));
-        return { ...item, price: finalPrice, originalPrice: basePrice };
+        // Reseller gets their own price if set
+        if (isReseller && rule.resellerPrice !== '' && rule.resellerPrice !== undefined && rule.resellerPrice !== null) {
+          finalPrice = Number(rule.resellerPrice);
+        } else if (rule.price !== '' && rule.price !== undefined && rule.price !== null) {
+          finalPrice = Number(rule.price);
+        } else if (rule.percent !== '' && rule.percent !== undefined && rule.percent !== null) {
+          finalPrice = Math.round(basePrice * (1 + Number(rule.percent) / 100));
+        }
+        return { ...item, price: finalPrice, originalPrice: basePrice, isResellerPrice: isReseller && rule.resellerPrice !== '' };
       }),
     };
-  }, [pricingRules]);
+  }, [pricingRules, session?.role]);
 
   const load = async () => {
     setLoading(true); setError('');
@@ -1617,7 +1624,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
 
   const getRule = dur => {
     const k = ruleKey(product.pid, dur);
-    return rules[k] || { price: '', percent: '' };
+    return rules[k] || { price: '', percent: '', resellerPrice: '' };
   };
 
   const setRule = (dur, field, val) => {
@@ -1631,8 +1638,8 @@ function PricingEditDialog({ product, onClose, onSave }) {
       for (const item of product.pricing) {
         const dur = item.duration || item.label;
         const r = getRule(dur);
-        if (r.price !== '' || r.percent !== '') {
-          await adminSaveProductRule({ pid: String(product.pid), duration: dur, price: r.price, percent: r.percent });
+        if (r.price !== '' || r.percent !== '' || r.resellerPrice !== '') {
+          await adminSaveProductRule({ pid: String(product.pid), duration: dur, price: r.price, percent: r.percent, resellerPrice: r.resellerPrice });
         }
       }
       toast.success('Pricing rules saved');
@@ -1650,7 +1657,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
           <h2>Edit pricing — {product.name}</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
-        <p className="muted dialog-sub">PID {product.pid} · Set a fixed price or % adjustment per duration.</p>
+        <p className="muted dialog-sub">PID {product.pid} · Set user price and reseller price per duration.</p>
         <div className="pricing-edit-list">
           {product.pricing.map(item => {
             const dur = item.duration || item.label;
@@ -1661,14 +1668,30 @@ function PricingEditDialog({ product, onClose, onSave }) {
                   <strong>{dur}</strong>
                   <span className="muted">API: <MoneyDisplay value={item.price} /></span>
                 </div>
-                <input
-                  className="pricing-edit-input"
-                  type="number"
-                  placeholder="Custom amount"
-                  value={rule.price}
-                  onChange={e => setRule(dur, 'price', e.target.value)}
-                  min={0}
-                />
+                <div className="pricing-edit-fields">
+                  <label className="pricing-field-label">
+                    <MatIcon name="person" size={13} /> User price
+                    <input
+                      className="pricing-edit-input"
+                      type="number"
+                      placeholder="Amount"
+                      value={rule.price}
+                      onChange={e => setRule(dur, 'price', e.target.value)}
+                      min={0}
+                    />
+                  </label>
+                  <label className="pricing-field-label">
+                    <MatIcon name="verified_user" size={13} /> Reseller price
+                    <input
+                      className="pricing-edit-input"
+                      type="number"
+                      placeholder="Amount"
+                      value={rule.resellerPrice}
+                      onChange={e => setRule(dur, 'resellerPrice', e.target.value)}
+                      min={0}
+                    />
+                  </label>
+                </div>
                 <input
                   className="pricing-edit-input short"
                   type="number"
@@ -1705,6 +1728,7 @@ function AdminPage({ session, onSessionChange }) {
   const [resellerForm, setResellerForm] = useState({ username: '', password: '', fund: '' });
   const [upiId, setUpiId] = useState('');
   const [minDeposit, setMinDeposit] = useState('50');
+  const [resellerPrice, setResellerPrice] = useState('');
   const [historyUser, setHistoryUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
@@ -1753,6 +1777,7 @@ function AdminPage({ session, onSessionChange }) {
       setProducts(productList);
       setUpiId(overview.upiId || '');
       setMinDeposit(String(overview.minDeposit || 50));
+      setResellerPrice(String(overview.resellerPrice || ''));
       setManualKeys(overview.manualKeys || []);
       setAdminAlerts(alerts);
       setSiteStatus(status.status || 'operational');
@@ -2143,13 +2168,13 @@ function AdminPage({ session, onSessionChange }) {
         <h3>Payment requests</h3>
         <AdminList items={deposits} empty="No payment requests" render={payment => (
           <AdminRow
-            title={payment.user || payment.uid || 'User'}
-            meta={<><MoneyDisplay value={payment.amount || 0} /> · {payment.method || 'UPI'} · From: {payment.senderUpi || '—'} · {fmtDate(payment.createdAt)}</>}
+            title={<span style={{display:'flex',alignItems:'center',gap:6}}>{payment.user || payment.uid || 'User'} {payment.type === 'reseller' && <span className="reseller-badge-mini">RESELLER</span>}</span>}
+            meta={<><MoneyDisplay value={payment.amount || 0} /> · {payment.method || 'UPI'} · {payment.type === 'reseller' ? 'Reseller unlock' : 'From: ' + (payment.senderUpi || '—')} · {fmtDate(payment.createdAt)}</>}
             status={payment.status || 'pending'}
           >
             {payment.status === 'pending' && (
               <>
-                <button onClick={() => safeAction(() => adminUpdatePaymentRequest(payment.id, 'approved'), 'Payment approved — balance credited')}>
+                <button onClick={() => safeAction(() => adminUpdatePaymentRequest(payment.id, 'approved'), payment.type === 'reseller' ? 'Reseller unlocked — role upgraded' : 'Payment approved — balance credited')}>
                   <MatIcon name="check_circle" size={13} /> Approve
                 </button>
                 <button className="danger-mini" onClick={() => safeAction(() => adminUpdatePaymentRequest(payment.id, 'rejected'), 'Payment rejected')}>
@@ -2198,7 +2223,7 @@ function AdminPage({ session, onSessionChange }) {
       </div>
       <div className="admin-card">
         <h3>UPI payment settings</h3>
-        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => adminSaveUpi(upiId, minDeposit), 'UPI settings saved'); }}>
+        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => adminSaveUpi(upiId, minDeposit, resellerPrice), 'UPI settings saved'); }}>
           <label>
             UPI ID
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2211,6 +2236,13 @@ function AdminPage({ session, onSessionChange }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <MatIcon name="account_balance_wallet" size={18} />
               <input value={minDeposit} onChange={e => setMinDeposit(e.target.value)} placeholder="50" inputMode="numeric" style={{ flex: 1 }} />
+            </div>
+          </label>
+          <label>
+            <MatIcon name="verified_user" size={16} /> Reseller unlock price
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MatIcon name="sell" size={18} />
+              <input value={resellerPrice} onChange={e => setResellerPrice(e.target.value)} placeholder="1000" inputMode="numeric" style={{ flex: 1 }} />
             </div>
           </label>
           <button className="modal-save" type="submit"><MatIcon name="check" size={15} /> Save settings</button>
@@ -2288,7 +2320,8 @@ function AddFundPage({ session, onSessionChange }) {
   const [step, setStep] = useState('amount'); // amount | qr | confirm | pending
   const [amount, setAmount] = useState('');
   const [senderUpi, setSenderUpi] = useState('');
-  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50 });
+  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, resellerPrice: 0 });
+  const [isResellerUnlock, setIsResellerUnlock] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingId, setPendingId] = useState(null);
   const [profile, setProfile] = useState(session);
@@ -2355,7 +2388,8 @@ function AddFundPage({ session, onSessionChange }) {
     e.preventDefault();
     setBusy(true);
     try {
-      const id = await createPaymentRequest(session.uid, amount, senderUpi, profile.name || profile.phone);
+      const payType = isResellerUnlock ? 'reseller' : 'deposit';
+      const id = await createPaymentRequest(session.uid, amount, senderUpi, profile.name || profile.phone, payType);
       setPendingId(id);
       setStep('pending');
     } catch (err) { toast.error(err.message); }
@@ -2377,26 +2411,54 @@ function AddFundPage({ session, onSessionChange }) {
               <button className="back-link emoji-back mb-[5px]" onClick={goBack}>
                 <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
               </button>
-              <h2>Add funds</h2>
+              <h2>{isResellerUnlock ? 'Unlock Reseller Panel' : 'Add funds'}</h2>
             </div>
-            <div className="deposit-page-card">
-              <p className="muted deposit-label"><LottieIcon src="/icons/new/choose-amount-emoji.json" size={20} /> Choose amount</p>
-              <div className="quick-amounts">
-                {quickAmounts.map(a => (
-                  <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
-                    <MoneyDisplay value={a} />
-                  </button>
-                ))}
-              </div>
-              <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
-              <hr className="deposit-divider" />
-              <form onSubmit={handleAmountNext}>
-                <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Custom amount</label>
-                <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={'Min ' + money(paySettings.minDeposit)} required />
-                <button className="deposit-proceed-btn" type="submit">
-                  <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+            {/* Reseller unlock banner — only when not already a reseller */}
+            {paySettings.resellerPrice > 0 && profile?.role !== 'reseller' && !isResellerUnlock && (
+              <div className="reseller-unlock-banner glass-card">
+                <div className="reseller-unlock-header">
+                  <MatIcon name="verified_user" size={28} style={{ color: '#c795ff' }} />
+                  <h3>Unlock Reseller <span className="reseller-badge">RESELLER</span></h3>
+                </div>
+                <p className="muted">Get discounted prices on all products &amp; start reselling today!</p>
+                <button className="reseller-unlock-btn" type="button" onClick={() => { setIsResellerUnlock(true); setAmount(String(paySettings.resellerPrice)); }}>
+                  <MatIcon name="lock_open" size={16} /> Unlock for <MoneyDisplay value={paySettings.resellerPrice} />
                 </button>
-              </form>
+              </div>
+            )}
+            <div className="deposit-page-card">
+              {isResellerUnlock ? (
+                <>
+                  <p className="muted deposit-label"><MatIcon name="verified_user" size={20} /> Reseller unlock payment</p>
+                  <div className="reseller-unlock-summary">
+                    <p>Pay <strong><MoneyDisplay value={paySettings.resellerPrice} /></strong> to upgrade your account to <strong>Reseller</strong>.</p>
+                    <p className="muted" style={{fontSize:12}}>Admin will verify your payment and activate reseller privileges.</p>
+                  </div>
+                  <button className="deposit-proceed-btn" type="button" onClick={() => { setStep('qr'); }}>
+                    <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="muted deposit-label"><LottieIcon src="/icons/new/choose-amount-emoji.json" size={20} /> Choose amount</p>
+                  <div className="quick-amounts">
+                    {quickAmounts.map(a => (
+                      <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
+                        <MoneyDisplay value={a} />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
+                  <hr className="deposit-divider" />
+                  <form onSubmit={handleAmountNext}>
+                    <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Custom amount</label>
+                    <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={'Min ' + money(paySettings.minDeposit)} required />
+                    <button className="deposit-proceed-btn" type="submit">
+                      <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -2445,13 +2507,14 @@ function AddFundPage({ session, onSessionChange }) {
               <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('qr')}>
                 <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
               </button>
-              <h2>Confirm payment</h2>
+              <h2>{isResellerUnlock ? 'Confirm Reseller Unlock' : 'Confirm payment'}</h2>
             </div>
-            <p className="deposit-label">Enter the UPI ID you paid from so admin can verify.</p>
+            <p className="deposit-label">Enter your UPI transaction UTR number so admin can verify your payment.</p>
             <form onSubmit={submitDeposit}>
-              <label htmlFor="sender-upi">Your UPI ID</label>
-              <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
+              <label htmlFor="sender-upi">{isResellerUnlock ? 'UTR number for reseller payment' : 'UTR / UPI transaction ID'}</label>
+              <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="Enter UTR number" required />
               <p className="muted qr-hint">Amount: <strong><MoneyDisplay value={amount} /></strong> → {paySettings.upiId}</p>
+              {isResellerUnlock && <p className="muted reseller-confirm-hint">Your account will be upgraded to <strong>Reseller</strong> after admin approval.</p>}
               <button className="deposit-proceed-btn" type="submit" disabled={busy}>
                 {busy ? 'Submitting…' : <><MatIcon name="check" size={17} /> Submit</>}
               </button>

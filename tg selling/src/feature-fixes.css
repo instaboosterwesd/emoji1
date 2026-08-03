@@ -2028,3 +2028,94 @@
   }
 }
 
+/* ── Reseller unlock banner (AddFundPage) ──────────────────────── */
+.reseller-unlock-banner {
+  border: 1px solid rgba(199,149,255,0.3);
+  background: linear-gradient(135deg, rgba(199,149,255,0.12), rgba(157,94,255,0.08)) !important;
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+}
+.reseller-unlock-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.reseller-unlock-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.reseller-unlock-btn {
+  margin-top: 12px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #9d5eff, #c795ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.reseller-unlock-btn:hover {
+  filter: brightness(1.15);
+}
+.reseller-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #9d5eff, #c795ff);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.reseller-badge-mini {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #9d5eff, #c795ff);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+}
+.reseller-unlock-summary {
+  padding: 12px 0;
+}
+.reseller-unlock-summary p {
+  margin: 4px 0;
+}
+.reseller-confirm-hint {
+  font-size: 12px;
+  color: rgba(199,149,255,0.8);
+  margin-top: 8px;
+}
+
+/* ── Pricing edit dialog labels ─────────────────────────────────── */
+.pricing-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.pricing-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+}
+.pricing-field-label .pricing-edit-input {
+  flex: 1;
+  margin-left: auto;
+  max-width: 120px;
+}
+

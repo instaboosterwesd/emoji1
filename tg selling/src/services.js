@@ -283,7 +283,7 @@ const toArray = value => Object.entries(value || {}).map(([id, item]) => ({ id, 
 
 export async function getAdminOverview() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, upiSnap, minDepositSnap, manualKeysSnap] = await Promise.all([
+  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, upiSnap, minDepositSnap, resellerPriceSnap, manualKeysSnap] = await Promise.all([
     get(ref(firebaseDb, 'users')),
     get(ref(firebaseDb, 'licenseKeys')),
     get(ref(firebaseDb, 'paymentRequests')),
@@ -293,6 +293,7 @@ export async function getAdminOverview() {
     get(ref(firebaseDb, 'adminProductPricing')),
     get(ref(firebaseDb, 'settings/payment/upiId')),
     get(ref(firebaseDb, 'settings/payment/minDeposit')),
+    get(ref(firebaseDb, 'settings/payment/resellerPrice')),
     get(ref(firebaseDb, 'manualLicenseKeys')),
   ]);
   const users = Object.entries(usersSnap.val() || {}).map(([uid, value]) => publicProfile(uid, value));
@@ -314,6 +315,7 @@ export async function getAdminOverview() {
     manualKeys,
     upiId: upiSnap.exists() ? upiSnap.val() : '',
     minDeposit: minDepositSnap.exists() ? Number(minDepositSnap.val()) : 50,
+    resellerPrice: resellerPriceSnap.exists() ? Number(resellerPriceSnap.val()) : 0,
     stats: {
       totalRevenue: users.reduce((sum, user) => sum + Number(user.totalPurchase || 0), 0),
       activeUsers: users.filter(user => user.status !== 'banned').length,
@@ -404,7 +406,7 @@ export async function adminSaveReseller({ username, password, fund }) {
   return id;
 }
 
-export async function adminSaveProductRule({ pid, duration, price, percent }) {
+export async function adminSaveProductRule({ pid, duration, price, percent, resellerPrice }) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   if (!pid?.trim()) throw new Error('Enter product PID.');
   const id = `${pid.trim()}_${(duration || 'default').trim().replace(/[^a-z0-9]+/gi, '_')}`;
@@ -413,17 +415,21 @@ export async function adminSaveProductRule({ pid, duration, price, percent }) {
     duration: duration?.trim() || 'default',
     price: price === '' ? '' : Number(price || 0),
     percent: percent === '' ? '' : Number(percent || 0),
+    resellerPrice: resellerPrice === '' || resellerPrice === undefined ? '' : Number(resellerPrice || 0),
     updatedAt: Date.now(),
   });
   return id;
 }
 
-export async function adminSaveUpi(upiId, minDeposit) {
+export async function adminSaveUpi(upiId, minDeposit, resellerPrice) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   if (!upiId?.trim()) throw new Error('Enter UPI ID.');
   await set(ref(firebaseDb, 'settings/payment/upiId'), upiId.trim());
   if (minDeposit !== undefined && minDeposit !== '') {
     await set(ref(firebaseDb, 'settings/payment/minDeposit'), Math.max(1, Number(minDeposit || 50)));
+  }
+  if (resellerPrice !== undefined && resellerPrice !== '') {
+    await set(ref(firebaseDb, 'settings/payment/resellerPrice'), Math.max(0, Number(resellerPrice || 0)));
   }
   return upiId.trim();
 }
@@ -447,15 +453,24 @@ export async function adminUpdatePaymentRequest(requestId, status) {
         const user = userSnap.exists() ? userSnap.val() : {};
         const currentBalance = Number(user.balance || 0);
         const newBalance = currentBalance + amount;
-        await update(ref(firebaseDb, `users/${uid}`), { balance: newBalance, updatedAt: Date.now() });
+        const updates = { balance: newBalance, updatedAt: Date.now() };
+        // If this is a reseller unlock payment, upgrade role
+        if (request.type === 'reseller') {
+          updates.role = 'reseller';
+          updates.reseller = true;
+        }
+        await update(ref(firebaseDb, `users/${uid}`), updates);
+        const txType = request.type === 'reseller' ? 'reseller_unlock' : 'deposit_approved';
         const txId = `tx_dep_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await set(ref(firebaseDb, `transactions/${txId}`), {
           uid,
-          type: 'deposit_approved',
+          type: txType,
           amount,
           before: currentBalance,
           after: newBalance,
-          note: `Deposit approved (request ${requestId})`,
+          note: request.type === 'reseller'
+            ? `Reseller panel unlocked (request ${requestId})`
+            : `Deposit approved (request ${requestId})`,
           method: request.method || 'UPI',
           createdAt: Date.now(),
         });
@@ -470,21 +485,23 @@ export async function adminUpdatePaymentRequest(requestId, status) {
 
 export async function getPaymentSettings() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [upiSnap, minSnap] = await Promise.all([
+  const [upiSnap, minSnap, resellerSnap] = await Promise.all([
     get(ref(firebaseDb, 'settings/payment/upiId')),
     get(ref(firebaseDb, 'settings/payment/minDeposit')),
+    get(ref(firebaseDb, 'settings/payment/resellerPrice')),
   ]);
   return {
     upiId: upiSnap.exists() ? upiSnap.val() : '',
     minDeposit: minSnap.exists() ? Number(minSnap.val()) : 50,
+    resellerPrice: resellerSnap.exists() ? Number(resellerSnap.val()) : 0,
   };
 }
 
-export async function createPaymentRequest(uid, amount, senderUpi, userName) {
+export async function createPaymentRequest(uid, amount, senderUpi, userName, type = 'deposit') {
   if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
   const value = Math.max(0, Number(amount || 0));
   if (!value) throw new Error('Enter a valid deposit amount.');
-  if (!senderUpi?.trim()) throw new Error('Enter your UPI ID.');
+  if (!senderUpi?.trim()) throw new Error('Enter your UPI/UTR number.');
   const id = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   await set(ref(firebaseDb, `paymentRequests/${id}`), {
     uid,
@@ -492,6 +509,7 @@ export async function createPaymentRequest(uid, amount, senderUpi, userName) {
     amount: value,
     method: 'UPI',
     senderUpi: senderUpi.trim(),
+    type: type || 'deposit',
     status: 'pending',
     createdAt: Date.now(),
   });
