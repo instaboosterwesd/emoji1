@@ -206,22 +206,27 @@ export async function fetchGameProducts() {
   if (!response.ok) throw new Error('Products could not be loaded.');
   const data = await response.json();
   const products = Array.isArray(data?.products) ? data.products : [];
-  return products.map(product => ({
-    id: product.id,
-    pid: product.product_id || product.pid || product.id,
-    name: product.name || 'Untitled product',
-    game: product.game || 'Unknown',
-    image: product.image || '',
-    videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
-    features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
-    pricing: Array.isArray(product.pricing) ? product.pricing.map(item => ({
-      label: item.duration || 'Default',
-      duration: item.duration || 'Default',
-      price: Number(item.price || 0),
-      stock: item.stock ?? null,
-    })) : [],
-    platform: product.platform || '',
-  }));
+  return products.map(product => {
+    const name = product.name || 'Untitled product';
+    // Override broken/missing API images with brand icons
+    const brandIcon = /apk mc/i.test(name) ? '/icons/brands/apk-mc.png' : null;
+    return {
+      id: product.id,
+      pid: product.product_id || product.pid || product.id,
+      name,
+      game: product.game || 'Unknown',
+      image: brandIcon || product.image || '',
+      videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
+      features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
+      pricing: Array.isArray(product.pricing) ? product.pricing.map(item => ({
+        label: item.duration || 'Default',
+        duration: item.duration || 'Default',
+        price: Number(item.price || 0),
+        stock: item.stock ?? null,
+      })) : [],
+      platform: product.platform || '',
+    };
+  });
 }
 
 export async function buyResellerProduct(productId, duration) {
