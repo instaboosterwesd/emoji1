@@ -1754,3 +1754,99 @@
 .products-scroll-inner .load-more {
   margin-top: 10px !important;
 }
+
+/* ── Low performance mode — solid opaque cards, no glass blur ───────
+   html.perf-low is set by index.html inline script on page load.
+   Cards get solid dark background so text is always clearly readable.
+   backdrop-filter removed (expensive on low-end devices).            */
+html.perf-low .dashboard-page {
+  background: #0a0c18 !important;
+}
+html.perf-low .dashboard-backdrop,
+html.perf-low .dashboard-veil {
+  display: none !important;
+}
+html.perf-low .glass-card,
+html.perf-low .balance-card,
+html.perf-low .stat-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: #111 !important;
+}
+html.perf-low .glass-card *,
+html.perf-low .balance-card *,
+html.perf-low .stat-card * {
+  color: #111 !important;
+}
+html.perf-low .glass-card h3,
+html.perf-low .glass-card h2,
+html.perf-low .balance-card strong,
+html.perf-low .stat-card strong {
+  color: #0a0c18 !important;
+}
+html.perf-low .muted,
+html.perf-low .glass-card .muted,
+html.perf-low .stat-card span {
+  color: rgba(0, 0, 0, 0.52) !important;
+}
+html.perf-low .section-title h1 {
+  color: #fff !important;
+}
+html.perf-low .section-title p {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+/* Bottom nav stays dark glass */
+html.perf-low .bottom-nav {
+  background: rgba(10, 12, 24, 0.96) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Input fields inside cards */
+html.perf-low .glass-card input,
+html.perf-low .action-modal input {
+  background: rgba(0, 0, 0, 0.07) !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+  color: #111 !important;
+}
+html.perf-low .glass-card input::placeholder {
+  color: rgba(0, 0, 0, 0.38) !important;
+}
+/* Search box */
+html.perf-low .search-box {
+  background: rgba(0, 0, 0, 0.07) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #111 !important;
+}
+html.perf-low .search-box input {
+  color: #111 !important;
+}
+/* Product select dropdowns */
+html.perf-low .product-select {
+  background: #fff !important;
+  color: #111 !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+/* Products scroll inner container */
+html.perf-low .products-scroll-inner {
+  background: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+/* Transaction / order rows */
+html.perf-low .order-row {
+  border-top-color: rgba(0, 0, 0, 0.1) !important;
+}
+/* Dividers */
+html.perf-low .tx-divider,
+html.perf-low hr {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+/* Buttons inside cards keep their accent color */
+html.perf-low .glass-card .primary,
+html.perf-low .balance-card .primary {
+  color: #fff !important;
+}
