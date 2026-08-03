@@ -2654,6 +2654,9 @@ function AddFundPage({ session, onSessionChange }) {
       await checkout.checkout({ paymentSessionId: order.paymentSessionId, redirectTarget: '_modal' });
       const verified = await verifyCashfreeOrder(order.orderId, paySettings.cashfreeAppId);
       if (verified.status !== 'PAID') throw new Error('Payment was not completed.');
+      if (Math.abs(Number(verified.orderAmount || 0) - totalAmount) > 0.01) {
+        throw new Error('Payment amount could not be verified. Please contact admin.');
+      }
       const payType = isResellerUnlock ? 'reseller' : 'deposit';
       const id = await createGatewayPaymentRequest(session.uid, creditAmount, totalAmount, order.orderId, profile.name || profile.phone, payType);
       setPendingId(id);
