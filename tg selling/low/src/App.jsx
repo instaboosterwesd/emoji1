@@ -609,7 +609,7 @@ function WalletView({ session, profile, refreshProfile }) {
         <div className="card-heading history-heading">
           <div className="heading-title-row">
             <MatIcon name="receipt_long" size={20} style={{filter:'brightness(0) opacity(0.6)',flexShrink:0}} />
-            <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
+            <h3>Transaction history</h3>
             <button className="icon-button" onClick={loadData} aria-label="Refresh" style={{marginLeft:'auto',flexShrink:0}}>
               <MatIcon name="refresh" size={18} style={{filter:'brightness(0) opacity(0.6)'}} />
             </button>
