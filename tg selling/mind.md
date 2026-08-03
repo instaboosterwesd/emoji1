@@ -300,7 +300,7 @@ Fields:
 - `resellerPrice` — fixed reseller-facing price when configured
 - `updatedAt`
 
-The user-side Buy page applies `price` for regular users and `resellerPrice` for resellers. Blank rules fall back to the live API price. Pricing is fixed per product and duration; there is no percentage/default pricing layer.
+The user-side Buy page applies fixed `price`/`resellerPrice` overrides when present. Otherwise the global product pricing formula applies to every live product and duration: user price is API price minus ₹20, and reseller price is API price plus ₹10. The formula is stored in `settings/productPricing`.
 
 ### License keys
 

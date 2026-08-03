@@ -40,6 +40,7 @@ import {
   subscribeUserTransactions,
   getUserLicenseKeys,
   getAdminPricingRules,
+  getProductPricingSettings,
   adminAddManualKey,
   adminDeleteManualKey,
   purchaseProduct,
@@ -1045,8 +1046,8 @@ function ProductDetailPage({ product, onBack, onBuy }) {
         <div className="pdp-section-label"><DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} /> Select duration</div>
         {available ? (
           <div className="duration-grid">
-            {product.pricing.slice(0, 8).map(item => (
-              <button key={`${product.pid}-${item.label}`}
+            {product.pricing.slice(0, 8).map((item, index) => (
+              <button key={`${product.pid}-${item.label}-${index}`}
                 onClick={() => onBuy({ product, duration: item })}>
                 <span className="duration-label-row">
                   <DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} />{item.label}
@@ -1070,8 +1071,8 @@ function ProductDetailPage({ product, onBack, onBuy }) {
         )}
         {product.features.length > 0 && (
           <div className="feature-list pdp-features">
-            {product.features.map(f => (
-              <div key={`${product.pid}-${f}`}>
+            {product.features.map((f, index) => (
+              <div key={`${product.pid}-${f}-${index}`}>
                 <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
               </div>
             ))}
@@ -1163,6 +1164,7 @@ function ProductsView({ session, onBuy }) {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
@@ -1177,24 +1179,34 @@ function ProductsView({ session, onBuy }) {
       pricing: product.pricing.map(item => {
         const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
         const rule = pricingRules[key] || {};
-        if (!isReseller) return { ...item, isResellerPrice: false };
+        const apiPrice = Number(item.price || 0);
+        const fixedUserPrice = Number(rule.price);
         const fixedResellerPrice = Number(rule.resellerPrice);
-        const finalPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+        const userPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+          ? fixedUserPrice
+          : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+        const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
           ? fixedResellerPrice
-          : Math.max(0, Number(item.price || 0) - 20);
-        return { ...item, price: finalPrice, isResellerPrice: true };
+          : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+        return {
+          ...item,
+          price: isReseller ? resellerPrice : userPrice,
+          isResellerPrice: isReseller,
+        };
       }),
     };
-  }, [pricingRules, session?.role]);
+  }, [pricingRules, pricingSettings, session?.role]);
 
   const load = async () => {
     setLoading(true); setError('');
     try {
-      const [prods, rules] = await Promise.all([
+      const [prods, rules, pricing] = await Promise.all([
         fetchGameProducts(),
         getAdminPricingRules().catch(() => ({})),
+        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
       ]);
       setPricingRules(rules);
+      setPricingSettings(pricing);
       setProducts(prods);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -1844,11 +1856,11 @@ function PricingEditDialog({ product, onClose, onSave }) {
         </div>
          <p className="muted dialog-sub">PID {product.pid} · Set fixed User and Reseller prices for each duration.</p>
         <div className="pricing-edit-list">
-          {product.pricing.map(item => {
+          {product.pricing.map((item, index) => {
             const dur = item.duration || item.label;
             const rule = getRule(dur);
             return (
-              <div className="pricing-edit-row" key={dur}>
+              <div className="pricing-edit-row" key={`${dur}-${index}`}>
                 <div className="pricing-edit-label">
                   <strong>{dur}</strong>
                   <span className="muted">API: <MoneyDisplay value={item.price} /></span>

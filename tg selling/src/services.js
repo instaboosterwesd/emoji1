@@ -727,6 +727,16 @@ export async function getAdminPricingRules() {
   return snap.exists() ? snap.val() : {};
 }
 
+export async function getProductPricingSettings() {
+  if (!firebaseDb) return { userAdjustment: -20, resellerAdjustment: 10 };
+  const snap = await get(ref(firebaseDb, 'settings/productPricing'));
+  const value = snap.exists() ? snap.val() : {};
+  return {
+    userAdjustment: Number.isFinite(Number(value.userAdjustment)) ? Number(value.userAdjustment) : -20,
+    resellerAdjustment: Number.isFinite(Number(value.resellerAdjustment)) ? Number(value.resellerAdjustment) : 10,
+  };
+}
+
 /* ── Manual License Keys ────────────────────────────────────────── */
 
 export async function adminAddManualKey(pid, productName, duration, key) {
