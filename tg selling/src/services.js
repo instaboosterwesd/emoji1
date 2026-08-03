@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { getDatabase, get, ref, set, update, runTransaction, onValue } from 'firebase/database';
+import { PRODUCT_CATALOG, LIVE_PRICING_COUNTS, LIVE_DURATION_LABELS } from './products.js';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,7 +20,7 @@ export const firebaseDb = firebaseApp ? getDatabase(firebaseApp) : null;
 const resellerEndpoint = import.meta.env.VITE_RESELLER_ENDPOINT;
 const resellerApiKey = import.meta.env.VITE_RESELLER_API_KEY;
 const resellerMasterKey = import.meta.env.VITE_RESELLER_MASTER_KEY;
-const productsEndpoint = import.meta.env.VITE_PRODUCTS_ENDPOINT || 'https://game-cheats-api.vercel.app/products';
+const productsEndpoint = '/api/products';
 
 const otpHeaders = { accept: '*/*', 'auth-key': 'appxapi', 'client-service': 'Appx', 'device-type': '', source: 'website' };
 const cleanPhone = phone => phone.replace(/\D/g, '').slice(-10);
@@ -229,25 +230,51 @@ export async function fetchGameProducts() {
   const products = Array.isArray(data?.products) ? data.products : [];
   return products.map(product => {
     const name = product.name || 'Untitled product';
+    const catalog = findCatalogProduct(name);
+    const expectedCount = LIVE_PRICING_COUNTS[name] || null;
+    const livePricing = Array.isArray(product.pricing) ? product.pricing : [];
+    // The scraper currently appends later products' rows to each product.
+    // Use the known product duration count to keep only this product's block.
+    const pricing = expectedCount ? livePricing.slice(0, expectedCount) : livePricing;
     // Override broken/missing API images with brand icons
     const brandIcon = productIconFor(name);
     return {
       id: product.id,
-      pid: product.product_id || product.pid || product.id,
+      pid: String(product.product_id || product.pid || product.id),
+      purchasePid: catalog?.pid || product.product_id || product.pid || product.id,
+      sourcePid: product.product_id || product.pid || product.id,
       name,
       game: product.game || 'Unknown',
       image: brandIcon || product.image || '',
       videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
       features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
-      pricing: Array.isArray(product.pricing) ? product.pricing.map(item => ({
-        label: item.duration || 'Default',
-        duration: item.duration || 'Default',
+      pricing: pricing.map((item, index) => ({
+        label: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
+        duration: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
+        sourceDuration: item.duration || 'Default',
         price: Number(item.price || 0),
         stock: item.stock ?? null,
-      })) : [],
+      })),
       platform: product.platform || '',
     };
   });
+}
+
+function normaliseProductName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/^a,\s*/, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function findCatalogProduct(name) {
+  const wanted = normaliseProductName(name);
+  return PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === wanted)
+    || (wanted === normaliseProductName('A, XYZ CHEATS FF ROOT ANDROID')
+      ? PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === normaliseProductName('XYZ CHEATS FF ROOT ANDROID'))
+      : wanted === normaliseProductName('BALA XYZ CHEATS FF MAIN ID NONROOT')
+        ? { pid: '133', durations: [{}, {}, {}] }
+      : null);
 }
 
 export async function buyResellerProduct(productId, duration) {
@@ -762,11 +789,12 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
 
   // 3. Try reseller API
   try {
-    const apiResult = await buyResellerProduct(product.pid, duration.duration || duration.label);
+    const purchasePid = product.purchasePid || product.pid;
+    const apiResult = await buyResellerProduct(purchasePid, duration.duration || duration.label);
     deliveredKey = apiResult?.key || apiResult?.license_key || apiResult?.data?.key || apiResult?.data?.license_key || JSON.stringify(apiResult);
   } catch (apiError) {
     // 4. API failed — try manual fallback
-    const fallback = await getAvailableManualKey(product.pid, duration.duration || duration.label);
+    const fallback = await getAvailableManualKey(product.purchasePid || product.pid, duration.duration || duration.label);
     if (fallback) {
       deliveredKey = fallback.key;
       source = 'manual';
@@ -775,7 +803,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
       // 5. Both failed — refund + alert admin
       await update(ref(firebaseDb, `users/${uid}`), { balance: currentBalance, updatedAt: Date.now() });
       try { await adminSaveAlert('keys_exhausted', {
-        productId: String(product.pid),
+        productId: String(product.purchasePid || product.pid),
         productName: product.name,
         duration: duration.duration || duration.label,
         apiError: apiError.message,
@@ -793,7 +821,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
     uid,
     userId: uid,
     user: userName || uid,
-    productId: String(product.pid),
+    productId: String(product.purchasePid || product.pid),
     product: product.name,
     productName: product.name,
     duration: duration.duration || duration.label,

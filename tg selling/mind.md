@@ -57,7 +57,7 @@ VITE_FIREBASE_APP_ID
 VITE_RESELLER_ENDPOINT
 VITE_RESELLER_API_KEY
 VITE_RESELLER_MASTER_KEY
-VITE_PRODUCTS_ENDPOINT
+PRODUCTS_SCRAPE_COOKIE
 ```
 
 ## Auth behavior
@@ -129,10 +129,10 @@ Do not show referral/coupons for now.
 Products load from:
 
 ```text
-https://game-cheats-api.vercel.app/products
+/api/products
 ```
 
-or `VITE_PRODUCTS_ENDPOINT`.
+The server-side `/api/products` proxy reads the live scraper cookie from the `PRODUCTS_SCRAPE_COOKIE` secret and does not expose it to the browser.
 
 Product UI rules:
 
@@ -145,6 +145,7 @@ Product UI rules:
 - Feature cards have connector lines and rotating border motion.
 - Buy Now opens pricing cards with drop motion.
 - Pricing selection opens confirm purchase dialog.
+- Regular users see live API prices; resellers use fixed reseller rules and fall back to ₹20 below the live user price when no fixed reseller rule exists.
 
 ## Product brand icon mappings
 
@@ -493,7 +494,7 @@ When fixing visual issues, prefer adding final overrides there instead of editin
   - `server.host: true` — Replit proxy के लिए ज़रूरी
   - `server.allowedHosts: true` — iframe preview के लिए
   - `server.port: parseInt(process.env.PORT || '5173')` — workflow env var से port read करता है
-- सभी `.env` variables Replit secrets/env में set किए (VITE_FIREBASE_*, VITE_RESELLER_*, VITE_PRODUCTS_ENDPOINT)
+- सभी `.env` variables और `PRODUCTS_SCRAPE_COOKIE` Replit secrets/env में set किए (Firebase, reseller API, और live products proxy)
 - Python deps (`flask`, `flask-cors`, `curl_cffi`) Replit package manager से install किए
 - दो workflows configure किए:
   - **TG Selling App** — `cd 'tg selling' && npx vite --host` (port 5173, webview)

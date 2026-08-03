@@ -1177,9 +1177,12 @@ function ProductsView({ session, onBuy }) {
       pricing: product.pricing.map(item => {
         const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
         const rule = pricingRules[key] || {};
-        const finalPrice = isReseller ? rule.resellerPrice : rule.price;
-        if (finalPrice === '' || finalPrice === undefined || finalPrice === null || !Number.isFinite(Number(finalPrice))) return item;
-        return { ...item, price: Number(finalPrice), isResellerPrice: isReseller };
+        if (!isReseller) return { ...item, isResellerPrice: false };
+        const fixedResellerPrice = Number(rule.resellerPrice);
+        const finalPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+          ? fixedResellerPrice
+          : Math.max(0, Number(item.price || 0) - 20);
+        return { ...item, price: finalPrice, isResellerPrice: true };
       }),
     };
   }, [pricingRules, session?.role]);
