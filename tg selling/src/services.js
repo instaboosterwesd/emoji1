@@ -25,6 +25,27 @@ const otpHeaders = { accept: '*/*', 'auth-key': 'appxapi', 'client-service': 'Ap
 const cleanPhone = phone => phone.replace(/\D/g, '').slice(-10);
 const deviceId = () => `WebBrowser${Date.now()}${Math.random().toString(36).slice(2, 13)}`;
 
+/* ── Brand icon map (shared by high-end & low-end modes) ──────── */
+const productBrandIconRules = [
+  { test: n => /apk mc/i.test(n), icon: '/icons/brands/apk-mc.png' },
+  { test: n => /ios iphone all gbox|gbox certificate|ios signer|ios esign/i.test(n), icon: '/icons/brands/gbox-certificate.png' },
+  { test: n => /^br\b|br mod|br board/i.test(n), icon: '/icons/brands/br.png' },
+  { test: n => /drip\s*client|dripclient/i.test(n), icon: '/icons/brands/dripclient.png' },
+  { test: n => /fluorite/i.test(n), icon: '/icons/brands/fluorite-ios-ff.png' },
+  { test: n => /^hg\b|hg cheats/i.test(n), icon: '/icons/brands/hg.png' },
+  { test: n => /hikari/i.test(n), icon: '/icons/brands/hikari.png' },
+  { test: n => /^kos\b|kos /i.test(n), icon: '/icons/brands/kos.png' },
+  { test: n => /migul/i.test(n), icon: '/icons/brands/migul.png' },
+  { test: n => /pato team/i.test(n), icon: '/icons/brands/pato-team.png' },
+  { test: n => /prime hook/i.test(n), icon: '/icons/brands/prime-hook.png' },
+  { test: n => /rapid core/i.test(n), icon: '/icons/brands/rapid-core.png' },
+  { test: n => /reaper x/i.test(n), icon: '/icons/brands/reaper-x.png' },
+  { test: n => /snake/i.test(n), icon: '/icons/brands/snake.png' },
+  { test: n => /^xyz\b|xyz cheats/i.test(n), icon: '/icons/brands/xyz.png' },
+  { test: n => /silent cheat|^silent\b/i.test(n), icon: '/icons/brands/silent.png' },
+];
+export const productIconFor = name => productBrandIconRules.find(b => b.test(name || ''))?.icon || null;
+
 export async function sendIndiaOtp(phone) {
   const value = cleanPhone(phone);
   if (value.length !== 10) throw new Error('Enter a valid 10-digit Indian mobile number.');
@@ -209,7 +230,7 @@ export async function fetchGameProducts() {
   return products.map(product => {
     const name = product.name || 'Untitled product';
     // Override broken/missing API images with brand icons
-    const brandIcon = /apk mc/i.test(name) ? '/icons/brands/apk-mc.png' : null;
+    const brandIcon = productIconFor(name);
     return {
       id: product.id,
       pid: product.product_id || product.pid || product.id,

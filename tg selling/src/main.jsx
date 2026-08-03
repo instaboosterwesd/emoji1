@@ -52,6 +52,7 @@ import {
   getUserGiftRedemptions,
   adminCreateGiftCode,
   getGiftCodes,
+  productIconFor,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -98,27 +99,8 @@ const MatIcon = ({ name, size = 20, className = '', style: extraStyle, ...rest }
   />
 );
 
-/* ── Brand icon map ─────────────────────────────────────────────── */
-const productBrandIcons = [
-  { test: n => /apk mc/i.test(n), icon: '/icons/brands/apk-mc.png' },
-  // { test: n => /ios cloud codm/i.test(n), icon: '/icons/brands/ios-cloud-codm.png' },
-  { test: n => /ios iphone all gbox|gbox certificate|ios signer|ios esign/i.test(n), icon: '/icons/brands/gbox-certificate.png' },
-  { test: n => /^br\b|br mod|br board/i.test(n), icon: '/icons/brands/br.png' },
-  { test: n => /drip\s*client|dripclient/i.test(n), icon: '/icons/brands/dripclient.png' },
-  { test: n => /fluorite/i.test(n), icon: '/icons/brands/fluorite-ios-ff.png' },
-  { test: n => /^hg\b|hg cheats/i.test(n), icon: '/icons/brands/hg.png' },
-  { test: n => /hikari/i.test(n), icon: '/icons/brands/hikari.png' },
-  { test: n => /^kos\b|kos /i.test(n), icon: '/icons/brands/kos.png' },
-  { test: n => /migul/i.test(n), icon: '/icons/brands/migul.png' },
-  { test: n => /pato team/i.test(n), icon: '/icons/brands/pato-team.png' },
-  { test: n => /prime hook/i.test(n), icon: '/icons/brands/prime-hook.png' },
-  { test: n => /rapid core/i.test(n), icon: '/icons/brands/rapid-core.png' },
-  { test: n => /reaper x/i.test(n), icon: '/icons/brands/reaper-x.png' },
-  { test: n => /snake/i.test(n), icon: '/icons/brands/snake.png' },
-  { test: n => /^xyz\b|xyz cheats/i.test(n), icon: '/icons/brands/xyz.png' },
-  { test: n => /silent cheat|^silent\b/i.test(n), icon: '/icons/brands/silent.png' },
-];
-const productIconFor = name => productBrandIcons.find(b => b.test(name || ''))?.icon || '/icons/new/product-box.png';
+/* ── Brand icon map (defined in services.js, imported here) ────── */
+const productIconForWithFallback = name => productIconFor(name) || '/icons/new/product-box.png';
 
 /* ── Shared micro-components ────────────────────────────────────── */
 const SectionTitle = ({ title, subtitle }) => (
@@ -701,7 +683,7 @@ function WalletView({ session, profile, refreshProfile }) {
                   <div className="tx-row" key={tx.id}>
                     <span className="tx-icon">
                       {tx.type === 'purchase'
-                        ? <img src={productIconFor((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
+                        ? <img src={productIconForWithFallback((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
                         : tx.type === 'deposit_approved'
                           ? <LottieIcon src="/icons/new/add-funds-plus.json" size={22} />
                           : tx.type === 'admin_add'
@@ -754,7 +736,7 @@ function OrdersView({ session }) {
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
         <SectionTitle title={selected.productName || selected.product || 'Order'} subtitle="Complete order details" />
         <div className="glass-card detail-card">
-          <Detail label="Product" icon={productIconFor(selected.productName || selected.product)} value={selected.productName || selected.product || '—'} />
+          <Detail label="Product" icon={productIconForWithFallback(selected.productName || selected.product)} value={selected.productName || selected.product || '—'} />
           <Detail label="Duration" lottieIcon="/icons/new/timer.json" value={selected.duration || '—'} />
           <Detail label="Amount paid" lottieIcon="/icons/new/verified-badge.json" value={<MoneyDisplay value={selected.price} />} />
           <Detail label="Purchase date" lottieIcon="/icons/new/calendar.json" value={fmtDate(selected.purchasedAt || selected.createdAt)} />
@@ -799,7 +781,7 @@ function OrdersView({ session }) {
             : filtered.map(k => (
               <button className="order-button" key={k.id} onClick={() => setSelected(k)}>
                 <div className="order-row">
-                  <div className="order-icon has-brand-img"><img src={productIconFor(k.productName || k.product)} style={{width:30,height:30,objectFit:'contain',borderRadius:9}} alt="" /></div>
+                  <div className="order-icon has-brand-img"><img src={productIconForWithFallback(k.productName || k.product)} style={{width:30,height:30,objectFit:'contain',borderRadius:9}} alt="" /></div>
                   <div className="order-main">
                     <strong>{k.productName || k.product || 'License key'}</strong>
                     <span>{k.duration || '—'} · <MoneyDisplay value={k.price} /></span>
@@ -859,7 +841,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
               {product.image
                 ? <img src={product.image} alt={product.name} />
                 : <div className="product-media-fallback">
-                    <img src={productIconFor(product.name)} alt="" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+                    <img src={productIconForWithFallback(product.name)} alt="" style={{ width: 64, height: 64, objectFit: 'contain' }} />
                   </div>
               }
               {product.videos[0] && (
@@ -871,7 +853,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
 
         {/* Product info */}
         <div className="pdp-info">
-          <div className="product-icon"><img src={productIconFor(product.name)} alt="" /></div>
+          <div className="product-icon"><img src={productIconForWithFallback(product.name)} alt="" /></div>
           <div className="pdp-info-text">
             <h2 className="pdp-name">{product.name}</h2>
             <p className="pdp-meta muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p>
@@ -977,7 +959,7 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
               <div className="srp-thumb">
                 {p.image
                   ? <img src={p.image} alt={p.name} loading="lazy" />
-                  : <img src={productIconFor(p.name)} alt="" className="srp-fallback-icon" />
+                  : <img src={productIconForWithFallback(p.name)} alt="" className="srp-fallback-icon" />
                 }
               </div>
               <div className="srp-meta">
@@ -1132,7 +1114,7 @@ function ProductsView({ session, onBuy }) {
                 <div className="cpr-thumb">
                   {p.image
                     ? <img src={p.image} alt={p.name} loading="lazy" />
-                    : <img src={productIconFor(p.name)} alt="" className="cpr-fallback-icon" />
+                    : <img src={productIconForWithFallback(p.name)} alt="" className="cpr-fallback-icon" />
                   }
                 </div>
                 <div className="cpr-meta">
@@ -1222,7 +1204,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
                 <strong>{product.name}</strong>
                 <small>PID {product.pid}</small>
               </div>
-              <img src={productIconFor(product.name)} alt="" />
+              <img src={productIconForWithFallback(product.name)} alt="" />
             </div>
             <div className="purchase-meta-grid">
               <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
