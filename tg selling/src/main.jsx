@@ -1412,16 +1412,16 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
       </div>
       <div className="glass-card profile-actions">
         <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
-        <button className="has-lottie" onClick={() => openDialog('password')}><DeviceIcon emoji="/icons/new/lock-emoji.json" icon="lock" size={22} />Change password</button>
+        <button className="has-lottie" onClick={() => openDialog('password')}><DeviceIcon emoji="/icons/new/lock-emoji.json" icon="lock-emoji" size={22} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
-        <button className="has-lottie" onClick={() => setGiftOpen(true)}><DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={22} />Gift code</button>
+        <button className="has-lottie" onClick={() => setGiftOpen(true)}><DeviceIcon emoji="/icons/new/gift-code.json" icon="gift-code" size={22} />Gift code</button>
         {profile.role !== 'reseller' && (
           <button className="has-lottie reseller-profile-btn" onClick={onResellerBenefits}>
             <DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={20} /> Unlock Reseller
           </button>
         )}
-        <button className="has-lottie" onClick={onShowPerf}><DeviceIcon emoji="/icons/new/crown.json" icon="workspace_premium" size={22} />Device Performance</button>
-        <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
+        <button className="has-lottie" onClick={onShowPerf}><DeviceIcon emoji="/icons/new/crown.json" icon="crown" size={22} />Device Performance</button>
+        <button className="danger has-lottie" onClick={() => openDialog('logout')}><DeviceIcon emoji="/icons/new/logout-flash.json" icon="logout-flash" size={24} />Logout</button>
         <p className="version-tag">V1.1</p>
       </div>
       {giftOpen && <GiftCodeDialog uid={profile.uid} name={profile.name} phone={profile.phone} onClose={() => setGiftOpen(false)} />}
