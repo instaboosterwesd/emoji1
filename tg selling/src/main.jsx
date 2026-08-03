@@ -1086,9 +1086,6 @@ function ProductsView({ session, onBuy }) {
           <option value="pc">PC</option>
           <option value="ios">iOS</option>
         </select>
-        <button className="icon-button reload-btn" onClick={load} aria-label="Refresh">
-          <LottieIcon src="/icons/new/refresh-emoji.json" size={17} />
-        </button>
       </div>
 
       <div className="products-scroll-inner">
