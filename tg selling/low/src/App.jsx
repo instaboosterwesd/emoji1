@@ -400,12 +400,13 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
     { id: 'profile', label: 'Profile', lottieIcon: '/icons/new/profile-lottie.json' },
   ];
 
-  const section =
-    tab === 'orders' ? <OrdersView session={session} /> :
-    tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
-    tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => { localStorage.removeItem('perf_dont_ask'); localStorage.removeItem('perf_mode'); window.location.assign('/'); }} /> :
-    <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
+  const section = purchase
+    ? <PurchasePage purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
+    : tab === 'orders' ? <OrdersView session={session} /> :
+      tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
+      tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
+      tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => { localStorage.removeItem('perf_dont_ask'); localStorage.removeItem('perf_mode'); window.location.assign('/'); }} /> :
+      <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
 
   return (
     <main className="dashboard-page">
@@ -507,7 +508,6 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           </section>
         </div>
       )}
-      {purchase && <PurchasePage purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />}
       <Toaster position="top-center" offset={78} theme="light" toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
     </main>
   );
