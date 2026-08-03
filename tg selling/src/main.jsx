@@ -2649,7 +2649,4 @@ function ErrorTv({ mode }) {
   );
 }
 
-if (!window.__LOW_MODE__) {
-  createRoot(document.getElementById('root')).render(<App />);
-}
 export default App;

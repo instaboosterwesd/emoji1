@@ -7,8 +7,12 @@ export default defineConfig({
     {
       name: 'low-page',
       configureServer(server) {
-        server.middlewares.use('/low/', (req, _res, next) => {
-          req.url = '/low/index.html';
+        server.middlewares.use((req, _res, next) => {
+          // Serve low/index.html only for top-level navigation to /low or /low/
+          // Do NOT intercept asset/script requests like /low/src/main.jsx
+          if (req.url === '/low' || req.url === '/low/') {
+            req.url = '/low/index.html';
+          }
           next();
         });
       },
