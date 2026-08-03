@@ -1657,6 +1657,15 @@
 }
 
 /* ── Version tag in profile card ──────────────────── */
+/* ── Low-performance mode overrides ──────────────────────────── */
+/* Tone down excessive red in .danger buttons when running /low/ */
+[data-mode="low"] .profile-actions .danger {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+[data-mode="low"] .profile-actions .danger .mat-icon {
+  filter: brightness(0) invert(0.65) !important;
+}
+
 .profile-actions .version-tag {
   text-align: center;
   margin: 16px 0 -4px;
