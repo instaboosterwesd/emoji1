@@ -611,9 +611,6 @@ function WalletView({ session, profile, refreshProfile }) {
             <LottieIcon src="/icons/new/history-title-emoji.json" size={26} />
             <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
           </div>
-          <button className="icon-button" onClick={loadData} aria-label="Refresh">
-            <LottieIcon src="/icons/new/history-emoji.json" size={26} />
-          </button>
         </div>
         {txLoading
           ? <p className="muted empty-state">Loading…</p>
