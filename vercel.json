@@ -1,7 +1,8 @@
 {
-  "buildCommand": "cd 'tg selling' && npm run build",
-  "installCommand": "cd 'tg selling' && npm install",
-  "outputDirectory": "tg selling/dist",
+  "rootDirectory": "tg selling",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/low", "destination": "/low/index.html" },
     { "source": "/low/(.*)", "destination": "/low/index.html" },
