@@ -684,6 +684,23 @@
   padding: 12px;
   outline: none;
 }
+.admin-form select {
+  color-scheme: dark;
+  appearance: auto;
+  cursor: pointer;
+}
+.admin-form select option {
+  background: #151b34;
+  color: #fff;
+}
+.manual-key-form {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .8fr) minmax(0, 1.25fr) auto;
+  align-items: center;
+}
+.manual-key-form button {
+  min-height: 44px;
+  white-space: nowrap;
+}
 
 .admin-form textarea {
   min-height: 98px;
@@ -1530,7 +1547,7 @@
 }
 .pricing-edit-row {
   display: grid;
-  grid-template-columns: 1fr 90px 70px;
+  grid-template-columns: minmax(100px, .7fr) minmax(0, 1.8fr);
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -1547,6 +1564,7 @@
   color: #fff;
   font-size: 0.85rem;
   width: 100%;
+  min-width: 0;
 }
 .pricing-edit-input.short { max-width: 70px; }
 .original-price { color: rgba(255,255,255,0.35); font-size: 0.75rem; margin-left: 4px; text-decoration: line-through; }
@@ -2255,22 +2273,48 @@
 
 /* ── Pricing edit dialog labels ─────────────────────────────────── */
 .pricing-edit-fields {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  flex: 1;
+  min-width: 0;
 }
 .pricing-field-label {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 6px;
   font-size: 12px;
   color: rgba(255,255,255,0.7);
 }
+.pricing-field-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
 .pricing-field-label .pricing-edit-input {
-  flex: 1;
-  margin-left: auto;
-  max-width: 120px;
+  max-width: none;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 520px) {
+  .manual-key-form {
+    grid-template-columns: 1fr;
+  }
+  .manual-key-form button {
+    width: 100%;
+  }
+  .pricing-edit-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .pricing-edit-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pricing-percent-field {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ── Reseller Benefits Dialog ───────────────────────────────────── */

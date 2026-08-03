@@ -1845,7 +1845,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
                 </div>
                 <div className="pricing-edit-fields">
                   <label className="pricing-field-label">
-                    <MatIcon name="person" size={13} /> User price
+                    <span className="pricing-field-caption"><MatIcon name="person" size={13} /> User price</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
@@ -1856,7 +1856,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
                     />
                   </label>
                   <label className="pricing-field-label">
-                    <MatIcon name="verified_user" size={13} /> Reseller price
+                    <span className="pricing-field-caption"><MatIcon name="verified_user" size={13} /> Reseller price</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
@@ -1866,14 +1866,17 @@ function PricingEditDialog({ product, onClose, onSave }) {
                       min={0}
                     />
                   </label>
+                  <label className="pricing-field-label pricing-percent-field">
+                    <span className="pricing-field-caption"><MatIcon name="percent" size={13} /> Adjustment</span>
+                    <input
+                      className="pricing-edit-input"
+                      type="number"
+                      placeholder="0"
+                      value={rule.percent}
+                      onChange={e => setRule(dur, 'percent', e.target.value)}
+                    />
+                  </label>
                 </div>
-                <input
-                  className="pricing-edit-input short"
-                  type="number"
-                  placeholder="% ±"
-                  value={rule.percent}
-                  onChange={e => setRule(dur, 'percent', e.target.value)}
-                />
               </div>
             );
           })}
@@ -2233,7 +2236,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Add Manual License Keys</h3>
         <p className="muted" style={{ marginBottom: 8 }}>These are fallback keys delivered if the reseller API fails.</p>
-        <form className="admin-form" onSubmit={e => {
+        <form className="admin-form manual-key-form" onSubmit={e => {
           e.preventDefault();
           safeAction(async () => {
             await adminAddManualKey(manualKeyForm.pid, manualKeyForm.productName, manualKeyForm.duration, manualKeyForm.key);
