@@ -1134,7 +1134,6 @@ function ProductsView({ session, onBuy }) {
                     ? <img src={p.image} alt={p.name} loading="lazy" />
                     : <img src={productIconFor(p.name)} alt="" className="cpr-fallback-icon" />
                   }
-                  {p.videos[0] && <span className="cpr-play-dot"><LottieIcon src="/icons/new/play-emoji.json" size={13} /></span>}
                 </div>
                 <div className="cpr-meta">
                   <span className="cpr-name">{p.name}</span>

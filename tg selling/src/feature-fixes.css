@@ -1775,7 +1775,7 @@
   min-height: 43px;
 }
 .dashboard-page .buy-view .products-scroll-inner {
-  background: rgba(11, 16, 31, .46) !important;
+  background: rgba(11, 16, 31, .72) !important;
   border-color: rgba(255,255,255,.12) !important;
 }
 .dashboard-page .compact-product-row {
@@ -1784,13 +1784,14 @@
   gap: 12px !important;
   min-height: 84px;
   padding: 10px 12px !important;
-  background: transparent !important;
+  background: rgba(255,255,255,.04) !important;
   border: 0 !important;
   border-bottom: 1px solid rgba(255,255,255,.06) !important;
-  border-radius: 0 !important;
+  border-radius: 10px !important;
   width: 100% !important;
   text-align: left !important;
   color: #fff !important;
+  margin-bottom: 4px !important;
 }
 .dashboard-page .compact-product-row .cpr-thumb {
   flex-shrink: 0 !important;
@@ -1805,18 +1806,6 @@
   height: 100% !important;
   object-fit: cover !important;
   display: block !important;
-}
-.dashboard-page .compact-product-row .cpr-play-dot {
-  position: absolute !important;
-  bottom: 1px !important;
-  right: 1px !important;
-  background: rgba(0,0,0,.5) !important;
-  border-radius: 50% !important;
-  width: 18px !important;
-  height: 18px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
 }
 .dashboard-page .compact-product-row .cpr-meta {
   flex: 1 !important;
