@@ -1755,98 +1755,300 @@
   margin-top: 10px !important;
 }
 
-/* ── Low performance mode — solid opaque cards, no glass blur ───────
-   html.perf-low is set by index.html inline script on page load.
-   Cards get solid dark background so text is always clearly readable.
-   backdrop-filter removed (expensive on low-end devices).            */
+/* ══════════════════════════════════════════════════════════════════
+   LOW PERFORMANCE MODE — Material 3 Design
+   html.perf-low class is set by index.html inline script at load time.
+   Uses M3 color tokens: no glassmorphism, no backdrop-filter, no animations.
+   Every surface, text, border, and control follows M3 contrast rules.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* M3 color tokens (local to perf-low scope)
+   background   : #FFFBFE   surface      : #FFFBFE
+   surf-cont-low: #F7F2FA   surf-cont    : #F3EDF7
+   surf-cont-hi : #ECE6F0   surf-variant : #E7E0EC
+   on-surface   : #1C1B1F   on-surf-var  : #49454F
+   primary      : #6750A4   on-primary   : #FFFFFF
+   prim-container:#EADDFF   on-prim-cont : #21005D
+   outline      : #79747E   outline-var  : #CAC4D0
+   error        : #B3261E   on-error     : #FFFFFF   */
+
+/* ── Page shell ──────────────────────────────────────────────────── */
 html.perf-low .dashboard-page {
-  background: #0a0c18 !important;
+  background: #FFFBFE !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .dashboard-page::before {
+  display: none !important;
 }
 html.perf-low .dashboard-backdrop,
 html.perf-low .dashboard-veil {
   display: none !important;
 }
+
+/* ── Section titles (on light page background) ───────────────────── */
+html.perf-low .section-title h1,
+html.perf-low .section-title h2,
+html.perf-low .dash-header h2 {
+  color: #1C1B1F !important;
+}
+html.perf-low .section-title p,
+html.perf-low .dash-kicker {
+  color: #49454F !important;
+}
+
+/* ── Cards — M3 Surface Container (elevation 1) ──────────────────── */
 html.perf-low .glass-card,
 html.perf-low .balance-card,
 html.perf-low .stat-card {
-  background: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12) !important;
+  background: #F3EDF7 !important;
+  border: 1px solid #CAC4D0 !important;
+  box-shadow: 0px 1px 2px rgba(0,0,0,.15), 0px 1px 3px 1px rgba(0,0,0,.08) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  color: #111 !important;
+  color: #1C1B1F !important;
 }
-html.perf-low .glass-card *,
-html.perf-low .balance-card *,
-html.perf-low .stat-card * {
-  color: #111 !important;
-}
-html.perf-low .glass-card h3,
+
+/* ── Card text ───────────────────────────────────────────────────── */
 html.perf-low .glass-card h2,
+html.perf-low .glass-card h3,
+html.perf-low .glass-card strong,
 html.perf-low .balance-card strong,
-html.perf-low .stat-card strong {
-  color: #0a0c18 !important;
+html.perf-low .stat-card strong,
+html.perf-low .order-main strong {
+  color: #1C1B1F !important;
 }
 html.perf-low .muted,
 html.perf-low .glass-card .muted,
-html.perf-low .stat-card span {
-  color: rgba(0, 0, 0, 0.52) !important;
+html.perf-low .balance-card .muted,
+html.perf-low .stat-card span,
+html.perf-low .order-main span,
+html.perf-low .order-main small,
+html.perf-low .empty-state {
+  color: #49454F !important;
 }
-html.perf-low .section-title h1 {
-  color: #fff !important;
+html.perf-low .glass-card,
+html.perf-low .glass-card p,
+html.perf-low .balance-card,
+html.perf-low .balance-card span,
+html.perf-low .stat-card {
+  color: #1C1B1F !important;
 }
-html.perf-low .section-title p {
-  color: rgba(255, 255, 255, 0.65) !important;
+
+/* ── Balance card — primary tint ────────────────────────────────── */
+html.perf-low .balance-card {
+  background: #EADDFF !important;
+  border-color: #B69DF8 !important;
 }
-/* Bottom nav stays dark glass */
-html.perf-low .bottom-nav {
-  background: rgba(10, 12, 24, 0.96) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+html.perf-low .balance-card > span {
+  color: #21005D !important;
 }
-/* Input fields inside cards */
-html.perf-low .glass-card input,
-html.perf-low .action-modal input {
-  background: rgba(0, 0, 0, 0.07) !important;
-  border-color: rgba(0, 0, 0, 0.18) !important;
-  color: #111 !important;
+html.perf-low .balance-card strong {
+  color: #21005D !important;
 }
-html.perf-low .glass-card input::placeholder {
-  color: rgba(0, 0, 0, 0.38) !important;
+
+/* ── Stat cards — surface-container-high ────────────────────────── */
+html.perf-low .stat-card {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
 }
-/* Search box */
+
+/* ── Add funds button ────────────────────────────────────────────── */
+html.perf-low .add-funds {
+  background: #6750A4 !important;
+  border-color: #6750A4 !important;
+  color: #FFFFFF !important;
+}
+html.perf-low .add-funds:before {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* ── Primary / CTA buttons ───────────────────────────────────────── */
+html.perf-low .primary,
+html.perf-low .buy-product,
+html.perf-low .modal-save {
+  background: #6750A4 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0px 1px 2px rgba(0,0,0,.2) !important;
+}
+
+/* ── Order icon chip ─────────────────────────────────────────────── */
+html.perf-low .order-icon {
+  background: #EADDFF !important;
+  color: #21005D !important;
+}
+html.perf-low .order-icon::before {
+  filter: none !important;
+  opacity: 0.8 !important;
+}
+
+/* ── Row dividers ────────────────────────────────────────────────── */
+html.perf-low .order-row {
+  border-top-color: #CAC4D0 !important;
+}
+html.perf-low .tx-row {
+  border-bottom-color: #CAC4D0 !important;
+}
+html.perf-low hr {
+  border-color: #CAC4D0 !important;
+}
+
+/* ── Status badges ───────────────────────────────────────────────── */
+html.perf-low .active-status   { color: #146B2C !important; }
+html.perf-low .complete-status { color: #49454F !important; }
+html.perf-low .tx-badge        { background: #EADDFF !important; color: #21005D !important; }
+
+/* ── Search & filter bar ─────────────────────────────────────────── */
 html.perf-low .search-box {
-  background: rgba(0, 0, 0, 0.07) !important;
-  border-color: rgba(0, 0, 0, 0.15) !important;
-  color: #111 !important;
+  background: #ECE6F0 !important;
+  border: 1px solid #79747E !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .search-box input,
+html.perf-low .search-box input::placeholder {
+  color: #49454F !important;
 }
 html.perf-low .search-box input {
-  color: #111 !important;
+  color: #1C1B1F !important;
 }
-/* Product select dropdowns */
 html.perf-low .product-select {
-  background: #fff !important;
-  color: #111 !important;
-  border-color: rgba(0, 0, 0, 0.18) !important;
+  background: #ECE6F0 !important;
+  color: #1C1B1F !important;
+  border: 1px solid #79747E !important;
 }
-/* Products scroll inner container */
+html.perf-low .icon-button {
+  color: #6750A4 !important;
+}
+
+/* ── Product buy scroll container ────────────────────────────────── */
 html.perf-low .products-scroll-inner {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: #F7F2FA !important;
+  border: 1px solid #CAC4D0 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
 }
-/* Transaction / order rows */
-html.perf-low .order-row {
-  border-top-color: rgba(0, 0, 0, 0.1) !important;
+html.perf-low .buy-view .product-filter {
+  background: #FFFBFE !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
-/* Dividers */
-html.perf-low .tx-divider,
-html.perf-low hr {
-  border-color: rgba(0, 0, 0, 0.1) !important;
+
+/* ── Product feature list ────────────────────────────────────────── */
+html.perf-low .product-card .feature-list > div {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  animation: none !important;
+  color: #1C1B1F !important;
 }
-/* Buttons inside cards keep their accent color */
-html.perf-low .glass-card .primary,
-html.perf-low .balance-card .primary {
-  color: #fff !important;
+html.perf-low .product-card .feature-list > div::before,
+html.perf-low .product-card .feature-list > div::after {
+  display: none !important;
+  animation: none !important;
+}
+html.perf-low .product-card .feature-list::before {
+  background: #CAC4D0 !important;
+}
+
+/* ── Pricing / duration grid ─────────────────────────────────────── */
+html.perf-low .duration-grid button {
+  background: #ECE6F0 !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .duration-grid button.active,
+html.perf-low .duration-grid button:hover {
+  background: #EADDFF !important;
+  border-color: #6750A4 !important;
+  color: #21005D !important;
+}
+
+/* ── Inputs (dialogs / profile forms) ───────────────────────────── */
+html.perf-low input,
+html.perf-low textarea,
+html.perf-low select {
+  background: #ECE6F0 !important;
+  border: 1px solid #79747E !important;
+  color: #1C1B1F !important;
+}
+html.perf-low input::placeholder,
+html.perf-low textarea::placeholder {
+  color: #79747E !important;
+}
+
+/* ── Profile card ────────────────────────────────────────────────── */
+html.perf-low .profile-card img {
+  mix-blend-mode: normal !important;
+}
+html.perf-low .profile-actions button {
+  background: #ECE6F0 !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .profile-actions .danger {
+  background: #FFDAD6 !important;
+  border-color: #B3261E !important;
+  color: #410002 !important;
+}
+html.perf-low .profile-actions button::before {
+  filter: none !important;
+  opacity: 0.7 !important;
+}
+html.perf-low .profile-actions .danger::before {
+  filter: none !important;
+}
+
+/* ── Dialog / modal ──────────────────────────────────────────────── */
+html.perf-low .action-modal,
+html.perf-low .liquid-dialog {
+  background: #FFFBFE !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+  box-shadow: 0px 4px 8px 3px rgba(0,0,0,.15), 0px 1px 3px rgba(0,0,0,.2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.perf-low .action-modal h2,
+html.perf-low .liquid-dialog h2,
+html.perf-low .action-modal h3,
+html.perf-low .liquid-dialog h3 {
+  color: #1C1B1F !important;
+}
+html.perf-low .action-modal p,
+html.perf-low .liquid-dialog p {
+  color: #49454F !important;
+}
+html.perf-low .action-modal-backdrop {
+  background: rgba(0,0,0,.35) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── Bottom nav — M3 Navigation Bar ─────────────────────────────── */
+html.perf-low .bottom-nav {
+  background: #ECE6F0 !important;
+  border: 1px solid #CAC4D0 !important;
+  box-shadow: 0px -1px 3px rgba(0,0,0,.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.perf-low .bottom-nav button {
+  color: #49454F !important;
+}
+html.perf-low .bottom-nav button.active {
+  background: #EADDFF !important;
+  color: #21005D !important;
+}
+html.perf-low .bottom-nav button::before {
+  filter: brightness(0) saturate(1) !important;
+  opacity: 0.6 !important;
+}
+html.perf-low .bottom-nav button.active::before {
+  filter: none !important;
+  opacity: 1 !important;
+}
+html.perf-low .bottom-nav button.has-lottie span img {
+  filter: brightness(0) saturate(1) opacity(0.6) !important;
+}
+html.perf-low .bottom-nav button.has-lottie.active span img {
+  filter: none !important;
+  opacity: 1 !important;
 }
