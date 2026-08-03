@@ -272,8 +272,6 @@ function findCatalogProduct(name) {
   return PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === wanted)
     || (wanted === normaliseProductName('A, XYZ CHEATS FF ROOT ANDROID')
       ? PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === normaliseProductName('XYZ CHEATS FF ROOT ANDROID'))
-      : wanted === normaliseProductName('BALA XYZ CHEATS FF MAIN ID NONROOT')
-        ? { pid: '133', durations: [{}, {}, {}] }
       : null);
 }
 
@@ -789,12 +787,23 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
 
   // 3. Try reseller API
   try {
-    const purchasePid = product.purchasePid || product.pid;
-    const apiResult = await buyResellerProduct(purchasePid, duration.duration || duration.label);
-    deliveredKey = apiResult?.key || apiResult?.license_key || apiResult?.data?.key || apiResult?.data?.license_key || JSON.stringify(apiResult);
+    const productIds = [...new Set([product.purchasePid, product.pid].filter(Boolean).map(String))];
+    let lastError;
+    for (const productId of productIds) {
+      try {
+        const apiResult = await buyResellerProduct(productId, duration.duration || duration.label);
+        deliveredKey = apiResult?.key || apiResult?.license_key || apiResult?.data?.key || apiResult?.data?.license_key || JSON.stringify(apiResult);
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!deliveredKey) throw lastError || new Error('No reseller product ID available.');
   } catch (apiError) {
     // 4. API failed — try manual fallback
-    const fallback = await getAvailableManualKey(product.purchasePid || product.pid, duration.duration || duration.label);
+    const productIds = [...new Set([product.purchasePid, product.pid].filter(Boolean).map(String))];
+    const fallback = (await Promise.all(productIds.map(id => getAvailableManualKey(id, duration.duration || duration.label))))
+      .find(Boolean);
     if (fallback) {
       deliveredKey = fallback.key;
       source = 'manual';
