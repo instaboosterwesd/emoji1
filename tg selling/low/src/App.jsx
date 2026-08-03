@@ -405,10 +405,11 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   const isSubPage = tab !== 'dashboard';
   const contentRef = useRef(null);
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    if (!isSubPage) { setHeaderHidden(false); return; }
+    if (!isSubPage) { setHeaderHidden(false); setNavHidden(false); return; }
     window.history.pushState({ subPage: true }, '');
     const onPop = () => { setTab('dashboard'); };
     window.addEventListener('popstate', onPop);
@@ -419,9 +420,10 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
     const el = contentRef.current;
     if (!el) return;
     const sy = el.scrollTop;
-    if (sy <= 0) { setHeaderHidden(false); lastScrollY.current = 0; return; }
-    if (sy > lastScrollY.current + 4) setHeaderHidden(true);
-    else if (sy < lastScrollY.current - 4) setHeaderHidden(false);
+    const isDash = tab === 'dashboard';
+    if (sy <= 0) { setHeaderHidden(false); setNavHidden(false); lastScrollY.current = 0; return; }
+    if (sy > lastScrollY.current + 4) { setHeaderHidden(true); if (isDash) setNavHidden(true); }
+    else if (sy < lastScrollY.current - 4) { setHeaderHidden(false); if (isDash) setNavHidden(false); }
     lastScrollY.current = sy;
   }, []);
 
@@ -464,7 +466,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           <span>{siteStatus.message}</span>
         </div>
       )}
-      <div ref={contentRef} key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? ' dashboard-only' : ' sub-page'} tab-${tab}`} onScroll={isSubPage ? onContentScroll : undefined}>
+      <div ref={contentRef} key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? ' dashboard-only' : ' sub-page'} tab-${tab}`} onScroll={onContentScroll}>
         {(isSubPage && !purchase) && (
           <div className={`page-back-header${headerHidden ? ' hidden' : ''}`} data-mode="low">
             <button className="back-btn" onClick={() => setTab('dashboard')} aria-label="Back"><MatIcon name="arrow_back" size={22} /></button>
@@ -474,7 +476,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
       {tab === 'dashboard' && (
-        <nav className="bottom-nav">
+        <nav className={`bottom-nav${navHidden ? ' hidden' : ''}`}>
           {navItems.map(({ id, label, icon, lottieIcon }) => (
             <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
               {lottieIcon && <LottieIcon src={lottieIcon} size={22} loop />}
