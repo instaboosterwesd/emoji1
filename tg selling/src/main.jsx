@@ -834,10 +834,9 @@ function featIcon(pid, f) {
   return FEAT_ICONS[hash % FEAT_ICONS.length];
 }
 
-/* ── ProductDetailPage — full-screen detail view ────────────────── */
+/* ── ProductDetailPage — full-screen overlay (hides bottom-nav) ─── */
 function ProductDetailPage({ product, onBack, onBuy }) {
   const [playingVideo, setPlayingVideo] = useState(false);
-  const [pricingOpen, setPricingOpen] = useState(false);
   const available = product.pricing.length > 0;
 
   return (
@@ -849,12 +848,12 @@ function ProductDetailPage({ product, onBack, onBuy }) {
         <span className="pdp-title">{product.name}</span>
       </div>
       <div className="pdp-scroll">
-        {/* Media */}
-        <div className="pdp-media">
+        {/* Media card */}
+        <div className="pdp-media-card">
           {playingVideo && product.videos[0] ? (
             <video src={product.videos[0]} controls autoPlay playsInline poster={product.image || undefined} />
           ) : (
-            <button className="video-thumb pdp-thumb" type="button"
+            <button className="video-thumb" type="button"
               onClick={() => product.videos[0] ? setPlayingVideo(true) : null}
               style={{ cursor: product.videos[0] ? 'pointer' : 'default' }}>
               {product.image
@@ -870,7 +869,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
           )}
         </div>
 
-        {/* Info row */}
+        {/* Product info */}
         <div className="pdp-info">
           <div className="product-icon"><img src={productIconFor(product.name)} alt="" /></div>
           <div className="pdp-info-text">
@@ -879,30 +878,13 @@ function ProductDetailPage({ product, onBack, onBuy }) {
           </div>
         </div>
 
-        {/* Features */}
-        {product.features.length > 0 && (
-          <div className="feature-list pdp-features">
-            {product.features.map(f => (
-              <div key={`${product.pid}-${f}`}>
-                <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Buy button */}
-        <button className="primary buy-product pdp-buy" type="button"
-          disabled={!available} onClick={() => setPricingOpen(s => !s)}>
-          <LottieIcon src="/icons/new/buy-now-btn.json" size={22} />
-          Buy Now <LottieIcon src="/icons/new/proceed-emoji.json" size={17} />
-        </button>
-
-        {/* Pricing grid */}
-        {available && pricingOpen && (
-          <div className="duration-grid pricing-drop">
+        {/* Duration grid — always visible */}
+        <div className="pdp-section-label"><LottieIcon src="/icons/new/timer.json" size={17} /> Select duration</div>
+        {available ? (
+          <div className="duration-grid">
             {product.pricing.slice(0, 8).map(item => (
               <button key={`${product.pid}-${item.label}`}
-                onClick={() => { setPricingOpen(false); onBuy({ product, duration: item }); }}>
+                onClick={() => onBuy({ product, duration: item })}>
                 <span className="duration-label-row">
                   <LottieIcon src="/icons/new/timer.json" size={18} />{item.label}
                 </span>
@@ -912,8 +894,28 @@ function ProductDetailPage({ product, onBack, onBuy }) {
               </button>
             ))}
           </div>
+        ) : (
+          <p className="muted empty-state product-empty">Pricing unavailable</p>
         )}
-        {!available && <p className="muted empty-state product-empty">Pricing unavailable</p>}
+
+        {/* Buy callout */}
+        {available && (
+          <p className="pdp-buy-hint"><LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Tap a duration above to buy</p>
+        )}
+
+        {/* Features at bottom */}
+        {product.features.length > 0 && (
+          <div className="pdp-section-label" style={{ marginTop: 22 }}><LottieIcon src="/icons/new/feat-gift-boxes.json" size={17} /> Features</div>
+        )}
+        {product.features.length > 0 && (
+          <div className="feature-list pdp-features">
+            {product.features.map(f => (
+              <div key={`${product.pid}-${f}`}>
+                <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

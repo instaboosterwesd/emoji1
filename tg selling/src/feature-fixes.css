@@ -1784,6 +1784,13 @@
   gap: 12px !important;
   min-height: 84px;
   padding: 10px 12px !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,.06) !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  text-align: left !important;
+  color: #fff !important;
 }
 .dashboard-page .compact-product-row .cpr-thumb {
   flex-shrink: 0 !important;
@@ -1836,6 +1843,159 @@
   align-items: center !important;
   justify-content: center !important;
   opacity: .5 !important;
+}
+
+/* ── ProductDetailPage — full-screen overlay ─────────────────────── */
+.dashboard-page .product-detail-page {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 50 !important;
+  background: linear-gradient(145deg, #090c18 0%, #15102b 60%, #090b17 100%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.dashboard-page .product-detail-page .pdp-topbar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 16px !important;
+  flex-shrink: 0 !important;
+  background: rgba(9, 12, 24, .88) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+}
+.dashboard-page .product-detail-page .pdp-back {
+  width: 38px !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.07) !important;
+  color: #fff !important;
+  flex-shrink: 0 !important;
+}
+.dashboard-page .product-detail-page .pdp-title {
+  font: 700 16px 'Space Grotesk' !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.dashboard-page .product-detail-page .pdp-scroll {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 16px !important;
+}
+.dashboard-page .product-detail-page .pdp-media-card {
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.25) !important;
+  aspect-ratio: 16/9 !important;
+  position: relative !important;
+  margin-bottom: 16px !important;
+}
+.dashboard-page .product-detail-page .pdp-media-card video,
+.dashboard-page .product-detail-page .pdp-media-card .video-thumb {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
+.dashboard-page .product-detail-page .pdp-media-card .video-thumb img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+.dashboard-page .product-detail-page .pdp-media-card .product-media-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.22);
+}
+.dashboard-page .product-detail-page .pdp-media-card .product-media-fallback img {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: contain !important;
+}
+.dashboard-page .product-detail-page .pdp-media-card .play-badge {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0,0,0,.28) !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  left: auto !important;
+  top: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.dashboard-page .product-detail-page .pdp-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+}
+.dashboard-page .product-detail-page .pdp-info .product-icon {
+  width: 48px !important;
+  height: 48px !important;
+  flex-shrink: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background: linear-gradient(135deg, rgba(35,230,255,.14), rgba(139,108,255,.12)) !important;
+}
+.dashboard-page .product-detail-page .pdp-info .product-icon img {
+  width: 28px !important;
+  height: 28px !important;
+  object-fit: contain !important;
+}
+.dashboard-page .product-detail-page .pdp-info-text {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.dashboard-page .product-detail-page .pdp-name {
+  font: 700 18px 'Space Grotesk' !important;
+  margin: 0 0 3px !important;
+}
+.dashboard-page .product-detail-page .pdp-meta {
+  font-size: 12px !important;
+  margin: 0 !important;
+}
+.dashboard-page .product-detail-page .pdp-section-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  font: 600 11px 'Space Grotesk' !important;
+  letter-spacing: .8px !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.55) !important;
+  margin-bottom: 10px !important;
+}
+.dashboard-page .product-detail-page .pdp-buy-hint {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  font-size: 12px !important;
+  color: rgba(255,255,255,.5) !important;
+  margin: 14px 0 0 !important;
+  padding: 12px !important;
+  border: 1px dashed rgba(255,255,255,.12) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.04) !important;
+}
+.dashboard-page .product-detail-page .pdp-features {
+  margin-bottom: 24px !important;
 }
 
 @media (max-width: 520px) {
