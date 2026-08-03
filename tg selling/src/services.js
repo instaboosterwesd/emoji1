@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { getDatabase, get, ref, set, update } from 'firebase/database';
+import { getDatabase, get, ref, set, update, runTransaction } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -449,10 +449,13 @@ export async function adminDeleteLicenseKey(keyId) {
 
 export async function adminUpdatePaymentRequest(requestId, status) {
   if (!firebaseDb || !requestId) throw new Error('Firebase database is not configured.');
+  const existingRequestSnap = await get(ref(firebaseDb, `paymentRequests/${requestId}`));
+  if (existingRequestSnap.exists() && existingRequestSnap.val()?.method === 'Cashfree') {
+    throw new Error('Cashfree payments are auto-approved after gateway verification.');
+  }
   if (status === 'approved') {
-    const reqSnap = await get(ref(firebaseDb, `paymentRequests/${requestId}`));
-    if (reqSnap.exists()) {
-      const request = reqSnap.val();
+    if (existingRequestSnap.exists()) {
+      const request = existingRequestSnap.val();
       const uid = request.uid;
       const amount = Number(request.amount || 0);
       if (uid && amount > 0) {
@@ -529,18 +532,75 @@ export async function createGatewayPaymentRequest(uid, amount, paidAmount, order
   const creditAmount = Math.max(0, Number(amount || 0));
   const totalPaid = Math.max(0, Number(paidAmount || 0));
   if (!creditAmount || !totalPaid || !orderId) throw new Error('Gateway payment details are incomplete.');
-  const id = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  await set(ref(firebaseDb, `paymentRequests/${id}`), {
+  const settlementRef = ref(firebaseDb, `gatewaySettlements/${orderId}`);
+  const claimId = `claim_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const settlement = await runTransaction(settlementRef, current => current || {
+    uid,
+    orderId,
+    claimId,
+    status: 'processing',
+    createdAt: Date.now(),
+  });
+  const settlementValue = settlement.snapshot.val() || {};
+  if (settlementValue.status === 'completed') return settlementValue.requestId;
+  if (settlementValue.status !== 'processing' || settlementValue.claimId !== claimId) {
+    throw new Error('This gateway payment is already being processed. Please refresh shortly.');
+  }
+  if (settlementValue.uid !== uid) throw new Error('This gateway order belongs to another account.');
+
+  const id = settlementValue.requestId || `pay_gateway_${orderId}`;
+  const now = Date.now();
+  const userRef = ref(firebaseDb, `users/${uid}`);
+  const userSnap = await get(userRef);
+  const user = userSnap.exists() ? userSnap.val() : {};
+  const currentBalance = Number(user.balance || 0);
+  const newBalance = currentBalance + creditAmount;
+  const fee = Math.max(0, totalPaid - creditAmount);
+  const txId = `tx_gateway_${orderId}`;
+  const request = {
     uid,
     user: userName || uid,
     amount: creditAmount,
     paidAmount: totalPaid,
-    gatewayFee: Math.max(0, totalPaid - creditAmount),
+    gatewayFee: fee,
     method: 'Cashfree',
     gatewayOrderId: orderId,
     type: type || 'deposit',
-    status: 'pending',
-    createdAt: Date.now(),
+    status: 'approved',
+    autoCredited: true,
+    createdAt: settlementValue.createdAt || now,
+    approvedAt: now,
+  };
+  await update(ref(firebaseDb), {
+    [`users/${uid}/balance`]: newBalance,
+    [`users/${uid}/updatedAt`]: now,
+    [`paymentRequests/${id}`]: request,
+    [`transactions/${txId}`]: {
+      uid,
+      type: type === 'reseller' ? 'reseller_unlock' : 'gateway_deposit',
+      amount: creditAmount,
+      paidAmount: totalPaid,
+      gatewayFee: fee,
+      before: currentBalance,
+      after: newBalance,
+      method: 'Cashfree',
+      gatewayOrderId: orderId,
+      note: type === 'reseller'
+        ? `Cashfree gateway · Reseller unlock · Order ${orderId}`
+        : `Cashfree gateway · ₹${creditAmount} credited${fee ? ` · ₹${fee} fee` : ''} · Order ${orderId}`,
+      createdAt: now,
+    },
+  });
+  if (type === 'reseller') {
+    await update(userRef, { role: 'reseller', reseller: true, updatedAt: now });
+  }
+  await set(settlementRef, {
+    ...settlementValue,
+    uid,
+    requestId: id,
+    transactionId: txId,
+    status: 'completed',
+    completedAt: now,
   });
   return id;
 }

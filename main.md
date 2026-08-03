@@ -3,7 +3,7 @@
 The wallet add-funds flow supports two payment methods:
 
 - **UPI** — the existing QR/app-link flow. The user submits a UTR and the admin approves the request.
-- **Cashfree Gateway** — Cashfree Production Checkout. A successful gateway payment creates a pending wallet-credit request for admin review.
+- **Cashfree Gateway** — Cashfree Production Checkout. A verified successful gateway payment credits the wallet instantly and creates an approved request/history record for the admin.
 
 ## Admin settings
 
@@ -12,7 +12,7 @@ Open **Admin → Payment Settings**:
 1. Turn **Gateway** on or off.
 2. Turn **UPI** on or off.
 3. Enter the Cashfree **Production App ID**.
-4. Set the gateway extra charge. For example, wallet credit `₹50` and fee `₹5` makes the Cashfree checkout total `₹55`; only `₹50` is credited after approval.
+4. Set the gateway extra charge. For example, wallet credit `₹50` and fee `₹5` makes the Cashfree checkout total `₹55`; only `₹50` is credited instantly after verification.
 5. Enter the UPI ID if UPI is enabled.
 6. Save the settings.
 
@@ -38,5 +38,5 @@ The Cashfree App ID may be stored through Admin → Payment Settings because it 
 ## Important production checks
 
 - Cashfree Production credentials must be paired with `Cashfree({ mode: 'production' })`, which this flow uses.
-- Configure Firebase Realtime Database rules so users can create only their own payment requests and only admins can approve/credit them.
+- Configure Firebase Realtime Database rules so users can create only their own payment requests and only admins can approve manual UPI requests. Cashfree requests are verified and auto-credited after a successful gateway response.
 - Test with a small real amount after adding the secret and confirming the Cashfree merchant account is activated for production.

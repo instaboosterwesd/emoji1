@@ -677,13 +677,14 @@ function WalletView({ session, profile, refreshProfile }) {
 
   const txIcon = type => {
     if (type === 'deposit_approved') return 'add_circle';
+    if (type === 'gateway_deposit') return 'payment';
     if (type === 'purchase') return 'shopping_cart';
     if (type?.includes('admin')) return 'admin_panel_settings';
     return 'receipt_long';
   };
 
   const txColor = type => {
-    if (type === 'deposit_approved' || type === 'admin_add') return '#4ade80';
+    if (type === 'deposit_approved' || type === 'gateway_deposit' || type === 'admin_add') return '#4ade80';
     if (type === 'purchase' || type === 'admin_subtract') return '#f87171';
     return '#94a3b8';
   };
@@ -721,7 +722,7 @@ function WalletView({ session, profile, refreshProfile }) {
                     <span className="tx-icon">
                       {tx.type === 'purchase'
                         ? <img src={productIconForWithFallback((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
-                        : tx.type === 'deposit_approved'
+                         : tx.type === 'deposit_approved' || tx.type === 'gateway_deposit'
                           ? <DeviceIcon emoji="/icons/new/add-funds-plus.json" icon="add" size={20} />
                           : tx.type === 'admin_add'
                             ? <DeviceIcon emoji="/icons/new/topup-emoji.json" icon="add_box" size={20} />
@@ -732,7 +733,7 @@ function WalletView({ session, profile, refreshProfile }) {
                       <span>{fmtDate(tx.createdAt)}</span>
                     </div>
                     <b className="tx-amount" style={{ color: txColor(tx.type) }}>
-                      {(tx.type === 'deposit_approved' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} />
+                       {(tx.type === 'deposit_approved' || tx.type === 'gateway_deposit' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} />
                     </b>
                   </div>
                 ))}
@@ -2351,10 +2352,10 @@ function AdminPage({ session, onSessionChange }) {
         <AdminList items={deposits} empty="No payment requests" render={payment => (
           <AdminRow
             title={<span style={{display:'flex',alignItems:'center',gap:6}}>{payment.user || payment.uid || 'User'} {payment.type === 'reseller' && <span className="reseller-badge-mini">RESELLER</span>}</span>}
-            meta={<><MoneyDisplay value={payment.amount || 0} /> · {payment.method || 'UPI'} · {payment.type === 'reseller' ? 'Reseller unlock' : 'From: ' + (payment.senderUpi || '—')} · {fmtDate(payment.createdAt)}</>}
-            status={payment.status || 'pending'}
+            meta={<><MoneyDisplay value={payment.amount || 0} /> credit · {payment.method || 'UPI'}{payment.method === 'Cashfree' && <> · <MoneyDisplay value={payment.paidAmount || payment.amount || 0} /> paid{payment.gatewayFee ? ` · ₹${payment.gatewayFee} fee` : ''}</>}{payment.method !== 'Cashfree' && <> · {payment.type === 'reseller' ? 'Reseller unlock' : 'From: ' + (payment.senderUpi || '—')}</>} · {fmtDate(payment.createdAt)}</>}
+            status={payment.method === 'Cashfree' && payment.autoCredited ? 'approved · auto credited' : (payment.status || 'pending')}
           >
-            {payment.status === 'pending' && (
+            {payment.status === 'pending' && payment.method !== 'Cashfree' && (
               <>
                 <button onClick={() => safeAction(() => adminUpdatePaymentRequest(payment.id, 'approved'), payment.type === 'reseller' ? 'Reseller unlocked — role upgraded' : 'Payment approved — balance credited')}>
                   <MatIcon name="check_circle" size={13} /> Approve
@@ -2545,6 +2546,7 @@ function AddFundPage({ session, onSessionChange }) {
   const [pendingId, setPendingId] = useState(null);
   const [profile, setProfile] = useState(session);
   const [gatewayOrder, setGatewayOrder] = useState(null);
+  const [gatewayAutoCredited, setGatewayAutoCredited] = useState(false);
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -2660,8 +2662,9 @@ function AddFundPage({ session, onSessionChange }) {
       const payType = isResellerUnlock ? 'reseller' : 'deposit';
       const id = await createGatewayPaymentRequest(session.uid, creditAmount, totalAmount, order.orderId, profile.name || profile.phone, payType);
       setPendingId(id);
+      setGatewayAutoCredited(true);
       setStep('pending');
-      toast.success('Payment received. Admin approval is pending.');
+      toast.success(`${money(creditAmount)} added to your wallet.`);
     } catch (err) {
       toast.error(err.message || 'Gateway payment failed.');
     } finally {
@@ -2844,7 +2847,9 @@ function AddFundPage({ session, onSessionChange }) {
               <h2>Request submitted</h2>
             </div>
             <div className="deposit-page-card pending">
-              <p className="muted">Your deposit of <strong><MoneyDisplay value={amount} /></strong> is pending admin approval.</p>
+              <p className="muted">{gatewayAutoCredited
+                ? <><strong><MoneyDisplay value={amount} /></strong> has been added to your wallet instantly via Cashfree.</>
+                : <>Your deposit of <strong><MoneyDisplay value={amount} /></strong> is pending admin approval.</>}</p>
               <p className="muted">Request ID: <strong className="pending-id">{pendingId}</strong></p>
               <button className="deposit-proceed-btn" type="button" onClick={goBack}>
                 <MatIcon name="close" size={17} /> Close
