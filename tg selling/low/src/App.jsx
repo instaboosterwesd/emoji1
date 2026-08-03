@@ -608,7 +608,6 @@ function WalletView({ session, profile, refreshProfile }) {
       <div className="glass-card">
         <div className="card-heading history-heading">
           <div className="heading-title-row">
-            <LottieIcon src="/icons/new/history-title-emoji.json" size={26} />
             <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
           </div>
         </div>
