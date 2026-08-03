@@ -1347,7 +1347,18 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
       {type === 'edit' && (
         <form className="action-modal liquid-dialog" onSubmit={saveProfile}>
           <div className="dialog-title-row"><LottieIcon src="/icons/new/edit-title-emoji.json" size={24} /><h2>Edit profile</h2></div>
-          <label>Display name<input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" /></label>
+          <label>
+            <MatIcon name="badge" size={18} /> Display name
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" />
+          </label>
+          <label className="readonly-field">
+            <MatIcon name="smartphone" size={18} /> Phone
+            <span className="readonly-value">{profile.phone || '—'}</span>
+          </label>
+          <label className="readonly-field">
+            <MatIcon name="email" size={18} /> Email
+            <span className="readonly-value">{profile.email || '—'}</span>
+          </label>
           <label className="file-upload-label">
             <LottieIcon src="/icons/new/edit-profile.json" size={22} /> Profile image
             <input type="file" accept="image/*" onChange={pickPhoto} style={{ display: 'none' }} />

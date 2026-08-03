@@ -1,9 +1,20 @@
 /* ══════════════════════════════════════════════════════════════════
    LOW PERFORMANCE MODE — Material 3 Design
-   class is set by index.html inline script at load time.
+   data-mode="low" is set on <html> by index.html.
+   Every rule is scoped to [data-mode="low"] to isolate from
+   high-mode stylesheets (multi-entry Vite ensures CSS isolation,
+   this scoping provides a second safety layer).
    Uses M3 color tokens: no glassmorphism, no backdrop-filter, no animations.
    Every surface, text, border, and control follows M3 contrast rules.
    ══════════════════════════════════════════════════════════════════ */
+
+/* ── Root-level scope — all perf-low rules require data-mode="low" ── */
+[data-mode="low"] {
+  /* Reset high-mode globals that leak via cascading */
+  --bg: initial;
+  --card-bg: initial;
+  background: #FFFBFE !important;
+}
 
 /* M3 color tokens (local to perf-low scope)
    background   : #FFFBFE   surface      : #FFFBFE
@@ -202,6 +213,23 @@ hr {
   background: #EADDFF !important;
   border-color: #6750A4 !important;
   color: #21005D !important;
+}
+
+/* Read-only info field in profile edit dialog */
+.readonly-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #CAC4D0;
+  color: #49454F;
+  font-size: 0.85rem;
+}
+.readonly-field .mat-icon { filter: brightness(0) opacity(0.5); flex-shrink: 0; }
+.readonly-value {
+  margin-left: auto;
+  color: #1C1B1F;
+  font-weight: 500;
 }
 
 /* ── Inputs (dialogs / profile forms) ───────────────────────────── */
@@ -508,11 +536,132 @@ textarea::placeholder {
   color: #49454F !important;
 }
 
-/* Scan & pay / I have paid button */
-.scan-paid-btn,
-.i-paid-btn {
+/* Deposit page shell */
+.deposit-page {
+  background: #FFFBFE !important;
+  padding: 20px 16px 90px !important;
+  min-height: 100% !important;
+}
+.deposit-page-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Quick amount chip grid */
+.quick-amounts {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin: 10px 0 !important;
+}
+.quick-chip {
+  flex: 1 0 calc(33% - 8px) !important;
+  min-width: 70px !important;
+  text-align: center !important;
+  padding: 10px 8px !important;
+  border-radius: 12px !important;
+  border: 1px solid #CAC4D0 !important;
+  background: #ECE6F0 !important;
+  color: #1C1B1F !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+}
+.quick-chip.active,
+.quick-chip:hover {
+  background: #EADDFF !important;
+  border-color: #6750A4 !important;
+  color: #21005D !important;
+}
+
+/* QR area */
+.qr-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 14px 0 !important;
+}
+.qr-image {
+  width: 240px !important;
+  height: 240px !important;
+  border-radius: 14px !important;
+  border: 1px solid #CAC4D0 !important;
+  background: #FFFBFE !important;
+}
+.upi-apps-row {
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  margin: 12px 0 !important;
+}
+.upi-app-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 10px 16px !important;
+  border-radius: 12px !important;
+  background: #F3EDF7 !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+.upi-app-btn:hover {
+  background: #EADDFF !important;
+}
+
+/* Deposit buttons */
+.deposit-proceed-btn {
+  width: 100% !important;
+  margin-top: 16px !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
   background: #6750A4 !important;
-  color: #fff !important;
+  border: 1px solid #6750A4 !important;
+  color: #FFFFFF !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-shadow: 0px 1px 2px rgba(0,0,0,.2) !important;
+}
+.deposit-proceed-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+.deposit-paid-btn {
+  width: 100% !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
+  background: #EADDFF !important;
+  border: 1px solid #6750A4 !important;
+  color: #21005D !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+/* Back link in deposit page */
+.deposit-page .back-link {
+  background: none !important;
+  border: none !important;
+  padding: 4px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
 }
 
 /* Admin-wide button */
