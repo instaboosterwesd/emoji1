@@ -623,9 +623,6 @@ function WalletView({ session, profile, refreshProfile }) {
               <div className="tx-list">
                 {transactions.map(tx => (
                   <div className="tx-row" key={tx.id}>
-                    <span className="tx-icon">
-                      <MatIcon name={txIcon(tx.type)} size={20} style={{ filter: 'brightness(0) opacity(0.6)' }} />
-                    </span>
                     <div className="tx-main">
                       <strong>{tx.note || tx.type || 'Transaction'}</strong>
                       <span>{fmtDate(tx.createdAt)}</span>
@@ -797,25 +794,14 @@ function ProductDetailPage({ product, onBack, onBuy }) {
           </div>
         </div>
 
-        {/* Features */}
-        {product.features.length > 0 && (
-          <div className="feature-list pdp-features">
-            {product.features.map(f => (
-              <div key={`${product.pid}-${f}`}>
-                <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Buy button */}
-        <button className="primary buy-product pdp-buy" type="button"
-          disabled={!available} onClick={() => setPricingOpen(s => !s)}>
-          <LottieIcon src="/icons/new/buy-now-btn.json" size={22} />
-          Buy Now <MatIcon name="arrow_forward" size={17} />
-        </button>
-
-        {/* Pricing grid */}
+        {/* Pricing grid + Buy button */}
+        {available && !pricingOpen ? (
+          <button className="primary buy-product pdp-buy" type="button"
+            onClick={() => setPricingOpen(true)}>
+            <LottieIcon src="/icons/new/buy-now-btn.json" size={22} />
+            Select Duration & Buy <MatIcon name="arrow_forward" size={17} />
+          </button>
+        ) : null}
         {available && pricingOpen && (
           <div className="duration-grid pricing-drop">
             {product.pricing.slice(0, 8).map(item => (
@@ -832,6 +818,17 @@ function ProductDetailPage({ product, onBack, onBuy }) {
           </div>
         )}
         {!available && <p className="muted empty-state product-empty">Pricing unavailable</p>}
+
+        {/* Features — at the bottom */}
+        {product.features.length > 0 && (
+          <div className="feature-list pdp-features pdp-features-bottom">
+            {product.features.map(f => (
+              <div key={`${product.pid}-${f}`}>
+                <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1079,7 +1076,7 @@ function ProductsView({ session, onBuy }) {
   );
 }
 
-/* ── PurchasePage — full-screen purchase flow (not a dialog) ───── */
+/* ── PurchasePage — full-screen purchase flow ──────────────────── */
 function PurchasePage({ purchase, session, close, onPurchased }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
@@ -1095,7 +1092,7 @@ function PurchasePage({ purchase, session, close, onPurchased }) {
         session.name || session.phone || session.uid,
       );
       setResult(res);
-      toast.success('Purchase successful!', { description: `${product.name} · ${duration.duration || duration.label}` });
+      toast.success('✅ Purchase successful!', { description: `${product.name} · ${duration.duration || duration.label}` });
       if (onPurchased) onPurchased();
     } catch (err) {
       toast.error(err.message);
@@ -1106,73 +1103,67 @@ function PurchasePage({ purchase, session, close, onPurchased }) {
   const handleDone = () => { setResult(null); setBusy(false); close(); };
 
   return (
-    <div className="product-detail-page purchase-page">
+    <div className="product-detail-page">
       <div className="pdp-topbar">
         <button className="pdp-back" onClick={!busy ? close : undefined} aria-label="Back">
           <MatIcon name="arrow_back" size={22} />
         </button>
-        <span className="pdp-title">{result ? 'Order placed!' : 'Confirm purchase'}</span>
+        <span className="pdp-title">{result ? 'Done' : 'Checkout'}</span>
       </div>
       <div className="pdp-scroll">
         {result ? (
-          <div className="purchase-result">
+          <div style={{textAlign:'center',padding:'40px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
             <div className="purchase-result-icon">
-              <MatIcon name="check_circle" size={48} style={{color:'#146B2C'}} />
+              <MatIcon name="check_circle" size={40} style={{color:'#146B2C'}} />
             </div>
-            <h3 style={{color:'#1C1B1F',marginBottom:4}}>{product.name}</h3>
-            <p className="muted" style={{marginTop:0}}>{duration.duration || duration.label}</p>
-            <div className="key-reveal-box">
-              <label>Your license key</label>
-              <code>{result.key}</code>
+            <h3 style={{color:'#1C1B1F',margin:0}}>Order placed!</h3>
+            <p className="muted" style={{margin:0}}>{product.name} · {duration.duration || duration.label}</p>
+            <div className="key-reveal-box" style={{width:'100%',textAlign:'left'}}>
+              <label>License key</label>
+              <code style={{wordBreak:'break-all'}}>{result.key}</code>
               <button type="button" className="copy-key-btn"
                 onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
                 <MatIcon name="content_copy" size={15} /> Copy key
               </button>
             </div>
-            <p className="muted" style={{fontSize:'0.75rem'}}>
-              Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}
-            </p>
+            <p className="muted" style={{fontSize:'0.75rem'}}>Source: {result.source === 'manual' ? 'Admin' : 'Reseller API'}</p>
             <button className="primary buy-product" type="button" onClick={handleDone}
-              style={{width:'100%',padding:12,borderRadius:14,marginTop:16}}>
+              style={{width:'100%',padding:12,borderRadius:14,marginTop:8}}>
               <MatIcon name="check" size={17} /> Done
             </button>
           </div>
         ) : (
-          <>
+          <div>
             <div className="purchase-summary">
               <div className="purchase-title">
-                <span className="muted" style={{fontSize:'0.8rem'}}>Selected product</span>
+                <span className="muted" style={{fontSize:'0.8rem'}}>Product</span>
                 <strong style={{fontSize:'1rem',color:'#1C1B1F'}}>{product.name}</strong>
-                <small style={{color:'#79747E'}}>PID {product.pid}</small>
+                <small style={{color:'#49454F'}}>PID {product.pid}</small>
               </div>
-              <img src={productIconFor(product.name)} alt="" style={{width:56,height:56,borderRadius:12,border:'1px solid #CAC4D0',background:'#ECE6F0',padding:4}} />
+              <img src={productIconFor(product.name)} alt="" style={{width:48,height:48,borderRadius:10,border:'1px solid #CAC4D0',background:'#ECE6F0',padding:3}} />
             </div>
-            <div className="purchase-meta-grid">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14}}>
               <div className="purchase-meta-item">
-                <span><LottieIcon src="/icons/new/timer.json" size={18} /> Duration</span>
+                <span>Duration</span>
                 <strong>{duration.duration || duration.label}</strong>
               </div>
               <div className="purchase-meta-item">
-                <span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span>
+                <span>Price</span>
                 <strong><MoneyDisplay value={duration.price} /></strong>
               </div>
-              <div className="purchase-meta-item">
-                <span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span>
+              <div className="purchase-meta-item" style={{gridColumn:'1/-1'}}>
+                <span>Platform</span>
                 <strong>{product.platform || 'Access key'}</strong>
               </div>
             </div>
-            <p className="purchase-note" style={{display:'flex',alignItems:'center',gap:6,color:'#49454F',fontSize:'0.85rem',background:'#F3EDF7',padding:12,borderRadius:12,border:'1px solid #CAC4D0'}}>
-              <LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Balance will be deducted. A key will be delivered instantly.
+            <p className="purchase-note">
+              Balance will be deducted. Key delivered instantly.
             </p>
-            <button type="button" onClick={close} disabled={busy}
-              style={{width:'100%',padding:12,borderRadius:14,border:'1px solid #CAC4D0',background:'#ECE6F0',color:'#1C1B1F',fontSize:'0.9rem',cursor:'pointer',marginTop:16}}>
-              Cancel
+            <button type="button" onClick={close} disabled={busy} className="purchase-cancel-btn">Cancel</button>
+            <button className="primary purchase-confirm-btn" type="button" onClick={confirm} disabled={busy}>
+              {busy ? 'Processing…' : 'Confirm Buy'}
             </button>
-            <button className="primary" type="button" onClick={confirm} disabled={busy}
-              style={{width:'100%',padding:14,borderRadius:14,fontSize:'0.95rem',fontWeight:600,marginTop:8,background:'#6750A4',color:'#fff',border:'1px solid #6750A4',cursor:busy?'not-allowed':'pointer'}}>
-              {busy ? 'Buying…' : 'Confirm Buy'}
-            </button>
-          </>
+          </div>
         )}
       </div>
     </div>
