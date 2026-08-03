@@ -1,5 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+
+const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -30,6 +34,17 @@ export default defineConfig({
         '**/material-design-icons-4.0.0/**',
         '**/material-design-icons-4.0.0.zip',
       ],
+    },
+  },
+  build: {
+    rollupOptions: {
+      // Keep both performance modes as real production entry points.
+      // Without this, Vite only emits the root SPA shell and /low/ falls
+      // through to the high-performance app on static hosting.
+      input: {
+        main: resolve(projectRoot, 'index.html'),
+        low: resolve(projectRoot, 'low/index.html'),
+      },
     },
   },
 });
