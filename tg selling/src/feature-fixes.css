@@ -2251,6 +2251,46 @@
   background: linear-gradient(135deg, rgba(199,149,255,0.15), rgba(157,94,255,0.08)) !important;
 }
 
+/* ── Reseller benefits dialog: scrollbar & dont-show ───────────── */
+.reseller-benefits-dialog::-webkit-scrollbar {
+  width: 5px;
+}
+.reseller-benefits-dialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+.reseller-benefits-dialog::-webkit-scrollbar-thumb {
+  background: rgba(199,149,255,0.3);
+  border-radius: 10px;
+}
+.reseller-benefits-dialog::-webkit-scrollbar-thumb:hover {
+  background: rgba(199,149,255,0.5);
+}
+.reseller-dont-show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  margin-bottom: 14px;
+  user-select: none;
+}
+.reseller-dont-show input[type="checkbox"] {
+  accent-color: #c795ff;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.reseller-dont-show:hover {
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── Low-end wallet unlock reseller card ────────────────────────── */
+[data-mode="low"] .reseller-unlock-btn {
+  white-space: nowrap;
+}
+
 /* ── Download Invoice button ────────────────────────────────────── */
 .download-invoice-btn {
   margin-top: 14px;

@@ -355,7 +355,10 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [showNotifs, setShowNotifs] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [resolvedNotif, setResolvedNotif] = useState(null);
-  const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(false);
+  const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(() => {
+    if (localStorage.getItem('reseller_dont_show') === '1') return false;
+    return false; // will check after profile loads
+  });
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -377,6 +380,17 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   };
 
   useEffect(() => { setPageLoading(false); }, [tab]);
+
+  /* Auto-show reseller benefits on first visit */
+  useEffect(() => {
+    if (!profile?.uid || profile.role === 'reseller') return;
+    const key = 'reseller_seen_' + profile.uid;
+    if (!localStorage.getItem(key) && localStorage.getItem('reseller_dont_show') !== '1') {
+      const t = setTimeout(() => setResellerBenefitsOpen(true), 800);
+      localStorage.setItem(key, '1');
+      return () => clearTimeout(t);
+    }
+  }, [profile?.uid, profile?.role]);
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -1382,7 +1396,7 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
           <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} /></h3>
           <p className="muted">{profile.email || profile.phone || 'Verified account'}</p>
           <p className="muted">Balance <MoneyDisplay value={profile.balance} /> · {profile.status || 'active'}</p>
-          {profile.role === 'reseller' && <p className="muted" style={{color:'#c795ff',fontWeight:600,marginTop:4}}><MatIcon name="verified_user" size={15} /> Reseller account</p>}
+          {profile.role === 'reseller' && <p className="muted" style={{color:'#c795ff',fontWeight:600,marginTop:4}}><LottieIcon src="/icons/new/verified-badge.json" size={16} /> Reseller account</p>}
         </div>
       </div>
       <div className="glass-card profile-actions">
@@ -1392,7 +1406,7 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
         <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
         {profile.role !== 'reseller' && (
           <button className="has-lottie reseller-profile-btn" onClick={onResellerBenefits}>
-            <MatIcon name="verified_user" size={20} style={{color:'#c795ff'}} /> Unlock Reseller
+            <LottieIcon src="/icons/new/verified-badge.json" size={22} /> Unlock Reseller
           </button>
         )}
         <button className="has-lottie" onClick={onShowPerf}><LottieIcon src="/icons/new/crown.json" size={24} />Device Performance</button>
@@ -2836,6 +2850,7 @@ function ErrorTv({ mode }) {
 /* ── ResellerBenefitsDialog ─────────────────────────────────────── */
 function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
   const [visible, setVisible] = useState(false);
+  const [dontShow, setDontShow] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 30);
@@ -2843,28 +2858,29 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
   }, []);
 
   const handleClose = () => {
+    if (dontShow) localStorage.setItem('reseller_dont_show', '1');
     setVisible(false);
     setTimeout(onClose, 250);
   };
 
   const benefits = [
-    { icon: 'discount', label: 'Discounted prices', desc: 'Get exclusive lower prices on all products compared to regular users.' },
-    { icon: 'sell', label: 'Resell & earn', desc: 'Purchase at reseller prices and sell to others at your own markup.' },
-    { icon: 'inventory_2', label: 'Bulk purchasing', desc: 'Buy in bulk quantities with special bulk pricing tiers.' },
-    { icon: 'speed', label: 'Priority support', desc: 'Get faster response times and dedicated priority support.' },
-    { icon: 'new_releases', label: 'Early access', desc: 'Be first to access new products before they launch publicly.' },
-    { icon: 'verified', label: 'Reseller badge', desc: 'Stand out with an exclusive reseller badge on your profile.' },
+    { emoji: 'crown.json', label: 'Discounted prices', desc: 'Get exclusive lower prices on all products compared to regular users.' },
+    { emoji: 'shopping-cart.json', label: 'Resell & earn', desc: 'Purchase at reseller prices and sell to others at your own markup.' },
+    { emoji: 'gift-code.json', label: 'Bulk purchasing', desc: 'Buy in bulk quantities with special bulk pricing tiers.' },
+    { emoji: 'shield-verify.json', label: 'Priority support', desc: 'Get faster response times and dedicated priority support.' },
+    { emoji: 'active-keys.json', label: 'Early access', desc: 'Be first to access new products before they launch publicly.' },
+    { emoji: 'verified-badge.json', label: 'Reseller badge', desc: 'Stand out with an exclusive reseller badge on your profile.' },
   ];
 
   return (
     <div className={`reseller-benefits-backdrop ${visible ? 'visible' : ''}`} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) handleClose(); }}>
       <section className={`reseller-benefits-dialog ${visible ? 'visible' : ''}`}>
         <button className="reseller-benefits-close" onClick={handleClose} aria-label="Close">
-          <MatIcon name="close" size={20} />
+          <LottieIcon src="/icons/new/close-emoji.json" size={18} />
         </button>
 
         <div className="reseller-benefits-header">
-          <MatIcon name="verified_user" size={36} style={{color:'#c795ff'}} />
+          <LottieIcon src="/icons/new/verified-badge.json" size={42} />
           <h2>Reseller Panel</h2>
           <span className="reseller-badge" style={{fontSize:11,padding:'3px 12px'}}>PREMIUM</span>
         </div>
@@ -2877,7 +2893,7 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
           {benefits.map((b, i) => (
             <div key={i} className="reseller-benefit-item" style={{animationDelay: `${0.1 + i * 0.05}s`}}>
               <div className="reseller-benefit-icon">
-                <MatIcon name={b.icon} size={22} />
+                <LottieIcon src={`/icons/new/${b.emoji}`} size={24} />
               </div>
               <div className="reseller-benefit-text">
                 <strong>{b.label}</strong>
@@ -2888,8 +2904,12 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
         </div>
 
         <div className="reseller-benefits-footer">
+          <label className="reseller-dont-show" onClick={e => e.stopPropagation()}>
+            <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)} />
+            Don't show again
+          </label>
           <button className="reseller-unlock-btn" onClick={onUnlock}>
-            <MatIcon name="lock_open" size={18} />
+            <LottieIcon src="/icons/new/verified-check.json" size={22} />
             {resellerPrice > 0 ? `Unlock for ${money(resellerPrice)}` : 'Unlock now'}
           </button>
           <p className="muted" style={{fontSize:11,marginTop:6}}>One-time payment · No recurring fees</p>
