@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { jsPDF } from 'jspdf';
 import lottie from 'lottie-web';
 import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
@@ -766,10 +767,141 @@ function OrdersView({ session }) {
               </button>
             )}
           </div>
+          {selected.key && (
+            <button className="download-invoice-btn" type="button" onClick={() => downloadInvoice(selected)}>
+              <MatIcon name="description" size={16} /> Download Invoice (PDF)
+            </button>
+          )}
         </div>
       </>
     );
   }
+
+  const downloadInvoice = (order) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentW = pageW - margin * 2;
+
+    // Brand accent
+    const accent = '#c795ff';
+    const dark = '#1a1525';
+
+    // Header bar
+    doc.setFillColor(26, 21, 37);
+    doc.rect(0, 0, pageW, 55, 'F');
+    doc.setFillColor(199, 149, 255);
+    doc.rect(0, 55, pageW, 3, 'F');
+
+    // Logo / brand
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Reverse Bypass', margin, 28);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(199, 149, 255);
+    doc.text('reversebypass.store', margin, 40);
+
+    // Invoice meta
+    const invoiceNo = `INV-${String(order.id || Date.now()).padStart(6, '0').slice(-6)}`;
+    const dateStr = new Date(order.purchasedAt || order.createdAt || Date.now()).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(199, 149, 255);
+    doc.text('INVOICE', pageW - margin, 28, { align: 'right' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
+    doc.text(`Invoice #${invoiceNo}`, pageW - margin, 38, { align: 'right' });
+    doc.text(`Date: ${dateStr}`, pageW - margin, 45, { align: 'right' });
+
+    // Billing info
+    let y = 75;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 80);
+    doc.text('BILLED TO', margin, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
+    const name = order.user || order.uid || 'Customer';
+    doc.text(String(name), margin, y + 4);
+    doc.text(`Order ID: #${order.id || '—'}`, margin + 80, y + 4);
+
+    y += 16;
+    doc.setDrawColor(230, 230, 230);
+    doc.line(margin, y, pageW - margin, y);
+
+    // Table header
+    y += 8;
+    doc.setFillColor(245, 245, 245);
+    doc.rect(margin, y, contentW, 10, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 80);
+    doc.text('PRODUCT', margin + 3, y + 7);
+    doc.text('DURATION', margin + 90, y + 7);
+    doc.text('AMOUNT', pageW - margin - 25, y + 7, { align: 'right' });
+
+    // Table row
+    y += 10;
+    doc.setDrawColor(240, 240, 240);
+    doc.line(margin, y, pageW - margin, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(10);
+    doc.text(String(order.productName || order.product || 'Product'), margin + 3, y + 4);
+    doc.text(String(order.duration || '—'), margin + 90, y + 4);
+    doc.text(`₹${Number(order.price || 0).toLocaleString('en-IN')}`, pageW - margin - 25, y + 4, { align: 'right' });
+
+    // Total row
+    y += 12;
+    doc.setDrawColor(199, 149, 255);
+    doc.setLineWidth(0.8);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(26, 21, 37);
+    doc.text('Total', margin + 3, y);
+    doc.text(`₹${Number(order.price || 0).toLocaleString('en-IN')}`, pageW - margin - 25, y, { align: 'right' });
+
+    // License key section
+    y += 20;
+    doc.setFillColor(245, 240, 255);
+    doc.roundedRect(margin, y, contentW, 28, 3, 3, 'F');
+    y += 6;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(157, 94, 255);
+    doc.text('LICENSE KEY', margin + 6, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(11);
+    doc.text(String(order.key || order.keyCode || '—'), margin + 6, y + 5);
+
+    // Footer
+    y = 272;
+    doc.setDrawColor(199, 149, 255);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    y += 5;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 150, 150);
+    doc.text('Reverse Bypass — reversebypass.store', pageW / 2, y, { align: 'center' });
+    doc.text('Thank you for your purchase!', pageW / 2, y + 4, { align: 'center' });
+
+    doc.save(`invoice-${invoiceNo}.pdf`);
+  };
 
   return (
     <>
