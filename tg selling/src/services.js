@@ -405,7 +405,7 @@ export async function adminSaveReseller({ username, password, fund }) {
   return id;
 }
 
-export async function adminSaveProductRule({ pid, duration, price, percent, resellerPrice }) {
+export async function adminSaveProductRule({ pid, duration, price, percent, userPercent, resellerPercent, resellerPrice }) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   if (!pid?.trim()) throw new Error('Enter product PID.');
   const id = `${pid.trim()}_${(duration || 'default').trim().replace(/[^a-z0-9]+/gi, '_')}`;
@@ -414,10 +414,25 @@ export async function adminSaveProductRule({ pid, duration, price, percent, rese
     duration: duration?.trim() || 'default',
     price: price === '' ? '' : Number(price || 0),
     percent: percent === '' ? '' : Number(percent || 0),
+    userPercent: userPercent === '' || userPercent === undefined ? '' : Number(userPercent || 0),
+    resellerPercent: resellerPercent === '' || resellerPercent === undefined ? '' : Number(resellerPercent || 0),
     resellerPrice: resellerPrice === '' || resellerPrice === undefined ? '' : Number(resellerPrice || 0),
     updatedAt: Date.now(),
   });
   return id;
+}
+
+export async function adminSavePricingDefaults(userPercent, resellerPercent) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const user = Number(userPercent || 0);
+  const reseller = Number(resellerPercent || 0);
+  if (!Number.isFinite(user) || !Number.isFinite(reseller)) throw new Error('Enter valid percentage values.');
+  if (user < 0 || reseller < 0) throw new Error('Profit percentages cannot be negative.');
+  await set(ref(firebaseDb, 'adminProductPricing/_defaults'), {
+    userPercent: user,
+    resellerPercent: reseller,
+    updatedAt: Date.now(),
+  });
 }
 
 export async function adminSaveUpi(upiId, minDeposit, resellerPrice, paymentOptions = {}) {

@@ -24,6 +24,7 @@ import {
   adminAdjustUserFund,
   adminSaveAnnouncement,
   adminSaveProductRule,
+  adminSavePricingDefaults,
   adminSaveReseller,
   adminSaveUpi,
   adminUpdateUser,
@@ -1162,23 +1163,39 @@ function ProductsView({ session, onBuy }) {
 
   const applyPricing = useCallback((product) => {
     const isReseller = session?.role === 'reseller';
+    const defaults = pricingRules._defaults || {};
+    const hasValue = value => value !== '' && value !== undefined && value !== null && Number.isFinite(Number(value));
     return {
       ...product,
       pricing: product.pricing.map(item => {
         const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
-        const rule = pricingRules[key];
-        if (!rule) return item;
+        const rule = pricingRules[key] || {};
         const basePrice = Number(item.price || 0);
         let finalPrice = basePrice;
-        // Reseller gets their own price if set
-        if (isReseller && rule.resellerPrice !== '' && rule.resellerPrice !== undefined && rule.resellerPrice !== null) {
+        let appliedOverride = false;
+        const resellerPercent = hasValue(rule.resellerPercent)
+          ? rule.resellerPercent
+          : hasValue(rule.percent)
+            ? rule.percent
+            : defaults.resellerPercent;
+        const userPercent = hasValue(rule.userPercent)
+          ? rule.userPercent
+          : hasValue(rule.percent)
+            ? rule.percent
+            : defaults.userPercent;
+        // Exact amount overrides percentage; otherwise use the role-specific percentage.
+        if (isReseller && hasValue(rule.resellerPrice)) {
           finalPrice = Number(rule.resellerPrice);
-        } else if (rule.price !== '' && rule.price !== undefined && rule.price !== null) {
+          appliedOverride = true;
+        } else if (!isReseller && hasValue(rule.price)) {
           finalPrice = Number(rule.price);
-        } else if (rule.percent !== '' && rule.percent !== undefined && rule.percent !== null) {
-          finalPrice = Math.round(basePrice * (1 + Number(rule.percent) / 100));
+          appliedOverride = true;
+        } else if (hasValue(isReseller ? resellerPercent : userPercent)) {
+          finalPrice = Math.round(basePrice * (1 + Number(isReseller ? resellerPercent : userPercent) / 100) * 100) / 100;
+          appliedOverride = true;
         }
-        return { ...item, price: finalPrice, originalPrice: basePrice, isResellerPrice: isReseller && rule.resellerPrice !== '' };
+        if (!appliedOverride) return item;
+        return { ...item, price: finalPrice, originalPrice: basePrice, isResellerPrice: isReseller };
       }),
     };
   }, [pricingRules, session?.role]);
@@ -1799,7 +1816,13 @@ function PricingEditDialog({ product, onClose, onSave }) {
 
   const getRule = dur => {
     const k = ruleKey(product.pid, dur);
-    return rules[k] || { price: '', percent: '', resellerPrice: '' };
+    const existing = rules[k];
+    if (!existing) return { price: '', percent: '', userPercent: '', resellerPercent: '', resellerPrice: '' };
+    return {
+      ...existing,
+      userPercent: existing.userPercent ?? existing.percent ?? '',
+      resellerPercent: existing.resellerPercent ?? existing.percent ?? '',
+    };
   };
 
   const setRule = (dur, field, val) => {
@@ -1813,8 +1836,16 @@ function PricingEditDialog({ product, onClose, onSave }) {
       for (const item of product.pricing) {
         const dur = item.duration || item.label;
         const r = getRule(dur);
-        if (r.price !== '' || r.percent !== '' || r.resellerPrice !== '') {
-          await adminSaveProductRule({ pid: String(product.pid), duration: dur, price: r.price, percent: r.percent, resellerPrice: r.resellerPrice });
+        if (r.price !== '' || r.percent !== '' || r.userPercent !== '' || r.resellerPercent !== '' || r.resellerPrice !== '') {
+          await adminSaveProductRule({
+            pid: String(product.pid),
+            duration: dur,
+            price: r.price,
+            percent: r.percent,
+            userPercent: r.userPercent,
+            resellerPercent: r.resellerPercent,
+            resellerPrice: r.resellerPrice,
+          });
         }
       }
       toast.success('Pricing rules saved');
@@ -1832,7 +1863,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
           <h2>Edit pricing — {product.name}</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
-        <p className="muted dialog-sub">PID {product.pid} · Set user price and reseller price per duration.</p>
+         <p className="muted dialog-sub">PID {product.pid} · Exact amount overrides percentage. Blank fields use the defaults above.</p>
         <div className="pricing-edit-list">
           {product.pricing.map(item => {
             const dur = item.duration || item.label;
@@ -1845,7 +1876,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
                 </div>
                 <div className="pricing-edit-fields">
                   <label className="pricing-field-label">
-                    <span className="pricing-field-caption"><MatIcon name="person" size={13} /> User price</span>
+                    <span className="pricing-field-caption"><MatIcon name="person" size={13} /> User price (₹)</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
@@ -1856,7 +1887,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
                     />
                   </label>
                   <label className="pricing-field-label">
-                    <span className="pricing-field-caption"><MatIcon name="verified_user" size={13} /> Reseller price</span>
+                    <span className="pricing-field-caption"><MatIcon name="verified_user" size={13} /> Reseller price (₹)</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
@@ -1867,13 +1898,23 @@ function PricingEditDialog({ product, onClose, onSave }) {
                     />
                   </label>
                   <label className="pricing-field-label pricing-percent-field">
-                    <span className="pricing-field-caption"><MatIcon name="percent" size={13} /> Adjustment</span>
+                    <span className="pricing-field-caption"><MatIcon name="person" size={13} /> User profit (%)</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
-                      placeholder="0"
-                      value={rule.percent}
-                      onChange={e => setRule(dur, 'percent', e.target.value)}
+                      placeholder="Default"
+                      value={rule.userPercent}
+                      onChange={e => setRule(dur, 'userPercent', e.target.value)}
+                    />
+                  </label>
+                  <label className="pricing-field-label pricing-percent-field">
+                    <span className="pricing-field-caption"><MatIcon name="verified_user" size={13} /> Reseller profit (%)</span>
+                    <input
+                      className="pricing-edit-input"
+                      type="number"
+                      placeholder="Default"
+                      value={rule.resellerPercent}
+                      onChange={e => setRule(dur, 'resellerPercent', e.target.value)}
                     />
                   </label>
                 </div>
@@ -1913,6 +1954,8 @@ function AdminPage({ session, onSessionChange }) {
   const [cashfreeAppId, setCashfreeAppId] = useState('');
   const [historyUser, setHistoryUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
+  const [defaultUserPercent, setDefaultUserPercent] = useState('');
+  const [defaultResellerPercent, setDefaultResellerPercent] = useState('');
   const [apiStatus, setApiStatus] = useState(null);
   const [apiChecking, setApiChecking] = useState(false);
   // Manual keys
@@ -1957,6 +2000,8 @@ function AdminPage({ session, onSessionChange }) {
       ]);
       setData(overview);
       setProducts(productList);
+      setDefaultUserPercent(String(overview.pricingRules?._defaults?.userPercent ?? ''));
+      setDefaultResellerPercent(String(overview.pricingRules?._defaults?.resellerPercent ?? ''));
       setUpiId(overview.upiId || '');
       setMinDeposit(String(overview.minDeposit || 50));
       setResellerPrice(String(overview.resellerPrice || ''));
@@ -2158,6 +2203,33 @@ function AdminPage({ session, onSessionChange }) {
     products: (
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
+        <form className="pricing-defaults-card" onSubmit={e => {
+          e.preventDefault();
+          safeAction(
+            () => adminSavePricingDefaults(defaultUserPercent, defaultResellerPercent),
+            'Default pricing percentages saved',
+          );
+        }}>
+          <div className="pricing-defaults-heading">
+            <div>
+              <strong><MatIcon name="percent" size={17} /> API pricing profit defaults</strong>
+              <span>API price is the base. For example, ₹100 + 2% = ₹102.</span>
+            </div>
+            <MatIcon name="tune" size={19} />
+          </div>
+          <div className="pricing-defaults-fields">
+            <label>
+              <span><MatIcon name="person" size={14} /> User profit %</span>
+              <input type="number" min="0" step="0.01" value={defaultUserPercent} onChange={e => setDefaultUserPercent(e.target.value)} placeholder="0" />
+            </label>
+            <label>
+              <span><MatIcon name="verified_user" size={14} /> Reseller profit %</span>
+              <input type="number" min="0" step="0.01" value={defaultResellerPercent} onChange={e => setDefaultResellerPercent(e.target.value)} placeholder="0" />
+            </label>
+            <button className="modal-save" type="submit"><MatIcon name="check" size={15} /> Save defaults</button>
+          </div>
+          <small>Individual percentage or exact-price values in “Edit pricing” override these defaults for that duration.</small>
+        </form>
         <div className="search-box admin-search">
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
