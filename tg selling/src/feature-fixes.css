@@ -268,6 +268,10 @@
 .dashboard-page .stats-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
+.stats-grid .stat-card:nth-child(1) strong .inline-money { color: #ffffff !important; }
+.stats-grid .stat-card:nth-child(2) strong .inline-money { color: #fbfaff !important; }
+.stats-grid .stat-card:nth-child(3) strong .inline-money { color: #f3f0f7 !important; }
+.stats-grid .stat-card:nth-child(4) strong { color: #fbfafc !important; }
 
 .profile-card > div {
   min-width: 0;
