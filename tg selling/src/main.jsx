@@ -1040,8 +1040,6 @@ function ProductDetailPage({ product, onBack, onBuy }) {
                   <DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} />{item.label}
                 </span>
                 <b><MoneyDisplay value={item.price} /></b>
-                {item.originalPrice && item.originalPrice !== item.price &&
-                  <s className="original-price"><MoneyDisplay value={item.originalPrice} /></s>}
               </button>
             ))}
           </div>
@@ -1169,7 +1167,7 @@ function ProductsView({ session, onBuy }) {
         const rule = pricingRules[key] || {};
         const finalPrice = isReseller ? rule.resellerPrice : rule.price;
         if (finalPrice === '' || finalPrice === undefined || finalPrice === null || !Number.isFinite(Number(finalPrice))) return item;
-        return { ...item, price: Number(finalPrice), originalPrice: Number(item.price || 0), isResellerPrice: isReseller };
+        return { ...item, price: Number(finalPrice), isResellerPrice: isReseller };
       }),
     };
   }, [pricingRules, session?.role]);
