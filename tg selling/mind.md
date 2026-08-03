@@ -295,11 +295,11 @@ Fields:
 
 - `pid`
 - `duration`
-- `price`
-- `percent`
+- `price` — fixed user-facing price
+- `resellerPrice` — fixed reseller-facing price when configured
 - `updatedAt`
 
-Future work: user-side Buy page should apply these pricing overrides before displaying prices.
+The user-side Buy page applies `price` for regular users and `resellerPrice` for resellers. Blank rules fall back to the live API price. Pricing is fixed per product and duration; there is no percentage/default pricing layer.
 
 ### License keys
 

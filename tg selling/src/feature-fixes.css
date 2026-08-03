@@ -701,75 +701,6 @@
   min-height: 44px;
   white-space: nowrap;
 }
-.pricing-defaults-card {
-  display: grid;
-  gap: 12px;
-  margin: 0 0 14px;
-  padding: 13px;
-  border: 1px solid rgba(199,149,255,.22);
-  border-radius: 15px;
-  background: linear-gradient(135deg, rgba(157,94,255,.13), rgba(255,255,255,.045));
-}
-.pricing-defaults-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.pricing-defaults-heading strong,
-.pricing-defaults-heading span,
-.pricing-defaults-fields label span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.pricing-defaults-heading strong {
-  font-size: 13px;
-}
-.pricing-defaults-heading > div > span {
-  margin-top: 4px;
-  color: rgba(255,255,255,.52);
-  font-size: 11px;
-}
-.pricing-defaults-heading > .mat-icon {
-  color: #c795ff;
-}
-.pricing-defaults-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 9px;
-}
-.pricing-defaults-fields label {
-  display: grid;
-  gap: 6px;
-  color: rgba(255,255,255,.72);
-  font-size: 11px;
-}
-.pricing-defaults-fields input {
-  width: 100%;
-  min-height: 41px;
-  box-sizing: border-box;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 10px;
-  background: rgba(0,0,0,.18);
-  color: #fff;
-  padding: 9px 10px;
-  outline: none;
-}
-.pricing-defaults-fields input:focus {
-  border-color: rgba(199,149,255,.7);
-  box-shadow: 0 0 0 3px rgba(157,94,255,.12);
-}
-.pricing-defaults-fields button {
-  min-height: 41px;
-  white-space: nowrap;
-}
-.pricing-defaults-card > small {
-  color: rgba(255,255,255,.42);
-  font-size: 10px;
-  line-height: 1.45;
-}
 
 .admin-form textarea {
   min-height: 98px;
@@ -2343,7 +2274,7 @@
 /* ── Pricing edit dialog labels ─────────────────────────────────── */
 .pricing-edit-fields {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   min-width: 0;
 }
@@ -2374,22 +2305,12 @@
   .manual-key-form button {
     width: 100%;
   }
-  .pricing-defaults-fields {
-    grid-template-columns: 1fr 1fr;
-  }
-  .pricing-defaults-fields button {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
   .pricing-edit-row {
     grid-template-columns: 1fr;
     align-items: stretch;
   }
   .pricing-edit-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .pricing-percent-field {
-    grid-column: 1 / -1;
   }
 }
 
