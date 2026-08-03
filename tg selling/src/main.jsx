@@ -621,6 +621,10 @@ function PerformanceDialog({ onSelect }) {
   const pick = mode => {
     localStorage.setItem('perf_dont_ask', '1');
     localStorage.setItem('perf_mode', mode);
+    if (window.__LOW_MODE__ && mode === 'high') {
+      window.location.href = '/';
+      return;
+    }
     onSelect(mode);
   };
   return (
