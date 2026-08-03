@@ -400,6 +400,17 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
     { id: 'profile', label: 'Profile', lottieIcon: '/icons/new/profile-lottie.json' },
   ];
 
+  const pageTitleMap = { buy: 'Buy', orders: 'My Orders', wallet: 'Wallet', profile: 'Profile' };
+
+  const isSubPage = tab !== 'dashboard';
+  useEffect(() => {
+    if (!isSubPage) return;
+    window.history.pushState({ subPage: true }, '');
+    const onPop = () => { setTab('dashboard'); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [isSubPage]);
+
   const section = purchase
     ? <PurchasePage purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
     : tab === 'orders' ? <OrdersView session={session} /> :
@@ -439,18 +450,26 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           <span>{siteStatus.message}</span>
         </div>
       )}
-      <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'} tab-${tab}`}>
+      {(isSubPage && !purchase) && (
+        <div className="page-back-header" data-mode="low">
+          <button className="back-btn" onClick={() => setTab('dashboard')} aria-label="Back"><MatIcon name="arrow_back" size={22} /></button>
+          <span className="page-back-title">{pageTitleMap[tab] || ''}</span>
+        </div>
+      )}
+      <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? ' dashboard-only' : ' sub-page'} tab-${tab}`}>
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
-      <nav className="bottom-nav">
-        {navItems.map(({ id, label, icon, lottieIcon }) => (
-          <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
-            {lottieIcon && <LottieIcon src={lottieIcon} size={22} loop />}
-            {icon && <MatIcon name={icon} size={20} />}
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
+      {tab === 'dashboard' && (
+        <nav className="bottom-nav">
+          {navItems.map(({ id, label, icon, lottieIcon }) => (
+            <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
+              {lottieIcon && <LottieIcon src={lottieIcon} size={22} loop />}
+              {icon && <MatIcon name={icon} size={20} />}
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       <ProfileDialog type={dialog} profile={profile} apiState={apiState} close={() => setDialog(null)} onLogout={onLogout} onProfile={next => { setProfile(next); onSessionChange(next); }} onApiState={setApiState} />
       {showNotifs && (
         <div className="notif-overlay" role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false); }}>

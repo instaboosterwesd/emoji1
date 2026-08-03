@@ -1239,17 +1239,54 @@ textarea::placeholder {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   HIDE BOTTOM NAV when full-screen views are open (product detail, search)
+   SUB-PAGE BACK HEADER - full-screen pages for low device
    ══════════════════════════════════════════════════════════════════ */
-.dashboard-page:has(.product-detail-page) .bottom-nav,
-.dashboard-page:has(.search-results-page) .bottom-nav {
-  display: none !important;
+.page-back-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 16px !important;
+  background: #ECE6F0 !important;
+  border-bottom: 1px solid #CAC4D0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
 }
-.dashboard-page:has(.product-detail-page) .dash-content,
-.dashboard-page:has(.search-results-page) .dash-content {
-  height: 100svh !important;
+.back-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background .15s !important;
+  flex-shrink: 0 !important;
+}
+.back-btn:hover {
+  background: rgba(0,0,0,.06) !important;
+}
+.back-btn:active {
+  background: rgba(0,0,0,.12) !important;
+}
+.page-back-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #1C1B1F !important;
+}
+
+/* Full screen sub-page - no bottom nav */
+.dash-content.sub-page {
+  flex: 1 !important;
+  height: auto !important;
+  overflow-y: auto !important;
   padding-bottom: 0 !important;
-  overflow: hidden !important;
+}
+.dash-content.dashboard-only {
+  flex: 1 !important;
+  overflow-y: auto !important;
 }
 
 /* FILTER ROW — responsive wrapping for buy tab */
