@@ -1139,7 +1139,8 @@ textarea::placeholder {
   overflow: hidden;
   background: #ECE6F0;
   border: 1px solid #CAC4D0;
-  aspect-ratio: 16/9;
+  aspect-ratio: 4/3;
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1224,8 +1225,10 @@ textarea::placeholder {
 }
 .filter-row.product-filter .product-select {
   flex: 0 1 auto !important;
-  min-width: 0 !important;
-  max-width: 110px !important;
+  min-width: 90px !important;
+  max-width: 160px !important;
+  font-size: 0.85rem !important;
+  padding: 7px 10px !important;
 }
 @media (max-width: 420px) {
   .filter-row.product-filter {
