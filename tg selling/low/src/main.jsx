@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import App from '../../src/main.jsx';
+import App from './App.jsx';
 
 // Lock this session permanently to low-performance mode
 localStorage.setItem('perf_dont_ask', '1');
