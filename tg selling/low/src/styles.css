@@ -318,6 +318,14 @@ hr {
   justify-content: center !important;
 }
 
+/* Heading title row — flex row for icon + title + action */
+.heading-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
 /* Purchase page buttons */
 .purchase-cancel-btn {
   width: 100% !important;
