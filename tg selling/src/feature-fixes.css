@@ -1924,19 +1924,17 @@
 }
 .dashboard-page .product-detail-page .pdp-media-card .play-badge {
   position: absolute !important;
-  inset: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: rgba(0,0,0,.28) !important;
-  width: auto !important;
-  height: auto !important;
-  transform: none !important;
-  left: auto !important;
-  top: auto !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 54px !important;
+  height: 54px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 50% !important;
+  background: rgba(10,15,30,.6) !important;
+  border: 2px solid rgba(34,238,255,.72) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.32), 0 0 20px rgba(34,238,255,.55) !important;
 }
 .dashboard-page .product-detail-page .pdp-info {
   display: flex !important;
