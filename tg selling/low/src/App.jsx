@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import lottie from 'lottie-web';
-import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
 import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
 import { Toaster, toast } from 'sonner';
@@ -53,10 +52,6 @@ import {
   adminCreateGiftCode,
   getGiftCodes,
 } from '../../src/services';
-import '../../src/feature-fixes.css';
-import '../../src/site-status.css';
-import '../../src/issues.css';
-import '../../src/gift-code.css';
 import './styles.css';
 
 /* ── Performance Context ────────────────────────────────────────── */
@@ -409,7 +404,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
     tab === 'orders' ? <OrdersView session={session} /> :
     tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => window.location.href = '/'} /> :
+    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => { localStorage.removeItem('perf_dont_ask'); localStorage.removeItem('perf_mode'); window.location.assign('/'); }} /> :
     <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
 
   return (
@@ -537,7 +532,7 @@ function DashboardHome({ profile, role, setTab }) {
         <Stat label="Active keys" value={profile.active || 0} lottieIcon="/icons/new/active-keys.json" />
       </div>
       {role === 'admin' && (
-        <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
+        <button className="admin-wide glass-card" onClick={() => window.location.assign('/low/admin')}>
           <LottieIcon src="/icons/new/crown.json" size={22} /> Open admin dashboard
         </button>
       )}
@@ -2226,7 +2221,7 @@ function AdminLocked({ iconName, title, text, action }) {
         <MatIcon name={iconName} size={32} />
         <h1>{title}</h1>
         <p className="muted">{text}</p>
-        <button className="buy-product" onClick={() => window.location.assign('/')}>{action}</button>
+        <button className="buy-product" onClick={() => window.location.assign('/low/')}>{action}</button>
       </section>
     </main>
   );
@@ -2442,7 +2437,8 @@ function usePathname() {
 }
 
 function navigate(to) {
-  window.history.pushState(null, '', to);
+  const next = to.startsWith('/low') ? to : `/low${to === '/' ? '/' : to}`;
+  window.history.pushState(null, '', next);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
@@ -2454,7 +2450,8 @@ function App() {
     try { return JSON.parse(localStorage.getItem('app_session') || 'null'); } catch { return null; }
   });
   const path = usePathname();
-  const knownPath = path === '/' || path === '/admin' || path === '/add-fund';
+  const appPath = path.startsWith('/low') ? (path.slice(4) || '/') : path;
+  const knownPath = appPath === '/' || appPath === '/admin' || appPath === '/add-fund';
 
   useEffect(() => { initSecurity(); }, []);
 
@@ -2498,8 +2495,8 @@ function App() {
   if (!online) return <ErrorTv mode="offline" />;
   if (!knownPath) return <ErrorTv mode="404" />;
   if (!session) return <><Login onSuccess={updateSession} siteStatus={siteStatus} /><Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} /></>;
-  if (path === '/admin') return <AdminPage session={session} onSessionChange={updateSession} />;
-  if (path === '/add-fund') return <AddFundPage session={session} onSessionChange={updateSession} />;
+  if (appPath === '/admin') return <AdminPage session={session} onSessionChange={updateSession} />;
+  if (appPath === '/add-fund') return <AddFundPage session={session} onSessionChange={updateSession} />;
   return (
     <Dashboard
       session={session}
@@ -2556,7 +2553,7 @@ function ErrorTv({ mode }) {
         <img src={logo} alt="Brand logo" />
         <h1>{is404 ? 'Page not found' : 'You are offline'}</h1>
         <p>{is404 ? 'This route does not exist. Go back to the main app.' : 'Please check your internet connection and try again.'}</p>
-        <button className="buy-product error-action" onClick={() => is404 ? window.location.assign('/') : window.location.reload()}>
+        <button className="buy-product error-action" onClick={() => is404 ? window.location.assign('/low/') : window.location.reload()}>
           {is404 ? 'Go Home' : 'Retry'}
         </button>
       </div>

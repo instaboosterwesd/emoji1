@@ -1305,12 +1305,8 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
           <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><LottieIcon src="/icons/new/close-emoji.json" size={22} /></button>
         </div>
         <form onSubmit={redeem} style={{ margin: '8px 0 14px' }}>
-          <div className="gift-input-row">
-            <LottieIcon src="/icons/new/gift-code.json" size={22} />
-            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter gift code" maxLength={10} required className="gift-input-wide" />
-            <button type="button" className="gift-paste-btn" onClick={() => { navigator.clipboard.readText().then(t => setCode(t.toUpperCase())).catch(() => toast.error('Paste failed')); }}>
-              <LottieIcon src="/icons/new/download-emoji.json" size={16} /> Paste
-            </button>
+           <div className="gift-input-row">
+             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter code" maxLength={10} required className="gift-input-wide" />
             <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
               {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} /> Redeem</>}
             </button>

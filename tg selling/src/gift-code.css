@@ -60,6 +60,27 @@
   padding: 10px 16px;
 }
 
+.gift-input-row input.gift-input-wide {
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .gift-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+  }
+
+  .gift-input-row input.gift-input-wide {
+    grid-column: 1 / -1;
+    min-height: 48px;
+  }
+
+  .gift-redeem-btn {
+    min-height: 46px;
+  }
+}
+
 .gift-result-card {
   display: flex;
   align-items: center;

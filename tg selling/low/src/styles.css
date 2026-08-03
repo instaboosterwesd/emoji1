@@ -217,6 +217,14 @@ textarea::placeholder {
   color: #79747E !important;
 }
 
+/* The phone control owns the field border; the nested number input must
+   remain borderless so low mode does not render a second box. */
+.phone-field input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* ── Profile card ────────────────────────────────────────────────── */
 .profile-card img {
   mix-blend-mode: normal !important;
@@ -1166,3 +1174,35 @@ img[src*="/icons/material/"] {
   filter: brightness(0) saturate(1) !important;
   color: #6750A4 !important;
 }
+
+/* Low mode Gift Code: one clear input, one clear action, mobile safe. */
+.gift-input-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+}
+.gift-input-row input.gift-input-wide {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  letter-spacing: 1.5px;
+}
+.gift-redeem-btn {
+  min-height: 46px;
+  padding: 0 17px;
+}
+.gift-result-card,
+.gift-history-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+  background: #f3edf7;
+}
+.gift-result-card { margin-bottom: 8px; background: #e8f5e9; border-color: #81c784; }
+.gift-result-card strong { color: #146b2c; }
+.gift-history-row { margin-bottom: 5px; }
+.gift-history-row .tx-main { flex: 1; min-width: 0; }

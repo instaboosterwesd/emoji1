@@ -8,9 +8,9 @@ export default defineConfig({
       name: 'low-page',
       configureServer(server) {
         server.middlewares.use((req, _res, next) => {
-          // Serve low/index.html only for top-level navigation to /low or /low/
-          // Do NOT intercept asset/script requests like /low/src/main.jsx
-          if (req.url === '/low' || req.url === '/low/') {
+          // Serve the low app shell for /low and its client-side routes.
+          // Do NOT intercept the low app's module requests.
+          if ((req.url === '/low' || req.url.startsWith('/low/')) && !req.url.startsWith('/low/src/')) {
             req.url = '/low/index.html';
           }
           next();
