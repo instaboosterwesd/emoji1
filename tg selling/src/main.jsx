@@ -1144,7 +1144,7 @@ function ProductsView({ session, onBuy }) {
                     <span className="cpr-price">from <b>₹{minPrice}</b></span>
                   )}
                 </div>
-                <LottieIcon src="/icons/new/proceed-emoji.json" size={20} />
+                <span className="cpr-arrow"><LottieIcon src="/icons/new/proceed-emoji.json" size={20} /></span>
               </button>
             );
           })}

@@ -1755,13 +1755,12 @@
   margin-top: 10px !important;
 }
 
-/* Keep the high-performance Buy page at a normal, predictable scale. */
+/* Keep the high-performance Buy page at a normal, predictable scale.
+   zoom is non-standard — use transform-scale instead. */
 .dashboard-page .buy-view,
 .dashboard-page .products-scroll-inner,
-.dashboard-page .compact-product-row,
 .dashboard-page .product-card {
   transform: none !important;
-  zoom: 1 !important;
 }
 .dashboard-page .buy-view .product-filter {
   background: rgba(18, 24, 45, .58) !important;
@@ -1780,8 +1779,44 @@
   border-color: rgba(255,255,255,.12) !important;
 }
 .dashboard-page .compact-product-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
   min-height: 84px;
   padding: 10px 12px !important;
+}
+.dashboard-page .compact-product-row .cpr-thumb {
+  flex-shrink: 0 !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+.dashboard-page .compact-product-row .cpr-thumb img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+.dashboard-page .compact-product-row .cpr-play-dot {
+  position: absolute !important;
+  bottom: 1px !important;
+  right: 1px !important;
+  background: rgba(0,0,0,.5) !important;
+  border-radius: 50% !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.dashboard-page .compact-product-row .cpr-meta {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
 }
 .dashboard-page .compact-product-row .cpr-name {
   font-size: 13px;
@@ -1791,6 +1826,16 @@
 .dashboard-page .compact-product-row .cpr-feats,
 .dashboard-page .compact-product-row .cpr-price {
   font-size: 11px;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.dashboard-page .compact-product-row .cpr-arrow {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: .5 !important;
 }
 
 @media (max-width: 520px) {
