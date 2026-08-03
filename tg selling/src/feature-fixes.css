@@ -2052,3 +2052,233 @@ html.perf-low .bottom-nav button.has-lottie.active span img {
   filter: none !important;
   opacity: 1 !important;
 }
+
+/* ── Dialogs / Modals — full text fix ───────────────────────────── */
+
+/* Backdrop overlay */
+html.perf-low .notif-overlay,
+html.perf-low .deposit-modal-backdrop {
+  background: rgba(0,0,0,.35) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* dialog-sub (white text under title) */
+html.perf-low .dialog-sub {
+  color: #49454F !important;
+}
+
+/* Notification dialog */
+html.perf-low .notif-dialog {
+  background: #FFFBFE !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .notif-dialog-header h3 {
+  color: #1C1B1F !important;
+}
+html.perf-low .notif-close-btn {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  color: #49454F !important;
+}
+html.perf-low .notif-item {
+  border-top-color: #CAC4D0 !important;
+}
+html.perf-low .notif-title {
+  color: #6750A4 !important;
+}
+html.perf-low .notif-msg {
+  color: #1C1B1F !important;
+}
+html.perf-low .notif-time {
+  color: #49454F !important;
+}
+
+/* Transaction rows */
+html.perf-low .tx-main strong {
+  color: #1C1B1F !important;
+}
+html.perf-low .tx-main span {
+  color: #49454F !important;
+}
+html.perf-low .tx-amount {
+  color: #1C1B1F !important;
+}
+html.perf-low .history-scroll {
+  background: #F7F2FA !important;
+  border: 1px solid #CAC4D0 !important;
+}
+html.perf-low .history-dialog h4 {
+  color: #49454F !important;
+}
+
+/* Key reveal box */
+html.perf-low .key-reveal-box {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+}
+html.perf-low .key-reveal-box label,
+html.perf-low .key-reveal-header label {
+  color: #49454F !important;
+}
+html.perf-low .key-reveal-box code {
+  color: #21005D !important;
+}
+html.perf-low .eye-toggle-btn {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  color: #49454F !important;
+}
+html.perf-low .copy-key-btn {
+  background: #EADDFF !important;
+  border-color: #6750A4 !important;
+  color: #21005D !important;
+}
+
+/* Deposit page */
+html.perf-low .deposit-page-card {
+  background: #F3EDF7 !important;
+  border-color: #CAC4D0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0px 1px 2px rgba(0,0,0,.12) !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .deposit-page-card p,
+html.perf-low .deposit-page-card strong {
+  color: #1C1B1F !important;
+}
+html.perf-low .deposit-page-header h2 {
+  color: #1C1B1F !important;
+}
+html.perf-low .deposit-label,
+html.perf-low .deposit-hint {
+  color: #49454F !important;
+}
+html.perf-low .deposit-divider {
+  border-top-color: #CAC4D0 !important;
+}
+html.perf-low .deposit-page label[for="dep-amount"] {
+  color: #49454F !important;
+}
+html.perf-low .deposit-page input#dep-amount,
+html.perf-low .deposit-page input#sender-upi {
+  background: #ECE6F0 !important;
+  border-color: #79747E !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .deposit-page input#dep-amount:focus,
+html.perf-low .deposit-page input#sender-upi:focus {
+  border-color: #6750A4 !important;
+  box-shadow: 0 0 0 3px rgba(103,80,164,.12) !important;
+}
+html.perf-low .quick-chip {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .quick-chip.active,
+html.perf-low .quick-chip:hover {
+  background: #EADDFF !important;
+  border-color: #6750A4 !important;
+  color: #21005D !important;
+}
+html.perf-low .pending-id {
+  color: #49454F !important;
+}
+
+/* UPI display / QR area */
+html.perf-low .upi-id-display {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .upi-app-btn {
+  background: #F3EDF7 !important;
+  border-color: #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .qr-dl-btn {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  color: #49454F !important;
+}
+
+/* Modal button row secondary buttons */
+html.perf-low .action-modal button:not(.primary):not(.modal-save):not(.buy-product) {
+  background: #ECE6F0 !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+
+/* Version tag in profile */
+html.perf-low .version-tag {
+  color: #79747E !important;
+  border-top-color: #CAC4D0 !important;
+}
+
+/* Performance dialog (shown before login/selection) */
+html.perf-low .perf-dialog {
+  background: #FFFBFE !important;
+  border: 1px solid #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .perf-dialog h2 {
+  color: #1C1B1F !important;
+}
+html.perf-low .perf-dialog-desc {
+  color: #49454F !important;
+}
+html.perf-low .perf-option {
+  background: #F3EDF7 !important;
+  border-color: #CAC4D0 !important;
+  color: #1C1B1F !important;
+}
+html.perf-low .perf-option:hover {
+  background: #EADDFF !important;
+  border-color: #6750A4 !important;
+}
+html.perf-low .perf-option strong {
+  color: #1C1B1F !important;
+}
+html.perf-low .perf-option-desc {
+  color: #49454F !important;
+}
+html.perf-low .perf-dialog-footer {
+  border-top-color: #CAC4D0 !important;
+}
+html.perf-low .perf-dont-ask {
+  color: #6750A4 !important;
+}
+html.perf-low .perf-close-btn {
+  background: #ECE6F0 !important;
+  border-color: #CAC4D0 !important;
+  color: #49454F !important;
+}
+
+/* Scan & pay / I have paid button */
+html.perf-low .scan-paid-btn,
+html.perf-low .i-paid-btn {
+  background: #6750A4 !important;
+  color: #fff !important;
+}
+
+/* Admin-wide button */
+html.perf-low .admin-wide {
+  background: #EADDFF !important;
+  border-color: #6750A4 !important;
+  color: #21005D !important;
+}
+
+/* site-status banner */
+html.perf-low .site-status-banner {
+  color: #1C1B1F !important;
+}
+html.perf-low .site-status-banner.ok  { background: #C8E6C9 !important; border-color: #388E3C !important; }
+html.perf-low .site-status-banner.down { background: #FFCDD2 !important; border-color: #B3261E !important; }
+
+/* any remaining white text inside perf-low dialogs */
+html.perf-low .liquid-dialog *:not(button.primary):not(.modal-save):not(svg):not(img) {
+  color: inherit;
+}
