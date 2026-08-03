@@ -507,7 +507,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           </section>
         </div>
       )}
-      <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
+      {purchase && <PurchasePage purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />}
       <Toaster position="top-center" offset={78} theme="light" toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
     </main>
   );
@@ -1085,10 +1085,10 @@ function ProductsView({ session, onBuy }) {
   );
 }
 
-/* ── PurchaseDialog — real purchaseProduct() ────────────────────── */
-function PurchaseDialog({ purchase, session, close, onPurchased }) {
+/* ── PurchasePage — full-screen purchase flow (not a dialog) ───── */
+function PurchasePage({ purchase, session, close, onPurchased }) {
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null); // { key, source }
+  const [result, setResult] = useState(null);
 
   if (!purchase) return null;
   const { product, duration } = purchase;
@@ -1097,10 +1097,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
     setBusy(true);
     try {
       const res = await purchaseProduct(
-        session.uid,
-        product,
-        duration,
-        duration.price,
+        session.uid, product, duration, duration.price,
         session.name || session.phone || session.uid,
       );
       setResult(res);
@@ -1112,57 +1109,78 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
     }
   };
 
-  const handleClose = () => { setResult(null); setBusy(false); close(); };
+  const handleDone = () => { setResult(null); setBusy(false); close(); };
 
   return (
-    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy && !result) close(); }}>
-      <section className="action-modal liquid-dialog">
+    <div className="product-detail-page purchase-page">
+      <div className="pdp-topbar">
+        <button className="pdp-back" onClick={!busy ? close : undefined} aria-label="Back">
+          <MatIcon name="arrow_back" size={22} />
+        </button>
+        <span className="pdp-title">{result ? 'Order placed!' : 'Confirm purchase'}</span>
+      </div>
+      <div className="pdp-scroll">
         {result ? (
-          <>
-            <div className="dialog-title-row">
-              <MatIcon name="check_circle" size={26} style={{ filter: 'invert(70%) sepia(1) saturate(3) hue-rotate(85deg)' }} />
-              <h2>Order placed!</h2>
+          <div className="purchase-result">
+            <div className="purchase-result-icon">
+              <MatIcon name="check_circle" size={48} style={{color:'#146B2C'}} />
             </div>
-            <p className="muted dialog-sub">{product.name} · {duration.duration || duration.label}</p>
+            <h3 style={{color:'#1C1B1F',marginBottom:4}}>{product.name}</h3>
+            <p className="muted" style={{marginTop:0}}>{duration.duration || duration.label}</p>
             <div className="key-reveal-box">
               <label>Your license key</label>
               <code>{result.key}</code>
-              <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
+              <button type="button" className="copy-key-btn"
+                onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
                 <MatIcon name="content_copy" size={15} /> Copy key
               </button>
             </div>
-            <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
-            <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
-              <button className="modal-save" type="button" onClick={handleClose}><MatIcon name="check" size={17} /> Done</button>
-            </div>
-          </>
+            <p className="muted" style={{fontSize:'0.75rem'}}>
+              Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}
+            </p>
+            <button className="primary buy-product" type="button" onClick={handleDone}
+              style={{width:'100%',padding:12,borderRadius:14,marginTop:16}}>
+              <MatIcon name="check" size={17} /> Done
+            </button>
+          </div>
         ) : (
           <>
-            <h2><LottieIcon src="/icons/new/confirm-buy-emoji.json" size={24} /> Confirm purchase</h2>
             <div className="purchase-summary">
               <div className="purchase-title">
-                <span>Selected product</span>
-                <strong>{product.name}</strong>
-                <small>PID {product.pid}</small>
+                <span className="muted" style={{fontSize:'0.8rem'}}>Selected product</span>
+                <strong style={{fontSize:'1rem',color:'#1C1B1F'}}>{product.name}</strong>
+                <small style={{color:'#79747E'}}>PID {product.pid}</small>
               </div>
-              <img src={productIconFor(product.name)} alt="" />
+              <img src={productIconFor(product.name)} alt="" style={{width:56,height:56,borderRadius:12,border:'1px solid #CAC4D0',background:'#ECE6F0',padding:4}} />
             </div>
             <div className="purchase-meta-grid">
-              <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
-              <div><span><LottieIcon src="/icons/new/timer.json" size={18} /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
-              <div><span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
-              <div><span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
+              <div className="purchase-meta-item">
+                <span><LottieIcon src="/icons/new/timer.json" size={18} /> Duration</span>
+                <strong>{duration.duration || duration.label}</strong>
+              </div>
+              <div className="purchase-meta-item">
+                <span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span>
+                <strong><MoneyDisplay value={duration.price} /></strong>
+              </div>
+              <div className="purchase-meta-item">
+                <span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span>
+                <strong>{product.platform || 'Access key'}</strong>
+              </div>
             </div>
-            <p className="purchase-note"><LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Balance will be deducted. A key will be delivered instantly.</p>
-            <div className="modal-btn-row">
-              <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-              <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
-                {busy ? 'Buying…' : <><video src="/icons/new/buy.webm" autoPlay loop muted playsInline style={{width:18,height:18,display:'inline-block',verticalAlign:'middle'}} /> Confirm buy</>}
-              </button>
-            </div>
+            <p className="purchase-note" style={{display:'flex',alignItems:'center',gap:6,color:'#49454F',fontSize:'0.85rem',background:'#F3EDF7',padding:12,borderRadius:12,border:'1px solid #CAC4D0'}}>
+              <LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Balance will be deducted. A key will be delivered instantly.
+            </p>
+            <button type="button" onClick={close} disabled={busy}
+              style={{width:'100%',padding:12,borderRadius:14,border:'1px solid #CAC4D0',background:'#ECE6F0',color:'#1C1B1F',fontSize:'0.9rem',cursor:'pointer',marginTop:16}}>
+              Cancel
+            </button>
+            <button className="primary" type="button" onClick={confirm} disabled={busy}
+              style={{width:'100%',padding:14,borderRadius:14,fontSize:'0.95rem',fontWeight:600,marginTop:8,background:'#6750A4',color:'#fff',border:'1px solid #6750A4',cursor:busy?'not-allowed':'pointer'}}>
+              {busy ? 'Buying…' : 'Confirm Buy'}
+            </button>
           </>
         )}
-      </section>
+      </div>
     </div>
   );
 }
@@ -1352,7 +1370,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" />
           </label>
           <label className="readonly-field">
-            <MatIcon name="smartphone" size={18} /> Phone
+            <img src="/icons/new/phone-emoji.json" style={{width:18,height:18,objectFit:'contain',filter:'brightness(0) opacity(0.5)'}} alt="" /> Phone
             <span className="readonly-value">{profile.phone || '—'}</span>
           </label>
           <label className="readonly-field">
@@ -2402,9 +2420,9 @@ function AddFundPage({ session, onSessionChange }) {
               </button>
               <h2>Confirm payment</h2>
             </div>
-            <p className="deposit-label">Enter the UPI ID you paid from so admin can verify.</p>
+            <p className="deposit-label">Enter UTR number so admin can verify your payment.</p>
             <form onSubmit={submitDeposit}>
-              <label htmlFor="sender-upi">Your UPI ID</label>
+              <label htmlFor="sender-upi">UTR number</label>
               <input id="sender-upi" value={senderUpi} onChange={e => setSenderUpi(e.target.value)} placeholder="yourname@upi" required />
               <p className="muted qr-hint">Amount: <strong><MoneyDisplay value={amount} /></strong> → {paySettings.upiId}</p>
               <button className="deposit-proceed-btn" type="submit" disabled={busy}>

@@ -177,6 +177,7 @@ hr {
 .products-scroll-inner {
   background: #F7F2FA !important;
   border: 1px solid #CAC4D0 !important;
+  border-radius: 16px !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -202,17 +203,119 @@ hr {
   background: #CAC4D0 !important;
 }
 
-/* ── Pricing / duration grid ─────────────────────────────────────── */
+/* ── Pricing / duration grid — M3 card grid ─────────────────────── */
+.duration-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  padding: 4px 0 !important;
+}
+@media (max-width: 360px) {
+  .duration-grid { grid-template-columns: 1fr !important; }
+}
 .duration-grid button {
-  background: #ECE6F0 !important;
+  background: #FFFBFE !important;
   border: 1px solid #CAC4D0 !important;
+  border-radius: 14px !important;
   color: #1C1B1F !important;
+  padding: 14px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s !important;
+  box-shadow: none !important;
 }
 .duration-grid button.active,
 .duration-grid button:hover {
   background: #EADDFF !important;
   border-color: #6750A4 !important;
   color: #21005D !important;
+  box-shadow: 0px 1px 3px rgba(103,80,164,.2) !important;
+}
+.duration-grid button b {
+  font-size: 1.05rem !important;
+  color: #6750A4 !important;
+}
+.duration-grid button.active b,
+.duration-grid button:hover b {
+  color: #21005D !important;
+}
+.duration-label-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+  color: #49454F !important;
+}
+.duration-grid button .original-price {
+  font-size: 0.75rem !important;
+  color: #B3261E !important;
+  text-decoration: line-through !important;
+}
+
+/* Purchase page cards */
+.purchase-summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px !important;
+  background: #F3EDF7 !important;
+  border: 1px solid #CAC4D0 !important;
+  border-radius: 16px !important;
+}
+.purchase-title {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+.purchase-meta-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  margin-top: 14px !important;
+}
+.purchase-meta-item {
+  background: #F3EDF7 !important;
+  border: 1px solid #CAC4D0 !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+.purchase-meta-item span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.78rem !important;
+  color: #49454F !important;
+}
+.purchase-meta-item strong {
+  font-size: 0.92rem !important;
+  color: #1C1B1F !important;
+}
+.purchase-result {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 12px !important;
+  padding: 20px 0 !important;
+}
+.purchase-result-icon {
+  background: #C8E6C9 !important;
+  border-radius: 50% !important;
+  width: 80px !important;
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Read-only info field in profile edit dialog */
@@ -713,6 +816,12 @@ textarea::placeholder {
 .search-placeholder { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #79747E; }
 
 /* Compact row — M3 light */
+/* Product list outer container — rounded corners */
+.products-scroll-inner {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
 .compact-product-row {
   display: flex;
   align-items: center;
@@ -729,6 +838,9 @@ textarea::placeholder {
 }
 .compact-product-row:active { transform: scale(0.985); }
 .compact-product-row:hover  { background: #EADDFF; }
+.compact-product-row .cpr-thumb {
+  border-radius: 10px;
+}
 
 .cpr-thumb {
   position: relative;
@@ -1043,8 +1155,20 @@ textarea::placeholder {
   padding: 0;
   position: relative;
 }
+.pdp-thumb { position: relative; display: flex; align-items: center; justify-content: center; }
 .pdp-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .pdp-media video { width: 100%; height: 100%; object-fit: cover; }
+
+/* Video play badge — centered */
+.play-badge {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)) !important;
+}
 
 .pdp-info {
   display: flex;
@@ -1128,10 +1252,23 @@ textarea::placeholder {
   filter: brightness(0) opacity(0.65) !important;
 }
 
-/* Feature list LottieIcon images — make them dark on light bg */
+/* Feature list — M3 cards with bold text */
+.product-card .feature-list > div,
+.pdp-features > div {
+  background: #F3EDF7 !important;
+  border: 1px solid #CAC4D0 !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: #1C1B1F !important;
+}
 .product-card .feature-list > div span img,
 .pdp-features > div span img {
   filter: brightness(0) opacity(0.7) !important;
+  flex-shrink: 0 !important;
 }
 
 /* Buy Now button — ensure visible */
