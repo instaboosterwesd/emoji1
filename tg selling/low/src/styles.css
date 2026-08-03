@@ -1239,7 +1239,7 @@ textarea::placeholder {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SUB-PAGE BACK HEADER - full-screen pages for low device
+   SUB-PAGE BACK HEADER — sticky inside dash-content, hides on scroll down
    ══════════════════════════════════════════════════════════════════ */
 .page-back-header {
   display: flex !important;
@@ -1251,6 +1251,10 @@ textarea::placeholder {
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
+  transition: transform .25s ease !important;
+}
+.page-back-header.hidden {
+  transform: translateY(-100%) !important;
 }
 .back-btn {
   width: 40px !important;

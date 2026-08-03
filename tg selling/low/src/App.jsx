@@ -403,13 +403,27 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   const pageTitleMap = { buy: 'Buy', orders: 'My Orders', wallet: 'Wallet', profile: 'Profile' };
 
   const isSubPage = tab !== 'dashboard';
+  const contentRef = useRef(null);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
   useEffect(() => {
-    if (!isSubPage) return;
+    if (!isSubPage) { setHeaderHidden(false); return; }
     window.history.pushState({ subPage: true }, '');
     const onPop = () => { setTab('dashboard'); };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [isSubPage]);
+
+  const onContentScroll = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const sy = el.scrollTop;
+    if (sy <= 0) { setHeaderHidden(false); lastScrollY.current = 0; return; }
+    if (sy > lastScrollY.current + 4) setHeaderHidden(true);
+    else if (sy < lastScrollY.current - 4) setHeaderHidden(false);
+    lastScrollY.current = sy;
+  }, []);
 
   const section = purchase
     ? <PurchasePage purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
@@ -450,13 +464,13 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           <span>{siteStatus.message}</span>
         </div>
       )}
-      {(isSubPage && !purchase) && (
-        <div className="page-back-header" data-mode="low">
-          <button className="back-btn" onClick={() => setTab('dashboard')} aria-label="Back"><MatIcon name="arrow_back" size={22} /></button>
-          <span className="page-back-title">{pageTitleMap[tab] || ''}</span>
-        </div>
-      )}
-      <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? ' dashboard-only' : ' sub-page'} tab-${tab}`}>
+      <div ref={contentRef} key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? ' dashboard-only' : ' sub-page'} tab-${tab}`} onScroll={isSubPage ? onContentScroll : undefined}>
+        {(isSubPage && !purchase) && (
+          <div className={`page-back-header${headerHidden ? ' hidden' : ''}`} data-mode="low">
+            <button className="back-btn" onClick={() => setTab('dashboard')} aria-label="Back"><MatIcon name="arrow_back" size={22} /></button>
+            <span className="page-back-title">{pageTitleMap[tab] || ''}</span>
+          </div>
+        )}
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
       {tab === 'dashboard' && (
