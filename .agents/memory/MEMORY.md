@@ -1,3 +1,4 @@
 - [Credential-safe Git history](credential-safe-git-history.md) — never commit uploaded service-account files or private credentials; GitHub push protection rejects them even from earlier commits.
 - [Vercel nested app build](vercel-nested-app-build.md) — root-level Vercel commands must explicitly target a Vite app inside a subdirectory.
 - [GitHub push credentials](github-push-credentials.md) — gitPush requires connected GitHub source-control credentials; local commits remain safe when push returns NO_CREDENTIALS.
+- [Live pricing formula](live-pricing-formula.md) — default pricing applies API−₹20 to users and API+₹10 to resellers across all products and durations.
