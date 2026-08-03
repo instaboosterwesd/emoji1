@@ -283,7 +283,7 @@ const toArray = value => Object.entries(value || {}).map(([id, item]) => ({ id, 
 
 export async function getAdminOverview() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, upiSnap, minDepositSnap, resellerPriceSnap, manualKeysSnap] = await Promise.all([
+  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, paymentSettingsSnap, manualKeysSnap] = await Promise.all([
     get(ref(firebaseDb, 'users')),
     get(ref(firebaseDb, 'licenseKeys')),
     get(ref(firebaseDb, 'paymentRequests')),
@@ -291,9 +291,7 @@ export async function getAdminOverview() {
     get(ref(firebaseDb, 'resellers')),
     get(ref(firebaseDb, 'announcements')),
     get(ref(firebaseDb, 'adminProductPricing')),
-    get(ref(firebaseDb, 'settings/payment/upiId')),
-    get(ref(firebaseDb, 'settings/payment/minDeposit')),
-    get(ref(firebaseDb, 'settings/payment/resellerPrice')),
+    get(ref(firebaseDb, 'settings/payment')),
     get(ref(firebaseDb, 'manualLicenseKeys')),
   ]);
   const users = Object.entries(usersSnap.val() || {}).map(([uid, value]) => publicProfile(uid, value));
@@ -313,9 +311,10 @@ export async function getAdminOverview() {
     announcements,
     pricingRules,
     manualKeys,
-    upiId: upiSnap.exists() ? upiSnap.val() : '',
-    minDeposit: minDepositSnap.exists() ? Number(minDepositSnap.val()) : 50,
-    resellerPrice: resellerPriceSnap.exists() ? Number(resellerPriceSnap.val()) : 0,
+    ...(paymentSettingsSnap.exists() ? paymentSettingsSnap.val() : {}),
+    upiId: paymentSettingsSnap.val()?.upiId || '',
+    minDeposit: Number(paymentSettingsSnap.val()?.minDeposit || 50),
+    resellerPrice: Number(paymentSettingsSnap.val()?.resellerPrice || 0),
     stats: {
       totalRevenue: users.reduce((sum, user) => sum + Number(user.totalPurchase || 0), 0),
       activeUsers: users.filter(user => user.status !== 'banned').length,
@@ -421,17 +420,25 @@ export async function adminSaveProductRule({ pid, duration, price, percent, rese
   return id;
 }
 
-export async function adminSaveUpi(upiId, minDeposit, resellerPrice) {
+export async function adminSaveUpi(upiId, minDeposit, resellerPrice, paymentOptions = {}) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  if (!upiId?.trim()) throw new Error('Enter UPI ID.');
-  await set(ref(firebaseDb, 'settings/payment/upiId'), upiId.trim());
-  if (minDeposit !== undefined && minDeposit !== '') {
-    await set(ref(firebaseDb, 'settings/payment/minDeposit'), Math.max(1, Number(minDeposit || 50)));
-  }
-  if (resellerPrice !== undefined && resellerPrice !== '') {
-    await set(ref(firebaseDb, 'settings/payment/resellerPrice'), Math.max(0, Number(resellerPrice || 0)));
-  }
-  return upiId.trim();
+  if (paymentOptions.upiEnabled !== false && !upiId?.trim()) throw new Error('Enter UPI ID or turn UPI off.');
+  const current = await get(ref(firebaseDb, 'settings/payment'));
+  const existing = current.exists() ? current.val() : {};
+  const next = {
+    ...existing,
+    upiId: upiId?.trim() || '',
+    minDeposit: Math.max(1, Number(minDeposit || 50)),
+    resellerPrice: Math.max(0, Number(resellerPrice || 0)),
+    gatewayEnabled: Boolean(paymentOptions.gatewayEnabled),
+    upiEnabled: paymentOptions.upiEnabled !== false,
+    gatewayFee: Math.max(0, Number(paymentOptions.gatewayFee || 0)),
+    cashfreeAppId: paymentOptions.cashfreeAppId?.trim() || '',
+    updatedAt: Date.now(),
+  };
+  if (!next.gatewayEnabled && !next.upiEnabled) throw new Error('Turn on at least one payment method.');
+  await set(ref(firebaseDb, 'settings/payment'), next);
+  return next;
 }
 
 export async function adminDeleteLicenseKey(keyId) {
@@ -485,15 +492,16 @@ export async function adminUpdatePaymentRequest(requestId, status) {
 
 export async function getPaymentSettings() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [upiSnap, minSnap, resellerSnap] = await Promise.all([
-    get(ref(firebaseDb, 'settings/payment/upiId')),
-    get(ref(firebaseDb, 'settings/payment/minDeposit')),
-    get(ref(firebaseDb, 'settings/payment/resellerPrice')),
-  ]);
+  const snap = await get(ref(firebaseDb, 'settings/payment'));
+  const value = snap.exists() ? snap.val() : {};
   return {
-    upiId: upiSnap.exists() ? upiSnap.val() : '',
-    minDeposit: minSnap.exists() ? Number(minSnap.val()) : 50,
-    resellerPrice: resellerSnap.exists() ? Number(resellerSnap.val()) : 0,
+    upiId: value.upiId || '',
+    minDeposit: Number(value.minDeposit || 50),
+    resellerPrice: Number(value.resellerPrice || 0),
+    gatewayEnabled: Boolean(value.gatewayEnabled),
+    upiEnabled: value.upiEnabled !== false,
+    gatewayFee: Math.max(0, Number(value.gatewayFee || 0)),
+    cashfreeAppId: value.cashfreeAppId || '',
   };
 }
 
@@ -514,6 +522,45 @@ export async function createPaymentRequest(uid, amount, senderUpi, userName, typ
     createdAt: Date.now(),
   });
   return id;
+}
+
+export async function createGatewayPaymentRequest(uid, amount, paidAmount, orderId, userName, type = 'deposit') {
+  if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
+  const creditAmount = Math.max(0, Number(amount || 0));
+  const totalPaid = Math.max(0, Number(paidAmount || 0));
+  if (!creditAmount || !totalPaid || !orderId) throw new Error('Gateway payment details are incomplete.');
+  const id = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await set(ref(firebaseDb, `paymentRequests/${id}`), {
+    uid,
+    user: userName || uid,
+    amount: creditAmount,
+    paidAmount: totalPaid,
+    gatewayFee: Math.max(0, totalPaid - creditAmount),
+    method: 'Cashfree',
+    gatewayOrderId: orderId,
+    type: type || 'deposit',
+    status: 'pending',
+    createdAt: Date.now(),
+  });
+  return id;
+}
+
+export async function createCashfreeOrder({ amount, customerId, customerName, customerPhone, customerEmail, appId }) {
+  const response = await fetch('/api/cashfree/create-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount: Number(amount), customerId, customerName, customerPhone, customerEmail, appId }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.paymentSessionId) throw new Error(data?.message || 'Cashfree gateway is not configured.');
+  return data;
+}
+
+export async function verifyCashfreeOrder(orderId, appId) {
+  const response = await fetch(`/api/cashfree/verify-order?order_id=${encodeURIComponent(orderId)}&app_id=${encodeURIComponent(appId || '')}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.status !== 'PAID') throw new Error(data?.message || 'Cashfree payment was not completed.');
+  return data;
 }
 
 /* ── User Transactions ──────────────────────────────────────────── */

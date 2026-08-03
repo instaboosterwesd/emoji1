@@ -33,6 +33,9 @@ import {
   getAdminOverview,
   getPaymentSettings,
   createPaymentRequest,
+  createGatewayPaymentRequest,
+  createCashfreeOrder,
+  verifyCashfreeOrder,
   getUserTransactions,
   getUserLicenseKeys,
   getAdminPricingRules,
@@ -653,7 +656,7 @@ function PerformanceDialog({ onSelect }) {
 
 /* ── WalletView — wallet home page ──────────────────────────────── */
 function WalletView({ session, profile, refreshProfile }) {
-  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50 });
+  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, gatewayEnabled: false, upiEnabled: true, gatewayFee: 0 });
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
 
@@ -1900,6 +1903,10 @@ function AdminPage({ session, onSessionChange }) {
   const [upiId, setUpiId] = useState('');
   const [minDeposit, setMinDeposit] = useState('50');
   const [resellerPrice, setResellerPrice] = useState('');
+  const [gatewayEnabled, setGatewayEnabled] = useState(false);
+  const [upiEnabled, setUpiEnabled] = useState(true);
+  const [gatewayFee, setGatewayFee] = useState('0');
+  const [cashfreeAppId, setCashfreeAppId] = useState('');
   const [historyUser, setHistoryUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
@@ -1932,7 +1939,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
     { id: 'reports', label: 'Reports', icon: 'assessment' },
-    { id: 'settings', label: 'UPI Settings', icon: 'settings' },
+    { id: 'settings', label: 'Payment Settings', icon: 'settings' },
   ];
 
   const loadAdmin = async () => {
@@ -1949,6 +1956,10 @@ function AdminPage({ session, onSessionChange }) {
       setUpiId(overview.upiId || '');
       setMinDeposit(String(overview.minDeposit || 50));
       setResellerPrice(String(overview.resellerPrice || ''));
+      setGatewayEnabled(Boolean(overview.gatewayEnabled));
+      setUpiEnabled(overview.upiEnabled !== false);
+      setGatewayFee(String(overview.gatewayFee || 0));
+      setCashfreeAppId(overview.cashfreeAppId || '');
       setManualKeys(overview.manualKeys || []);
       setAdminAlerts(alerts);
       setSiteStatus(status.status || 'operational');
@@ -2394,7 +2405,44 @@ function AdminPage({ session, onSessionChange }) {
       </div>
       <div className="admin-card">
         <h3>UPI payment settings</h3>
-        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => adminSaveUpi(upiId, minDeposit, resellerPrice), 'UPI settings saved'); }}>
+                <form className="admin-form" onSubmit={e => {
+                  e.preventDefault();
+                  safeAction(
+                    () => adminSaveUpi(upiId, minDeposit, resellerPrice, {
+                      gatewayEnabled,
+                      upiEnabled,
+                      gatewayFee,
+                      cashfreeAppId,
+                    }),
+                    'Payment settings saved',
+                  );
+                }}>
+          <div className="payment-toggle-grid">
+            <label className="payment-toggle-card">
+              <span><MatIcon name="credit_card" size={19} /><strong>Gateway</strong><small>Cashfree production checkout</small></span>
+              <input type="checkbox" checked={gatewayEnabled} onChange={e => setGatewayEnabled(e.target.checked)} />
+            </label>
+            <label className="payment-toggle-card">
+              <span><MatIcon name="account_balance" size={19} /><strong>UPI</strong><small>Manual UPI + admin approval</small></span>
+              <input type="checkbox" checked={upiEnabled} onChange={e => setUpiEnabled(e.target.checked)} />
+            </label>
+          </div>
+          <label>
+            Cashfree App ID
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MatIcon name="vpn_key" size={18} />
+              <input value={cashfreeAppId} onChange={e => setCashfreeAppId(e.target.value)} placeholder="Cashfree production App ID" style={{ flex: 1 }} />
+            </div>
+            <small className="muted">Secret key is kept securely in the deployment environment, never in Firebase/browser.</small>
+          </label>
+          <label>
+            Gateway extra charge
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} />
+              <input value={gatewayFee} onChange={e => setGatewayFee(e.target.value.replace(/[^\d.]/g, ''))} placeholder="5" inputMode="decimal" style={{ flex: 1 }} />
+            </div>
+            <small className="muted">Example: ₹50 wallet credit + ₹5 fee = ₹55 Cashfree payment.</small>
+          </label>
           <label>
             UPI ID
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2416,7 +2464,7 @@ function AdminPage({ session, onSessionChange }) {
               <input value={resellerPrice} onChange={e => setResellerPrice(e.target.value)} placeholder="1000" inputMode="numeric" style={{ flex: 1 }} />
             </div>
           </label>
-          <button className="modal-save" type="submit"><MatIcon name="check" size={15} /> Save settings</button>
+          <button className="modal-save" type="submit"><MatIcon name="check" size={15} /> Save payment settings</button>
         </form>
         <div className="upi-preview">
           {upiId
@@ -2488,14 +2536,15 @@ function AdminLocked({ iconName, title, text, action }) {
 
 /* ── AddFundPage — standalone deposit flow at /add-fund ────────── */
 function AddFundPage({ session, onSessionChange }) {
-  const [step, setStep] = useState('amount'); // amount | qr | confirm | pending
+  const [step, setStep] = useState('amount'); // amount | method | qr | confirm | pending
   const [amount, setAmount] = useState('');
   const [senderUpi, setSenderUpi] = useState('');
-  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, resellerPrice: 0 });
+  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, resellerPrice: 0, gatewayEnabled: false, upiEnabled: true, gatewayFee: 0 });
   const [isResellerUnlock, setIsResellerUnlock] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingId, setPendingId] = useState(null);
   const [profile, setProfile] = useState(session);
+  const [gatewayOrder, setGatewayOrder] = useState(null);
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -2543,16 +2592,78 @@ function AddFundPage({ session, onSessionChange }) {
 
   const handleAmountNext = e => {
     e.preventDefault();
+    openPaymentMethod();
+  };
+
+  const openPaymentMethod = () => {
     const val = Number(amount);
     if (!val || val < paySettings.minDeposit) {
       toast.error(`Minimum deposit is ${money(paySettings.minDeposit)}`);
       return;
     }
-    if (!paySettings.upiId) {
-      toast.error('Payment not configured yet. Contact admin.');
+    if (!paySettings.gatewayEnabled && !paySettings.upiEnabled) {
+      toast.error('Payment methods are not available right now. Contact admin.');
       return;
     }
-    setStep('qr');
+    if (paySettings.gatewayEnabled && paySettings.upiEnabled) {
+      setStep('method');
+    } else if (paySettings.gatewayEnabled) {
+      startGatewayPayment();
+    } else {
+      if (!paySettings.upiId) {
+        toast.error('UPI payment is not configured yet. Contact admin.');
+        return;
+      }
+      setStep('qr');
+    }
+  };
+
+  const loadCashfreeSdk = () => new Promise((resolve, reject) => {
+    if (window.Cashfree) return resolve(window.Cashfree);
+    const existing = document.querySelector('script[data-cashfree-sdk]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.Cashfree), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Cashfree checkout could not load.')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    script.async = true;
+    script.dataset.cashfreeSdk = 'true';
+    script.onload = () => window.Cashfree ? resolve(window.Cashfree) : reject(new Error('Cashfree checkout is unavailable.'));
+    script.onerror = () => reject(new Error('Cashfree checkout could not load.'));
+    document.head.appendChild(script);
+  });
+
+  const startGatewayPayment = async () => {
+    const creditAmount = Number(amount);
+    const totalAmount = creditAmount + Math.max(0, Number(paySettings.gatewayFee || 0));
+    setBusy(true);
+    try {
+      const order = await createCashfreeOrder({
+        amount: totalAmount,
+        customerId: session.uid,
+        customerName: profile.name || 'Customer',
+        customerPhone: profile.phone || '9999999999',
+        customerEmail: profile.email || `${session.uid}@customer.local`,
+        appId: paySettings.cashfreeAppId,
+      });
+      setGatewayOrder({ ...order, creditAmount, totalAmount });
+      const Cashfree = await loadCashfreeSdk();
+      const checkout = Cashfree({ mode: 'production' });
+      await checkout.checkout({ paymentSessionId: order.paymentSessionId, redirectTarget: '_modal' });
+      const verified = await verifyCashfreeOrder(order.orderId, paySettings.cashfreeAppId);
+      if (verified.status !== 'PAID') throw new Error('Payment was not completed.');
+      const payType = isResellerUnlock ? 'reseller' : 'deposit';
+      const id = await createGatewayPaymentRequest(session.uid, creditAmount, totalAmount, order.orderId, profile.name || profile.phone, payType);
+      setPendingId(id);
+      setStep('pending');
+      toast.success('Payment received. Admin approval is pending.');
+    } catch (err) {
+      toast.error(err.message || 'Gateway payment failed.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const submitDeposit = async e => {
@@ -2605,7 +2716,7 @@ function AddFundPage({ session, onSessionChange }) {
                     <p>Pay <strong><MoneyDisplay value={paySettings.resellerPrice} /></strong> to upgrade your account to <strong>Reseller</strong>.</p>
                     <p className="muted" style={{fontSize:12}}>Admin will verify your payment and activate reseller privileges.</p>
                   </div>
-                  <button className="deposit-proceed-btn" type="button" onClick={() => { setStep('qr'); }}>
+                  <button className="deposit-proceed-btn" type="button" onClick={openPaymentMethod}>
                     <DeviceIcon emoji="/icons/new/proceed-emoji.json" icon="arrow_forward" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                   </button>
                 </>
@@ -2631,6 +2742,36 @@ function AddFundPage({ session, onSessionChange }) {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {step === 'method' && (
+          <div className="payment-method-backdrop">
+            <section className="payment-method-dialog liquid-dialog">
+              <div className="dialog-title-row">
+                <DeviceIcon emoji="/icons/new/confirm-payment.json" icon="payment" size={26} />
+                <h2>How do you want to pay?</h2>
+              </div>
+              <p className="muted">Choose a payment method for your wallet top-up.</p>
+              <div className="payment-summary">
+                <span>Wallet credit</span><strong><MoneyDisplay value={amount} /></strong>
+              </div>
+              <div className="payment-method-options">
+                <button type="button" className="payment-method-option" onClick={() => setStep('qr')}>
+                  <DeviceIcon emoji="/icons/new/bank-emoji.json" icon="account_balance" size={26} />
+                  <span><strong>UPI</strong><small>Pay by QR, GPay, PhonePe or Paytm</small></span>
+                  <MatIcon name="arrow_forward" size={18} />
+                </button>
+                <button type="button" className="payment-method-option gateway" onClick={startGatewayPayment} disabled={busy}>
+                  <DeviceIcon emoji="/icons/new/verified-badge.json" icon="credit_card" size={26} />
+                  <span><strong>Cashfree Gateway</strong><small>Pay securely online · Total <b><MoneyDisplay value={Number(amount) + Number(paySettings.gatewayFee || 0)} /></b></small></span>
+                  <MatIcon name="arrow_forward" size={18} />
+                </button>
+              </div>
+              <button type="button" className="back-link" onClick={() => setStep('amount')} disabled={busy}>
+                <MatIcon name="arrow_back" size={16} /> Change amount
+              </button>
+            </section>
           </div>
         )}
 
