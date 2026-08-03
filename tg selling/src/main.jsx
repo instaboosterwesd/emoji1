@@ -816,18 +816,196 @@ function OrdersView({ session }) {
 }
 
 /* ── ProductsView ───────────────────────────────────────────────── */
+/* ── Feature icons shared list ──────────────────────────────────── */
+const FEAT_ICONS = [
+  '/icons/new/feat-lightsaber.json',
+  '/icons/new/feat-fire.json',
+  '/icons/new/feat-lightning.json',
+  '/icons/new/feat-crystal-skull.json',
+  '/icons/new/feat-reaper.json',
+  '/icons/new/feat-verified-badge.json',
+  '/icons/new/feat-doge.json',
+  '/icons/new/feat-rolex.json',
+  '/icons/new/feat-rose-fist.json',
+  '/icons/new/feat-gift-boxes.json',
+];
+function featIcon(pid, f) {
+  const hash = (pid + f).split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 0);
+  return FEAT_ICONS[hash % FEAT_ICONS.length];
+}
+
+/* ── ProductDetailPage — full-screen detail view ────────────────── */
+function ProductDetailPage({ product, onBack, onBuy }) {
+  const [playingVideo, setPlayingVideo] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const available = product.pricing.length > 0;
+
+  return (
+    <div className="product-detail-page">
+      <div className="pdp-topbar">
+        <button className="pdp-back" onClick={onBack} aria-label="Back">
+          <MatIcon name="arrow_back" size={22} />
+        </button>
+        <span className="pdp-title">{product.name}</span>
+      </div>
+      <div className="pdp-scroll">
+        {/* Media */}
+        <div className="pdp-media">
+          {playingVideo && product.videos[0] ? (
+            <video src={product.videos[0]} controls autoPlay playsInline poster={product.image || undefined} />
+          ) : (
+            <button className="video-thumb pdp-thumb" type="button"
+              onClick={() => product.videos[0] ? setPlayingVideo(true) : null}
+              style={{ cursor: product.videos[0] ? 'pointer' : 'default' }}>
+              {product.image
+                ? <img src={product.image} alt={product.name} />
+                : <div className="product-media-fallback">
+                    <img src={productIconFor(product.name)} alt="" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+                  </div>
+              }
+              {product.videos[0] && (
+                <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={60} /></span>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Info row */}
+        <div className="pdp-info">
+          <div className="product-icon"><img src={productIconFor(product.name)} alt="" /></div>
+          <div className="pdp-info-text">
+            <h2 className="pdp-name">{product.name}</h2>
+            <p className="pdp-meta muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p>
+          </div>
+        </div>
+
+        {/* Features */}
+        {product.features.length > 0 && (
+          <div className="feature-list pdp-features">
+            {product.features.map(f => (
+              <div key={`${product.pid}-${f}`}>
+                <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Buy button */}
+        <button className="primary buy-product pdp-buy" type="button"
+          disabled={!available} onClick={() => setPricingOpen(s => !s)}>
+          <LottieIcon src="/icons/new/buy-now-btn.json" size={22} />
+          Buy Now <MatIcon name="arrow_forward" size={17} />
+        </button>
+
+        {/* Pricing grid */}
+        {available && pricingOpen && (
+          <div className="duration-grid pricing-drop">
+            {product.pricing.slice(0, 8).map(item => (
+              <button key={`${product.pid}-${item.label}`}
+                onClick={() => { setPricingOpen(false); onBuy({ product, duration: item }); }}>
+                <span className="duration-label-row">
+                  <LottieIcon src="/icons/new/timer.json" size={18} />{item.label}
+                </span>
+                <b><MoneyDisplay value={item.price} /></b>
+                {item.originalPrice && item.originalPrice !== item.price &&
+                  <s className="original-price"><MoneyDisplay value={item.originalPrice} /></s>}
+              </button>
+            ))}
+          </div>
+        )}
+        {!available && <p className="muted empty-state product-empty">Pricing unavailable</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ── SearchResultsPage — full-screen search overlay ─────────────── */
+function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, onSelectProduct }) {
+  const inputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => inputRef.current?.focus(), 80); return () => clearTimeout(t); }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(p =>
+      `${p.name} ${p.pid} ${p.game} ${p.platform} ${p.features.join(' ')}`.toLowerCase().includes(q)
+    );
+  }, [products, search]);
+
+  return (
+    <div className="search-results-page">
+      <div className="srp-topbar">
+        <button className="srp-back" onClick={onBack} aria-label="Back">
+          <MatIcon name="arrow_back" size={22} />
+        </button>
+        <div className="srp-search-box">
+          <MatIcon name="search" size={18} />
+          <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search product or PID" autoComplete="off" />
+          {search && (
+            <button className="srp-clear" onClick={() => setSearch('')} aria-label="Clear">
+              <MatIcon name="close" size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+      {search.trim() && (
+        <p className="srp-count">{filtered.length} result{filtered.length !== 1 ? 's' : ''} for "{search}"</p>
+      )}
+      <div className="srp-list">
+        {filtered.length === 0 && search.trim() && (
+          <div className="srp-empty">
+            <MatIcon name="search_off" size={36} />
+            <p className="muted">No products match "{search}"</p>
+          </div>
+        )}
+        {filtered.length === 0 && !search.trim() && (
+          <div className="srp-empty">
+            <MatIcon name="manage_search" size={36} />
+            <p className="muted">Type to search products…</p>
+          </div>
+        )}
+        {filtered.map(p => {
+          const pr = applyPricing(p);
+          const minPrice = pr.pricing.length > 0
+            ? Math.min(...pr.pricing.map(i => Number(i.price)))
+            : null;
+          return (
+            <button className="srp-row" key={p.pid} type="button" onClick={() => onSelectProduct(p)}>
+              <div className="srp-thumb">
+                {p.image
+                  ? <img src={p.image} alt={p.name} loading="lazy" />
+                  : <img src={productIconFor(p.name)} alt="" className="srp-fallback-icon" />
+                }
+              </div>
+              <div className="srp-meta">
+                <span className="srp-name">{p.name}</span>
+                <span className="srp-sub">{p.game} · {p.platform || 'Platform'}</span>
+                {minPrice !== null && (
+                  <span className="srp-price">from <b>₹{minPrice}</b></span>
+                )}
+              </div>
+              <MatIcon name="chevron_right" size={20} className="srp-arrow" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── ProductsView — main buy tab ─────────────────────────────────── */
 function ProductsView({ session, onBuy }) {
-  const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [playingVideo, setPlayingVideo] = useState(null);
-  const [pricingOpen, setPricingOpen] = useState({});
-  const [expandedFeatures, setExpandedFeatures] = useState({});
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [searchActive, setSearchActive] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const applyPricing = useCallback((product) => {
     return {
@@ -863,8 +1041,6 @@ function ProductsView({ session, onBuy }) {
   const games = useMemo(() => ['all', ...new Set(products.map(p => p.game).filter(Boolean))], [products]);
 
   const filtered = useMemo(() => products.filter(p => {
-    const hay = `${p.name} ${p.pid} ${p.game} ${p.platform}`.toLowerCase();
-    const matchSearch = hay.includes(search.toLowerCase());
     const matchFilter = filter === 'all' || p.game === filter;
     const typeText = `${p.name} ${p.game} ${p.platform} ${p.features.join(' ')}`.toLowerCase();
     const matchPlatform = platformFilter === 'all'
@@ -872,21 +1048,50 @@ function ProductsView({ session, onBuy }) {
       || (platformFilter === 'root' && typeText.includes('root') && !(typeText.includes('nonroot') || typeText.includes('non root')))
       || (platformFilter === 'pc' && typeText.includes('pc'))
       || (platformFilter === 'ios' && (typeText.includes('ios') || typeText.includes('iphone')));
-    return matchSearch && matchFilter && matchPlatform;
-  }), [products, search, filter, platformFilter]);
+    return matchFilter && matchPlatform;
+  }), [products, filter, platformFilter]);
 
-  useEffect(() => { setVisibleCount(5); }, [search, filter, platformFilter]);
+  useEffect(() => { setVisibleCount(8); }, [filter, platformFilter]);
 
-  const visibleProducts = filtered.slice(0, visibleCount).map(applyPricing);
+  /* ── Detail page ── */
+  if (selectedProduct) {
+    return (
+      <ProductDetailPage
+        product={applyPricing(selectedProduct)}
+        onBack={() => setSelectedProduct(null)}
+        onBuy={onBuy}
+      />
+    );
+  }
+
+  /* ── Search page ── */
+  if (searchActive) {
+    return (
+      <SearchResultsPage
+        products={products}
+        applyPricing={applyPricing}
+        search={search}
+        setSearch={setSearch}
+        onBack={() => { setSearchActive(false); setSearch(''); }}
+        onSelectProduct={p => { setSearchActive(false); setSelectedProduct(p); }}
+      />
+    );
+  }
+
+  /* ── Normal buy view ── */
+  const visibleProducts = filtered.slice(0, visibleCount);
 
   return (
     <div className="buy-view">
-      <SectionTitle title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>} subtitle="Live products with pricing" />
+      <SectionTitle
+        title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>}
+        subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
-        <div className="search-box">
+        {/* Search — opens full search page on click */}
+        <button className="search-box search-box-tap" type="button" onClick={() => setSearchActive(true)}>
           <LottieIcon src="/icons/new/search-emoji.json" size={18} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product or PID" />
-        </div>
+          <span className="search-placeholder">Search product or PID</span>
+        </button>
         <select className="product-select" value={filter} onChange={e => setFilter(e.target.value)}>
           {games.map(g => <option value={g} key={g}>{g === 'all' ? 'All' : g}</option>)}
         </select>
@@ -897,80 +1102,60 @@ function ProductsView({ session, onBuy }) {
           <option value="pc">PC</option>
           <option value="ios">iOS</option>
         </select>
-        <button className="icon-button" onClick={load} aria-label="Refresh"><MatIcon name="refresh" size={17} /></button>
+        <button className="icon-button reload-btn" onClick={load} aria-label="Refresh">
+          <MatIcon name="refresh" size={17} />
+        </button>
       </div>
+
       <div className="products-scroll-inner">
-      <div className="product-list">
-        {loading && <ProductSkeletonList />}
-        {!loading && error && <div className="glass-card"><p className="muted empty-state">{error}</p></div>}
-        {!loading && !error && !filtered.length && <div className="glass-card"><p className="muted empty-state">No products found</p></div>}
-        {visibleProducts.map(product => {
-          const duration = product.pricing[0];
-          const available = product.pricing.length > 0;
-          const shownFeatures = expandedFeatures[product.pid] ? product.features : product.features.slice(0, 3);
-          return (
-            <article className="glass-card product-card" key={product.pid}>
-              <div className="product-media">
-                {playingVideo === product.pid && product.videos[0] ? (
-                  <video src={product.videos[0]} controls autoPlay playsInline poster={product.image || undefined} />
-                ) : (
-                  <button className="video-thumb" type="button" onClick={() => product.videos[0] ? setPlayingVideo(product.pid) : null}>
-                    {product.image ? <img src={product.image} alt={product.name} loading="lazy" /> : <div className="product-media-fallback"><MatIcon name="shopping_bag" size={30} style={{ filter: 'invert(0.5)' }} /></div>}
-                    {product.videos[0] && <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={54} /></span>}
-                  </button>
-                )}
-              </div>
-              <div className={`product-head${product.features.length > 3 ? ' has-toggle' : ''}${expandedFeatures[product.pid] ? ' expanded' : ''}`}>
-                <div className="product-icon"><img src={productIconFor(product.name)} alt="" /></div>
-                <div><h3>{product.name}</h3><p className="muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p></div>
-                {product.features.length > 3 && <button className="feature-toggle" type="button" onClick={() => setExpandedFeatures(s => ({ ...s, [product.pid]: !s[product.pid] }))} aria-label="Toggle features">{expandedFeatures[product.pid] ? <LottieIcon src="/icons/new/arrows-up-green.json" size={20} /> : <LottieIcon src="/icons/new/phone-arrow.json" size={20} />}</button>}
-              </div>
-              {product.features.length > 0 && (
-                <div className="feature-list">
-                  {shownFeatures.map((f) => {
-                    const featIcons = [
-                      '/icons/new/feat-lightsaber.json',
-                      '/icons/new/feat-fire.json',
-                      '/icons/new/feat-lightning.json',
-                      '/icons/new/feat-crystal-skull.json',
-                      '/icons/new/feat-reaper.json',
-                      '/icons/new/feat-verified-badge.json',
-                      '/icons/new/feat-doge.json',
-                      '/icons/new/feat-rolex.json',
-                      '/icons/new/feat-rose-fist.json',
-                      '/icons/new/feat-gift-boxes.json',
-                    ];
-                    const hash = (product.pid + f).split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 0);
-                    return <div key={`${product.pid}-${f}`}><span><LottieIcon src={featIcons[hash % featIcons.length]} size={15} /></span>{f}</div>;
-                  })}
+        <div className="product-list compact-list">
+          {loading && <ProductSkeletonList />}
+          {!loading && error && (
+            <div className="glass-card"><p className="muted empty-state">{error}</p></div>
+          )}
+          {!loading && !error && !filtered.length && (
+            <div className="glass-card"><p className="muted empty-state">No products found</p></div>
+          )}
+
+          {/* Compact product rows — tap to open detail */}
+          {visibleProducts.map(p => {
+            const pr = applyPricing(p);
+            const minPrice = pr.pricing.length > 0
+              ? Math.min(...pr.pricing.map(i => Number(i.price)))
+              : null;
+            const previewFeats = p.features.slice(0, 2);
+            return (
+              <button className="compact-product-row" key={p.pid} type="button"
+                onClick={() => setSelectedProduct(p)}>
+                <div className="cpr-thumb">
+                  {p.image
+                    ? <img src={p.image} alt={p.name} loading="lazy" />
+                    : <img src={productIconFor(p.name)} alt="" className="cpr-fallback-icon" />
+                  }
+                  {p.videos[0] && <span className="cpr-play-dot"><MatIcon name="play_circle" size={13} /></span>}
                 </div>
-              )}
-              <button className="primary buy-product" type="button" disabled={!available} onClick={() => setPricingOpen(s => ({ ...s, [product.pid]: !s[product.pid] }))}>
-                <LottieIcon src="/icons/new/buy-now-btn.json" size={22} /> Buy Now <MatIcon name="arrow_forward" size={17} />
+                <div className="cpr-meta">
+                  <span className="cpr-name">{p.name}</span>
+                  <span className="cpr-sub">{p.game} · {p.platform || 'Platform'} · ID {p.pid}</span>
+                  {previewFeats.length > 0 && (
+                    <span className="cpr-feats">{previewFeats.join(' · ')}</span>
+                  )}
+                  {minPrice !== null && (
+                    <span className="cpr-price">from <b>₹{minPrice}</b></span>
+                  )}
+                </div>
+                <MatIcon name="chevron_right" size={20} className="cpr-arrow" />
               </button>
-              {available && pricingOpen[product.pid] && (
-                <div className="duration-grid pricing-drop">
-                  {product.pricing.slice(0, 8).map(item => (
-                    <button
-                      className={duration?.label === item.label ? 'active' : ''}
-                      key={`${product.pid}-${item.label}`}
-                      onClick={() => { setPricingOpen(s => ({ ...s, [product.pid]: false })); onBuy({ product, duration: item }); }}
-                    >
-                      <span className="duration-label-row"><LottieIcon src="/icons/new/timer.json" size={18} />{item.label}</span>
-                      <b><MoneyDisplay value={item.price} /></b>
-                      {item.originalPrice && item.originalPrice !== item.price && <s className="original-price"><MoneyDisplay value={item.originalPrice} /></s>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {!available && <p className="muted empty-state product-empty">Pricing unavailable</p>}
-            </article>
-          );
-        })}
-        {!loading && !error && visibleCount < filtered.length && (
-          <button className="load-more glass-card" type="button" onClick={() => setVisibleCount(c => c + 3)}>Load more products</button>
-        )}
-      </div>
+            );
+          })}
+
+          {!loading && !error && visibleCount < filtered.length && (
+            <button className="load-more glass-card" type="button"
+              onClick={() => setVisibleCount(c => c + 5)}>
+              Load more products ({filtered.length - visibleCount} remaining)
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
