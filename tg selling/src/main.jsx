@@ -1121,7 +1121,7 @@ function ProductsView({ session, onBuy }) {
                     <span className="cpr-feats">{previewFeats.join(' · ')}</span>
                   )}
                   {minPrice !== null && (
-                    <span className="cpr-price">from <b>₹{minPrice}</b></span>
+                    <span className="cpr-price text-[15px]">from <b>₹{minPrice}</b></span>
                   )}
                 </div>
                 <span className="cpr-arrow"><LottieIcon src="/icons/new/proceed-emoji.json" size={20} /></span>

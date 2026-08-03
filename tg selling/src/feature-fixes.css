@@ -1842,6 +1842,9 @@
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
+.compact-product-row .cpr-price.text-\[15px\] {
+  font-size: 15px !important;
+}
 .dashboard-page .compact-product-row .cpr-arrow {
   flex-shrink: 0 !important;
   display: flex !important;
