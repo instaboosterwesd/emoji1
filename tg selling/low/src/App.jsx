@@ -2518,8 +2518,8 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'amount' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link emoji-back mb-[5px]" onClick={goBack}>
-                <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
+              <button className="back-link" onClick={goBack}>
+                <MatIcon name="arrow_back" size={20} />
               </button>
               <h2>{isResellerUnlock ? 'Unlock Reseller Panel' : 'Add funds'}</h2>
             </div>
@@ -2544,12 +2544,12 @@ function AddFundPage({ session, onSessionChange }) {
                     <p className="muted" style={{fontSize:12}}>Admin will verify your payment and activate reseller privileges.</p>
                   </div>
                   <button className="deposit-proceed-btn" type="button" onClick={() => { setStep('qr'); }}>
-                    <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                    <MatIcon name="payment" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="muted deposit-label"><LottieIcon src="/icons/new/choose-amount-emoji.json" size={20} /> Choose amount</p>
+                  <p className="muted deposit-label"><MatIcon name="payments" size={20} /> Choose amount</p>
                   <div className="quick-amounts">
                     {quickAmounts.map(a => (
                       <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
@@ -2557,13 +2557,13 @@ function AddFundPage({ session, onSessionChange }) {
                       </button>
                     ))}
                   </div>
-                  <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
+                  <p className="muted deposit-hint"><MatIcon name="info" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
                   <hr className="deposit-divider" />
                   <form onSubmit={handleAmountNext}>
-                    <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Custom amount</label>
+                    <label htmlFor="dep-amount"><MatIcon name="edit" size={18} /> <MatIcon name="currency_rupee" size={14} /> Custom amount</label>
                     <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={'Min ' + money(paySettings.minDeposit)} required />
                     <button className="deposit-proceed-btn" type="submit">
-                      <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                      <MatIcon name="payment" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                     </button>
                   </form>
                 </>
@@ -2576,18 +2576,18 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'qr' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('amount')}>
-                <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
+              <button className="back-link" onClick={() => setStep('amount')}>
+                <MatIcon name="arrow_back" size={20} />
               </button>
               <h2>Scan &amp; Pay</h2>
             </div>
-            <p className="deposit-label"><LottieIcon src="/icons/new/send-emoji.json" size={18} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
-            <p className="upi-id-display"><LottieIcon src="/icons/new/bank-emoji.json" size={20} /> {paySettings.upiId}</p>
+            <p className="deposit-label"><MatIcon name="send" size={18} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
+            <p className="upi-id-display"><MatIcon name="account_balance" size={20} /> {paySettings.upiId}</p>
             {qrUrl && (
               <div className="qr-wrap">
                 <img className="qr-image" src={qrUrl} alt="UPI QR code" />
                 <button type="button" className="qr-dl-btn" onClick={downloadQR}>
-                  <LottieIcon src="/icons/new/download-emoji.json" size={16} /> Download QR
+                  <MatIcon name="download" size={16} /> Download QR
                 </button>
               </div>
             )}
@@ -2602,9 +2602,9 @@ function AddFundPage({ session, onSessionChange }) {
                 <SiPaytm size={20} /> Paytm
               </a>
             </div>
-            <p className="muted qr-hint"><LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /> Tap an app to pay directly, or scan the QR above <LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /></p>
+            <p className="muted qr-hint"><MatIcon name="info" size={16} /> Tap an app to pay directly, or scan the QR above <MatIcon name="info" size={16} /></p>
             <button className="deposit-paid-btn" type="button" onClick={() => setStep('confirm')}>
-              I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
+              I have paid <MatIcon name="check_circle" size={24} />
             </button>
           </div>
         )}
@@ -2613,8 +2613,8 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'confirm' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('qr')}>
-                <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
+              <button className="back-link" onClick={() => setStep('qr')}>
+                <MatIcon name="arrow_back" size={20} />
               </button>
               <h2>{isResellerUnlock ? 'Confirm Reseller Unlock' : 'Confirm payment'}</h2>
             </div>
