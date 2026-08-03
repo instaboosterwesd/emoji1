@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import lottie from 'lottie-web';
+import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
 import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import countryData from 'country-telephone-data';
-import { initSecurity } from '../../src/security.js';
+import { initSecurity } from './security.js';
 import {
   changeUserPassword,
   ensureGoogleUser,
@@ -53,10 +54,16 @@ import {
   adminCreateGiftCode,
   getGiftCodes,
   productIconFor,
-} from '../../src/services';
+} from './services';
 import './styles.css';
+import './feature-fixes.css';
+import './site-status.css';
+import './issues.css';
+import './gift-code.css';
 
 /* ── Performance Context ────────────────────────────────────────── */
+const PerfCtx = React.createContext();
+const usePerf = () => React.useContext(PerfCtx);
 
 /* ── Constants ─────────────────────────────────────────────────── */
 const logo = '/devx-logo.webp';
@@ -220,7 +227,7 @@ function Login({ onSuccess, siteStatus }) {
       )}
       {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
         <div className="site-status-banner ok" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
-          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <MatIcon name="check_circle" size={16} />
           <span>{siteStatus.message}</span>
         </div>
       )}
@@ -270,13 +277,13 @@ function Login({ onSuccess, siteStatus }) {
           <>
             <button className="back-link" type="button" onClick={() => setStep('phone')}><MatIcon name="arrow_back" size={16} /> Change number</button>
             <img className="devx-logo small" src={logo} alt="Brand logo" />
-            <p className="eyebrow"><LottieIcon src="/icons/new/shield-verify.json" size={20} /> SECURE VERIFICATION <LottieIcon src="/icons/new/shield-verify.json" size={20} /></p>
+            <p className="eyebrow"><MatIcon name="security" size={18} /> SECURE VERIFICATION <MatIcon name="security" size={18} /></p>
             <h1><LottieIcon src="/icons/new/otp-clipboard.json" size={28} /> Enter your OTP</h1>
             <p className="intro">We sent a 4-digit code to +{country.dialCode} {phone}.</p>
             <form onSubmit={verifyOtp}>
               <label htmlFor="otp">Verification code</label>
               <input className="otp-input" id="otp" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} placeholder="0000" autoFocus required />
-              <button className="primary" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={22} /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><MatIcon name="check_circle" size={20} /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
             </form>
           </>
         )}
@@ -322,9 +329,24 @@ function Terms() {
 }
 
 /* ── Dashboard shell ────────────────────────────────────────────── */
-function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
+function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, onPerfSelect }) {
+  const prevPerf = useRef(perfMode);
   const [tab, setTab] = useState('dashboard');
+  const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
+
+  /* ── Auto‑refresh when perf mode changes (including first selection) ──
+     perfMode === null means dialog is opening — never reload on that.
+     prevPerf.current === null means first-ever selection — always reload.
+     Otherwise reload only if mode actually changed value.              */
+  useEffect(() => {
+    if (perfMode === null) return;                           // dialog opening, ignore
+    if (prevPerf.current === null || prevPerf.current !== perfMode) {
+      location.reload();                                    // first pick OR mode changed
+      return;
+    }
+    prevPerf.current = perfMode;
+  }, [perfMode]);
   const [profile, setProfile] = useState(session);
   const [apiState, setApiState] = useState({ apiKey: '', last4: session.apiKeyLast4 || '' });
   const [purchase, setPurchase] = useState(null);
@@ -333,7 +355,10 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [resolvedNotif, setResolvedNotif] = useState(null);
-  const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(false);
+  const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(() => {
+    if (localStorage.getItem('reseller_dont_show') === '1') return false;
+    return false; // will check after profile loads
+  });
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -395,44 +420,19 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
     { id: 'profile', label: 'Profile', lottieIcon: '/icons/new/profile-lottie.json' },
   ];
 
-  const pageTitleMap = { buy: 'Buy', orders: 'My Orders', wallet: 'Wallet', profile: 'Profile' };
-
-  const isSubPage = tab !== 'dashboard';
-  const contentRef = useRef(null);
-  const [headerHidden, setHeaderHidden] = useState(false);
-  const [navHidden, setNavHidden] = useState(false);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    if (!isSubPage) { setHeaderHidden(false); setNavHidden(false); return; }
-    window.history.pushState({ subPage: true }, '');
-    const onPop = () => { setTab('dashboard'); };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [isSubPage]);
-
-  const onContentScroll = useCallback(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const sy = el.scrollTop;
-    const isDash = tab === 'dashboard';
-    if (sy <= 0) { setHeaderHidden(false); setNavHidden(false); lastScrollY.current = 0; return; }
-    if (sy > lastScrollY.current + 4) { setHeaderHidden(true); if (isDash) setNavHidden(true); }
-    else if (sy < lastScrollY.current - 4) { setHeaderHidden(false); if (isDash) setNavHidden(false); }
-    lastScrollY.current = sy;
-  }, []);
-
-  const section = purchase
-    ? <PurchasePage purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
-    : tab === 'orders' ? <OrdersView session={session} /> :
-      tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
-      tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-      tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => { localStorage.removeItem('perf_dont_ask'); localStorage.removeItem('perf_mode'); window.location.assign('/'); }} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
-      <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
+  const section =
+    tab === 'orders' ? <OrdersView session={session} /> :
+    tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
+    tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
+    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
+    <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
 
   return (
-    <main className="dashboard-page">
-      <img className="dashboard-backdrop" src="/dashboard-light-bg.webp" alt="" aria-hidden="true" loading="lazy" />
+    <main className={`dashboard-page ${theme}`}>
+      {perfMode === null && (
+        <PerformanceDialog onSelect={onPerfSelect} />
+      )}
+      <img key={theme} className="dashboard-backdrop" src={theme === 'dark' ? '/dashboard-dark-bg.webp' : '/dashboard-light-bg.webp'} alt="" aria-hidden="true" loading="lazy" />
       <div className="dashboard-veil" />
       {tab === 'dashboard' && (
         <header className="dash-header">
@@ -446,6 +446,9 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
               <LottieIcon src="/icons/new/bell.json" size={26} />
               {hasUnread && <span className="notif-dot" />}
             </button>
+            <button className="theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+              {theme === 'dark' ? '☀' : '☾'}
+            </button>
           </div>
         </header>
       )}
@@ -457,30 +460,22 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
       )}
       {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
         <div className="site-status-banner ok">
-          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <MatIcon name="check_circle" size={16} />
           <span>{siteStatus.message}</span>
         </div>
       )}
-      <div ref={contentRef} key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? ' dashboard-only' : ' sub-page'} tab-${tab}`} onScroll={onContentScroll}>
-        {(isSubPage && !purchase) && (
-          <div className={`page-back-header${headerHidden ? ' hidden' : ''}`} data-mode="low">
-            <button className="back-btn" onClick={() => setTab('dashboard')} aria-label="Back"><MatIcon name="arrow_back" size={22} /></button>
-            <span className="page-back-title">{pageTitleMap[tab] || ''}</span>
-          </div>
-        )}
+      <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'} tab-${tab}`}>
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
-      {tab === 'dashboard' && (
-        <nav className={`bottom-nav${navHidden ? ' hidden' : ''}`}>
-          {navItems.map(({ id, label, icon, lottieIcon }) => (
-            <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
-              {lottieIcon && <LottieIcon src={lottieIcon} size={22} loop />}
-              {icon && <MatIcon name={icon} size={20} />}
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
+      <nav className="bottom-nav">
+        {navItems.map(({ id, label, icon, lottieIcon }) => (
+          <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
+            {lottieIcon && <LottieIcon src={lottieIcon} size={22} loop />}
+            {icon && <MatIcon name={icon} size={20} />}
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
       <ProfileDialog type={dialog} profile={profile} apiState={apiState} close={() => setDialog(null)} onLogout={onLogout} onProfile={next => { setProfile(next); onSessionChange(next); }} onApiState={setApiState} />
       {showNotifs && (
         <div className="notif-overlay" role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false); }}>
@@ -488,7 +483,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
             <div className="notif-dialog-header">
               <LottieIcon src="/icons/new/bell.json" size={26} />
               <h3>Notifications</h3>
-              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><LottieIcon src="/icons/new/close-emoji.json" size={16} /></button>
+              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><MatIcon name="close" size={16} /></button>
             </div>
             {notifs.length === 0
               ? <p className="muted empty-state" style={{ padding: '24px 0' }}>No notifications yet</p>
@@ -511,7 +506,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
             <div className="resolved-issue-icon">
               <LottieIcon src="/icons/new/issue-resolved.json" size={64} />
             </div>
-            <h2><LottieIcon src="/icons/new/verified-badge.json" size={22} /> Issue Resolved!</h2>
+            <h2><MatIcon name="verified_user" size={20} /> Issue Resolved!</h2>
             <p className="muted" style={{ textAlign: 'center', fontSize: '14px', lineHeight: 1.6 }}>
               Your issue has been resolved by the admin. <br />
               You can now purchase your product.
@@ -524,7 +519,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
                 setResolvedNotif(null);
                 setTab('buy');
               }}>
-                <LottieIcon src="/icons/new/shopping-cart.json" size={18} /> Buy now
+                <MatIcon name="shopping_cart" size={16} /> Buy now
               </button>
               <button type="button" onClick={() => {
                 if (session?.uid && resolvedNotif?.id) {
@@ -538,6 +533,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           </section>
         </div>
       )}
+      <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
       {resellerBenefitsOpen && (
         <ResellerBenefitsDialog
           resellerPrice={0}
@@ -545,7 +541,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
           onClose={() => setResellerBenefitsOpen(false)}
         />
       )}
-      <Toaster position="top-center" offset={78} theme="light" toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
+      <Toaster position="top-center" offset={78} theme={theme} toastOptions={toastOptions} icons={{ success: <MatIcon name="check_circle" size={20} /> }} />
     </main>
   );
 }
@@ -554,12 +550,12 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus }) {
 function DashboardHome({ profile, role, setTab }) {
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <LottieIcon src="/icons/new/today-emoji.json" size={18} /></>} />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <MatIcon name="today" size={16} /></>} />
       <div className="balance-card">
         <span>My balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
-          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
+          <MatIcon name="add" size={20} /> Deposit
         </button>
       </div>
       <div className="stats-grid">
@@ -569,8 +565,8 @@ function DashboardHome({ profile, role, setTab }) {
         <Stat label="Active keys" value={profile.active || 0} lottieIcon="/icons/new/active-keys.json" />
       </div>
       {role === 'admin' && (
-        <button className="admin-wide glass-card" onClick={() => window.location.assign('/low/admin')}>
-          <LottieIcon src="/icons/new/crown.json" size={22} /> Open admin dashboard
+        <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
+          <MatIcon name="workspace_premium" size={20} /> Open admin dashboard
         </button>
       )}
       <div className="glass-card">
@@ -586,13 +582,61 @@ function DashboardHome({ profile, role, setTab }) {
   );
 }
 
-/* ── LottieIcon — low device: always static SVG, no Lottie runtime ── */
+/* ── LottieIcon — high=Lottie, low=static SVG ───────────────────── */
 function LottieIcon({ src, size = 24, loop = true, className = '' }) {
+  const perf = usePerf();
+  const ref = useRef(null);
   const imgSrc = src ? src.replace('/icons/new/', '/icons/material/').replace(/\.json$/, '.svg') : '';
+
+  useEffect(() => {
+    if (perf !== 'high' || !ref.current) return;
+    const anim = lottie.loadAnimation({
+      container: ref.current, renderer: 'svg', loop, autoplay: true, path: src,
+    });
+    return () => anim.destroy();
+  }, [src, loop, perf]);
+
+  if (perf === 'low') {
+    return (
+      <span className={className} style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle' }}>
+        {imgSrc && <img src={imgSrc} alt="" style={{ width: size, height: size, display: 'block' }} />}
+      </span>
+    );
+  }
+
   return (
-    <span className={className} style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle' }}>
-      {imgSrc && <img src={imgSrc} alt="" style={{ width: size, height: size, display: 'block' }} />}
-    </span>
+    <span ref={ref} className={className} style={{ display: 'inline-block', width: size, height: size, verticalAlign: 'middle', overflow: 'hidden' }} />
+  );
+}
+
+/* ── PerformanceDialog — first-visit device picker ─────────────── */
+function PerformanceDialog({ onSelect }) {
+  const pick = mode => {
+    localStorage.setItem('perf_dont_ask', '1');
+    localStorage.setItem('perf_mode', mode);
+    onSelect(mode);
+  };
+  return (
+    <div className="perf-dialog-backdrop">
+      <div className="perf-dialog liquid-dialog">
+        <h2>Choose your experience</h2>
+        <p className="perf-dialog-desc">Select your device performance level for the best experience.</p>
+        <div className="perf-dialog-options">
+          <button className="perf-option" onClick={() => pick('high')}>
+            <span className="perf-option-icon"><img src="/icons/material/send-flash.svg" width="32" height="32" alt="" /></span>
+            <div><strong>High Performance Device</strong><span className="perf-option-desc">Full animations &amp; effects</span></div>
+          </button>
+          <button className="perf-option" onClick={() => { localStorage.setItem('perf_dont_ask', '1'); window.location.href = '/low/'; }}>
+            <span className="perf-option-icon"><img src="/icons/material/phone-spidey.svg" width="32" height="32" alt="" /></span>
+            <div><strong>Low Performance Device</strong><span className="perf-option-desc">Static icons, smoother browsing</span></div>
+          </button>
+        </div>
+        <div className="perf-dialog-footer">
+          <span className="perf-dont-ask" onClick={() => pick('high')}>Don&apos;t ask again</span>
+          <button className="perf-close-btn" onClick={() => pick('high')} aria-label="Close">✕</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -637,38 +681,20 @@ function WalletView({ session, profile, refreshProfile }) {
         <span>Available balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
-          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
+          <MatIcon name="add" size={20} /> Add funds
         </button>
       </div>
-
-      {/* ── Reseller unlock card ── */}
-      {paySettings.resellerPrice > 0 && profile.role !== 'reseller' && (
-        <div className="glass-card" style={{marginTop:14}}>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'4px 0'}}>
-            <div style={{width:44,height:44,borderRadius:12,background:'linear-gradient(135deg, rgba(199,149,255,0.15), rgba(157,94,255,0.1))',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              <LottieIcon src="/icons/new/verified-badge.json" size={26} />
-            </div>
-            <div style={{flex:1}}>
-              <strong style={{fontSize:14}}>Unlock Reseller</strong>
-              <p className="muted" style={{fontSize:12,lineHeight:1.3,marginTop:2}}>Get discounted prices &amp; start reselling. <strong>₹{money(paySettings.resellerPrice)}</strong></p>
-            </div>
-            <button className="reseller-unlock-btn" style={{fontSize:12,padding:'8px 14px',whiteSpace:'nowrap',flexShrink:0}} onClick={() => navigate('/add-fund')}>
-              <LottieIcon src="/icons/new/verified-check.json" size={16} /> Unlock
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── Transaction history ── */}
       <div className="glass-card">
         <div className="card-heading history-heading">
           <div className="heading-title-row">
-            <MatIcon name="receipt_long" size={20} style={{filter:'brightness(0) opacity(0.6)',flexShrink:0}} />
-            <h3>Transaction history</h3>
-            <button className="icon-button" onClick={loadData} aria-label="Refresh" style={{marginLeft:'auto',flexShrink:0}}>
-              <MatIcon name="refresh" size={18} style={{filter:'brightness(0) opacity(0.6)'}} />
-            </button>
+            <MatIcon name="history" size={24} />
+            <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
           </div>
+          <button className="icon-button" onClick={loadData} aria-label="Refresh">
+            <MatIcon name="history" size={24} />
+          </button>
         </div>
         {txLoading
           ? <p className="muted empty-state">Loading…</p>
@@ -678,6 +704,15 @@ function WalletView({ session, profile, refreshProfile }) {
               <div className="tx-list">
                 {transactions.map(tx => (
                   <div className="tx-row" key={tx.id}>
+                    <span className="tx-icon">
+                      {tx.type === 'purchase'
+                        ? <img src={productIconForWithFallback((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
+                        : tx.type === 'deposit_approved'
+                          ? <MatIcon name="add" size={20} />
+                          : tx.type === 'admin_add'
+                            ? <MatIcon name="add_box" size={20} />
+                            : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
+                    </span>
                     <div className="tx-main">
                       <strong>{tx.note || tx.type || 'Transaction'}</strong>
                       <span>{fmtDate(tx.createdAt)}</span>
@@ -762,14 +797,17 @@ function OrdersView({ session }) {
     const margin = 20;
     const contentW = pageW - margin * 2;
 
+    // Brand accent
     const accent = '#c795ff';
     const dark = '#1a1525';
 
+    // Header bar
     doc.setFillColor(26, 21, 37);
     doc.rect(0, 0, pageW, 55, 'F');
     doc.setFillColor(199, 149, 255);
     doc.rect(0, 55, pageW, 3, 'F');
 
+    // Logo / brand
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
@@ -779,6 +817,7 @@ function OrdersView({ session }) {
     doc.setTextColor(199, 149, 255);
     doc.text('reversebypass.store', margin, 40);
 
+    // Invoice meta
     const invoiceNo = `INV-${String(order.id || Date.now()).padStart(6, '0').slice(-6)}`;
     const dateStr = new Date(order.purchasedAt || order.createdAt || Date.now()).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     doc.setFontSize(20);
@@ -791,6 +830,7 @@ function OrdersView({ session }) {
     doc.text(`Invoice #${invoiceNo}`, pageW - margin, 38, { align: 'right' });
     doc.text(`Date: ${dateStr}`, pageW - margin, 45, { align: 'right' });
 
+    // Billing info
     let y = 75;
     doc.setDrawColor(230, 230, 230);
     doc.setLineWidth(0.5);
@@ -812,6 +852,7 @@ function OrdersView({ session }) {
     doc.setDrawColor(230, 230, 230);
     doc.line(margin, y, pageW - margin, y);
 
+    // Table header
     y += 8;
     doc.setFillColor(245, 245, 245);
     doc.rect(margin, y, contentW, 10, 'F');
@@ -822,6 +863,7 @@ function OrdersView({ session }) {
     doc.text('DURATION', margin + 90, y + 7);
     doc.text('AMOUNT', pageW - margin - 25, y + 7, { align: 'right' });
 
+    // Table row
     y += 10;
     doc.setDrawColor(240, 240, 240);
     doc.line(margin, y, pageW - margin, y);
@@ -833,6 +875,7 @@ function OrdersView({ session }) {
     doc.text(String(order.duration || '—'), margin + 90, y + 4);
     doc.text(`₹${Number(order.price || 0).toLocaleString('en-IN')}`, pageW - margin - 25, y + 4, { align: 'right' });
 
+    // Total row
     y += 12;
     doc.setDrawColor(199, 149, 255);
     doc.setLineWidth(0.8);
@@ -844,6 +887,7 @@ function OrdersView({ session }) {
     doc.text('Total', margin + 3, y);
     doc.text(`₹${Number(order.price || 0).toLocaleString('en-IN')}`, pageW - margin - 25, y, { align: 'right' });
 
+    // License key section
     y += 20;
     doc.setFillColor(245, 240, 255);
     doc.roundedRect(margin, y, contentW, 28, 3, 3, 'F');
@@ -858,6 +902,7 @@ function OrdersView({ session }) {
     doc.setFontSize(11);
     doc.text(String(order.key || order.keyCode || '—'), margin + 6, y + 5);
 
+    // Footer
     y = 272;
     doc.setDrawColor(199, 149, 255);
     doc.setLineWidth(0.5);
@@ -874,13 +919,13 @@ function OrdersView({ session }) {
 
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle={<><LottieIcon src="/icons/new/track-emoji.json" size={16} /> Track your purchased license keys</>} />
+      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle={<><MatIcon name="track_changes" size={16} /> Track your purchased license keys</>} />
       <div className="filter-row">
         <div className="search-box">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <MatIcon name="search" size={16} />
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search orders" />
         </div>
-        <button className="icon-button" onClick={load} aria-label="Refresh orders"><LottieIcon src="/icons/new/refresh-emoji.json" size={22} /></button>
+        <button className="icon-button" onClick={load} aria-label="Refresh orders"><MatIcon name="refresh" size={20} /></button>
       </div>
       <div className="glass-card">
         {loading
@@ -925,27 +970,26 @@ function featIcon(pid, f) {
   return FEAT_ICONS[hash % FEAT_ICONS.length];
 }
 
-/* ── ProductDetailPage — full-screen detail view ────────────────── */
+/* ── ProductDetailPage — full-screen overlay (hides bottom-nav) ─── */
 function ProductDetailPage({ product, onBack, onBuy }) {
   const [playingVideo, setPlayingVideo] = useState(false);
-  const [pricingOpen, setPricingOpen] = useState(false);
   const available = product.pricing.length > 0;
 
   return (
     <div className="product-detail-page">
       <div className="pdp-topbar">
         <button className="pdp-back" onClick={onBack} aria-label="Back">
-          <MatIcon name="arrow_back" size={22} />
+          <MatIcon name="arrow_back" size={20} />
         </button>
         <span className="pdp-title">{product.name}</span>
       </div>
       <div className="pdp-scroll">
-        {/* Media */}
-        <div className="pdp-media">
+        {/* Media card */}
+        <div className="pdp-media-card">
           {playingVideo && product.videos[0] ? (
             <video src={product.videos[0]} controls autoPlay playsInline poster={product.image || undefined} />
           ) : (
-            <button className="video-thumb pdp-thumb" type="button"
+            <button className="video-thumb" type="button"
               onClick={() => product.videos[0] ? setPlayingVideo(true) : null}
               style={{ cursor: product.videos[0] ? 'pointer' : 'default' }}>
               {product.image
@@ -955,13 +999,13 @@ function ProductDetailPage({ product, onBack, onBuy }) {
                   </div>
               }
               {product.videos[0] && (
-                <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={60} /></span>
+                <span className="play-badge"><MatIcon name="play_arrow" size={58} /></span>
               )}
             </button>
           )}
         </div>
 
-        {/* Info row */}
+        {/* Product info */}
         <div className="pdp-info">
           <div className="product-icon"><img src={productIconForWithFallback(product.name)} alt="" /></div>
           <div className="pdp-info-text">
@@ -970,21 +1014,15 @@ function ProductDetailPage({ product, onBack, onBuy }) {
           </div>
         </div>
 
-        {/* Pricing grid + Buy button */}
-        {available && !pricingOpen ? (
-          <button className="primary buy-product pdp-buy" type="button"
-            onClick={() => setPricingOpen(true)}>
-            <LottieIcon src="/icons/new/buy-now-btn.json" size={22} />
-            Select Duration & Buy <MatIcon name="arrow_forward" size={17} />
-          </button>
-        ) : null}
-        {available && pricingOpen && (
-          <div className="duration-grid pricing-drop">
+        {/* Duration grid — always visible */}
+        <div className="pdp-section-label"><MatIcon name="timer" size={16} /> Select duration</div>
+        {available ? (
+          <div className="duration-grid">
             {product.pricing.slice(0, 8).map(item => (
               <button key={`${product.pid}-${item.label}`}
-                onClick={() => { setPricingOpen(false); onBuy({ product, duration: item }); }}>
+                onClick={() => onBuy({ product, duration: item })}>
                 <span className="duration-label-row">
-                  <LottieIcon src="/icons/new/timer.json" size={18} />{item.label}
+                  <MatIcon name="timer" size={16} />{item.label}
                 </span>
                 <b><MoneyDisplay value={item.price} /></b>
                 {item.originalPrice && item.originalPrice !== item.price &&
@@ -992,12 +1030,21 @@ function ProductDetailPage({ product, onBack, onBuy }) {
               </button>
             ))}
           </div>
+        ) : (
+          <p className="muted empty-state product-empty">Pricing unavailable</p>
         )}
-        {!available && <p className="muted empty-state product-empty">Pricing unavailable</p>}
 
-        {/* Features — at the bottom */}
+        {/* Buy callout */}
+        {available && (
+          <p className="pdp-buy-hint"><MatIcon name="savings" size={16} /> Tap a duration above to buy</p>
+        )}
+
+        {/* Features at bottom */}
         {product.features.length > 0 && (
-          <div className="feature-list pdp-features pdp-features-bottom">
+          <div className="pdp-section-label" style={{ marginTop: 22 }}><MatIcon name="card_giftcard" size={16} /> Features</div>
+        )}
+        {product.features.length > 0 && (
+          <div className="feature-list pdp-features">
             {product.features.map(f => (
               <div key={`${product.pid}-${f}`}>
                 <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
@@ -1027,10 +1074,10 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
     <div className="search-results-page">
       <div className="srp-topbar">
         <button className="srp-back" onClick={onBack} aria-label="Back">
-          <MatIcon name="arrow_back" size={22} />
+          <MatIcon name="arrow_back" size={20} />
         </button>
         <div className="srp-search-box">
-          <MatIcon name="search" size={18} />
+          <MatIcon name="search" size={16} />
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search product or PID" autoComplete="off" />
           {search && (
@@ -1046,13 +1093,13 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
       <div className="srp-list">
         {filtered.length === 0 && search.trim() && (
           <div className="srp-empty">
-            <MatIcon name="search_off" size={36} />
+            <MatIcon name="search" size={34} />
             <p className="muted">No products match "{search}"</p>
           </div>
         )}
         {filtered.length === 0 && !search.trim() && (
           <div className="srp-empty">
-            <MatIcon name="manage_search" size={36} />
+            <MatIcon name="search" size={34} />
             <p className="muted">Type to search products…</p>
           </div>
         )}
@@ -1076,7 +1123,7 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
                   <span className="srp-price">from <b>₹{minPrice}</b></span>
                 )}
               </div>
-              <MatIcon name="chevron_right" size={20} className="srp-arrow" />
+              <MatIcon name="arrow_forward" size={18} />
             </button>
           );
         })}
@@ -1108,6 +1155,7 @@ function ProductsView({ session, onBuy }) {
         if (!rule) return item;
         const basePrice = Number(item.price || 0);
         let finalPrice = basePrice;
+        // Reseller gets their own price if set
         if (isReseller && rule.resellerPrice !== '' && rule.resellerPrice !== undefined && rule.resellerPrice !== null) {
           finalPrice = Number(rule.resellerPrice);
         } else if (rule.price !== '' && rule.price !== undefined && rule.price !== null) {
@@ -1181,13 +1229,13 @@ function ProductsView({ session, onBuy }) {
   return (
     <div className="buy-view">
       <SectionTitle
-        title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>}
+        title={<><MatIcon name="shopping_cart" size={24} /> Buy Products</>}
         subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         {/* Search — opens full search page on click */}
         <button className="search-box search-box-tap" type="button" onClick={() => setSearchActive(true)}>
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
-          <span className="search-placeholder">Search product or PID</span>
+          <MatIcon name="search" size={16} />
+          <span className="search-placeholder">Search product</span>
         </button>
         <select className="product-select" value={filter} onChange={e => setFilter(e.target.value)}>
           {games.map(g => <option value={g} key={g}>{g === 'all' ? 'All' : g}</option>)}
@@ -1199,9 +1247,6 @@ function ProductsView({ session, onBuy }) {
           <option value="pc">PC</option>
           <option value="ios">iOS</option>
         </select>
-        <button className="icon-button reload-btn" onClick={load} aria-label="Refresh">
-          <MatIcon name="refresh" size={17} />
-        </button>
       </div>
 
       <div className="products-scroll-inner">
@@ -1229,7 +1274,6 @@ function ProductsView({ session, onBuy }) {
                     ? <img src={p.image} alt={p.name} loading="lazy" />
                     : <img src={productIconForWithFallback(p.name)} alt="" className="cpr-fallback-icon" />
                   }
-                  {p.videos[0] && <span className="cpr-play-dot"><MatIcon name="play_circle" size={13} /></span>}
                 </div>
                 <div className="cpr-meta">
                   <span className="cpr-name">{p.name}</span>
@@ -1238,10 +1282,10 @@ function ProductsView({ session, onBuy }) {
                     <span className="cpr-feats">{previewFeats.join(' · ')}</span>
                   )}
                   {minPrice !== null && (
-                    <span className="cpr-price">from <b>₹{minPrice}</b></span>
+                    <span className="cpr-price text-[15px]">from <b>₹{minPrice}</b></span>
                   )}
                 </div>
-                <MatIcon name="chevron_right" size={20} className="cpr-arrow" />
+                <span className="cpr-arrow"><MatIcon name="arrow_forward" size={18} /></span>
               </button>
             );
           })}
@@ -1258,10 +1302,10 @@ function ProductsView({ session, onBuy }) {
   );
 }
 
-/* ── PurchasePage — full-screen purchase flow ──────────────────── */
-function PurchasePage({ purchase, session, close, onPurchased }) {
+/* ── PurchaseDialog — real purchaseProduct() ────────────────────── */
+function PurchaseDialog({ purchase, session, close, onPurchased }) {
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(null); // { key, source }
 
   if (!purchase) return null;
   const { product, duration } = purchase;
@@ -1270,11 +1314,14 @@ function PurchasePage({ purchase, session, close, onPurchased }) {
     setBusy(true);
     try {
       const res = await purchaseProduct(
-        session.uid, product, duration, duration.price,
+        session.uid,
+        product,
+        duration,
+        duration.price,
         session.name || session.phone || session.uid,
       );
       setResult(res);
-      toast.success('✅ Purchase successful!', { description: `${product.name} · ${duration.duration || duration.label}` });
+      toast.success('Purchase successful!', { description: `${product.name} · ${duration.duration || duration.label}` });
       if (onPurchased) onPurchased();
     } catch (err) {
       toast.error(err.message);
@@ -1282,72 +1329,57 @@ function PurchasePage({ purchase, session, close, onPurchased }) {
     }
   };
 
-  const handleDone = () => { setResult(null); setBusy(false); close(); };
+  const handleClose = () => { setResult(null); setBusy(false); close(); };
 
   return (
-    <div className="product-detail-page">
-      <div className="pdp-topbar">
-        <button className="pdp-back" onClick={!busy ? close : undefined} aria-label="Back">
-          <MatIcon name="arrow_back" size={22} />
-        </button>
-        <span className="pdp-title">{result ? 'Done' : 'Checkout'}</span>
-      </div>
-      <div className="pdp-scroll">
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy && !result) close(); }}>
+      <section className="action-modal liquid-dialog">
         {result ? (
-          <div style={{textAlign:'center',padding:'40px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
-            <div className="purchase-result-icon">
-              <MatIcon name="check_circle" size={40} style={{color:'#146B2C'}} />
+          <>
+            <div className="dialog-title-row">
+              <MatIcon name="check_circle" size={24} />
+              <h2>Order placed!</h2>
             </div>
-            <h3 style={{color:'#1C1B1F',margin:0}}>Order placed!</h3>
-            <p className="muted" style={{margin:0}}>{product.name} · {duration.duration || duration.label}</p>
-            <div className="key-reveal-box" style={{width:'100%',textAlign:'left'}}>
-              <label>License key</label>
-              <code style={{wordBreak:'break-all'}}>{result.key}</code>
-              <button type="button" className="copy-key-btn"
-                onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
-                <MatIcon name="content_copy" size={15} /> Copy key
+            <p className="muted dialog-sub">{product.name} · {duration.duration || duration.label}</p>
+            <div className="key-reveal-box">
+              <label>Your license key</label>
+              <code>{result.key}</code>
+              <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
+                <MatIcon name="download" size={16} /> Copy key
               </button>
             </div>
-            <p className="muted" style={{fontSize:'0.75rem'}}>Source: {result.source === 'manual' ? 'Admin' : 'Reseller API'}</p>
-            <button className="primary buy-product" type="button" onClick={handleDone}
-              style={{width:'100%',padding:12,borderRadius:14,marginTop:8}}>
-              <MatIcon name="check" size={17} /> Done
-            </button>
-          </div>
+            <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
+            <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
+              <button className="modal-save" type="button" onClick={handleClose}><MatIcon name="check_circle" size={16} /> Done</button>
+            </div>
+          </>
         ) : (
-          <div>
+          <>
+            <h2><MatIcon name="check_circle" size={22} /> Confirm purchase</h2>
             <div className="purchase-summary">
               <div className="purchase-title">
-                <span className="muted" style={{fontSize:'0.8rem'}}>Product</span>
-                <strong style={{fontSize:'1rem',color:'#1C1B1F'}}>{product.name}</strong>
-                <small style={{color:'#49454F'}}>PID {product.pid}</small>
+                <span>Selected product</span>
+                <strong>{product.name}</strong>
+                <small>PID {product.pid}</small>
               </div>
-              <img src={productIconForWithFallback(product.name)} alt="" style={{width:48,height:48,borderRadius:10,border:'1px solid #CAC4D0',background:'#ECE6F0',padding:3}} />
+              <img src={productIconForWithFallback(product.name)} alt="" />
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14}}>
-              <div className="purchase-meta-item">
-                <span>Duration</span>
-                <strong>{duration.duration || duration.label}</strong>
-              </div>
-              <div className="purchase-meta-item">
-                <span>Price</span>
-                <strong><MoneyDisplay value={duration.price} /></strong>
-              </div>
-              <div className="purchase-meta-item" style={{gridColumn:'1/-1'}}>
-                <span>Platform</span>
-                <strong>{product.platform || 'Access key'}</strong>
-              </div>
+            <div className="purchase-meta-grid">
+              <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
+              <div><span><MatIcon name="timer" size={16} /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
+              <div><span><MatIcon name="account_balance_wallet" size={16} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
+              <div><span><MatIcon name="devices" size={16} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
-            <p className="purchase-note">
-              Balance will be deducted. Key delivered instantly.
-            </p>
-            <button type="button" onClick={close} disabled={busy} className="purchase-cancel-btn">Cancel</button>
-            <button className="primary purchase-confirm-btn" type="button" onClick={confirm} disabled={busy}>
-              {busy ? 'Processing…' : 'Confirm Buy'}
-            </button>
-          </div>
+            <p className="purchase-note"><MatIcon name="savings" size={16} /> Balance will be deducted. A key will be delivered instantly.</p>
+            <div className="modal-btn-row">
+              <button type="button" onClick={close} disabled={busy}><MatIcon name="close" size={16} /> Cancel</button>
+              <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
+                {busy ? 'Buying…' : <><video src="/icons/new/buy.webm" autoPlay loop muted playsInline style={{width:18,height:18,display:'inline-block',verticalAlign:'middle'}} /> Confirm buy</>}
+              </button>
+            </div>
+          </>
         )}
-      </div>
+      </section>
     </div>
   );
 }
@@ -1361,23 +1393,23 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
       <div className="glass-card profile-card">
         <img src={profile.photoData || logo} alt="Profile" />
         <div>
-          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} /></h3>
+          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<MatIcon name="verified_user" size={20} /></h3>
           <p className="muted">{profile.email || profile.phone || 'Verified account'}</p>
           <p className="muted">Balance <MoneyDisplay value={profile.balance} /> · {profile.status || 'active'}</p>
-          {profile.role === 'reseller' && <p className="muted" style={{color:'#c795ff',fontWeight:600,marginTop:4}}><LottieIcon src="/icons/new/verified-badge.json" size={16} /> Reseller account</p>}
+          {profile.role === 'reseller' && <p className="muted" style={{color:'#c795ff',fontWeight:600,marginTop:4}}><MatIcon name="verified_user" size={16} /> Reseller account</p>}
         </div>
       </div>
       <div className="glass-card profile-actions">
         <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
-        <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
+        <button className="has-lottie" onClick={() => openDialog('password')}><MatIcon name="lock" size={22} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
-        <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
+        <button className="has-lottie" onClick={() => setGiftOpen(true)}><MatIcon name="card_giftcard" size={22} />Gift code</button>
         {profile.role !== 'reseller' && (
           <button className="has-lottie reseller-profile-btn" onClick={onResellerBenefits}>
-            <LottieIcon src="/icons/new/verified-badge.json" size={22} /> Unlock Reseller
+            <MatIcon name="verified_user" size={20} /> Unlock Reseller
           </button>
         )}
-        <button className="has-lottie" onClick={onShowPerf}><LottieIcon src="/icons/new/crown.json" size={24} />Device Performance</button>
+        <button className="has-lottie" onClick={onShowPerf}><MatIcon name="workspace_premium" size={22} />Device Performance</button>
         <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
         <p className="version-tag">V1.1</p>
       </div>
@@ -1404,7 +1436,7 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
     try {
       const res = await redeemGiftCode(uid, name, phone, code);
       setResult(res);
-      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={22} /> });
+      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <MatIcon name="card_giftcard" size={20} /> });
       setCode('');
       getUserGiftRedemptions(uid).then(setHistory).catch(() => {});
     } catch (err) { toast.error(err.message); }
@@ -1415,22 +1447,22 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="action-modal liquid-dialog" style={{ maxWidth: 420 }}>
         <div className="dialog-title-row">
-          <LottieIcon src="/icons/new/gift-code.json" size={24} />
+          <MatIcon name="card_giftcard" size={22} />
           <h2>Gift code</h2>
-          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><LottieIcon src="/icons/new/close-emoji.json" size={22} /></button>
+          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><MatIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={redeem} style={{ margin: '8px 0 14px' }}>
-          <div className="gift-input-row">
-            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter code" maxLength={10} required className="gift-input-wide" />
+           <div className="gift-input-row">
+             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter code" maxLength={10} required className="gift-input-wide" />
             <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
-              {busy ? '…' : 'Redeem'}
+              {busy ? '…' : <><MatIcon name="check_circle" size={16} /> Redeem</>}
             </button>
           </div>
         </form>
 
         {result && (
           <div className="gift-result-card">
-            <LottieIcon src="/icons/new/verified-badge.json" size={24} />
+            <MatIcon name="verified_user" size={22} />
             <div>
               <strong>₹{result.amount} credited!</strong>
               <p className="muted">Code: {result.code}</p>
@@ -1439,14 +1471,14 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
         )}
 
         <h4 style={{ display:'flex', alignItems:'center', gap: 6, margin:'14px 0 6px' }}>
-          <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
+          <MatIcon name="history" size={16} /> Redemption history
         </h4>
         {history.length === 0
           ? <p className="muted empty-state">No redemptions yet</p>
           : <div className="gift-history-list">{
             history.map((h, i) => (
               <div key={i} className="gift-history-row">
-                <LottieIcon src="/icons/new/gift-code.json" size={18} />
+                <MatIcon name="card_giftcard" size={16} />
                 <div className="tx-main">
                   <strong>{h.code}</strong>
                   <span>{fmtDate(h.redeemedAt)}</span>
@@ -1469,7 +1501,7 @@ function GiftCodeUsersDialog({ gc, onClose }) {
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="action-modal liquid-dialog" style={{ maxWidth: 400 }}>
         <div className="dialog-title-row">
-          <LottieIcon src="/icons/new/gift-code.json" size={22} />
+          <MatIcon name="card_giftcard" size={20} />
           <h2>Code: {gc.code}</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
@@ -1537,38 +1569,27 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}>
       {type === 'edit' && (
         <form className="action-modal liquid-dialog" onSubmit={saveProfile}>
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/edit-title-emoji.json" size={24} /><h2>Edit profile</h2></div>
-          <label>
-            <MatIcon name="badge" size={18} /> Display name
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" />
-          </label>
-          <label className="readonly-field">
-            <img src="/icons/new/phone-emoji.json" style={{width:18,height:18,objectFit:'contain',filter:'brightness(0) opacity(0.5)'}} alt="" /> Phone
-            <span className="readonly-value">{profile.phone || '—'}</span>
-          </label>
-          <label className="readonly-field">
-            <MatIcon name="email" size={18} /> Email
-            <span className="readonly-value">{profile.email || '—'}</span>
-          </label>
+          <div className="dialog-title-row"><MatIcon name="edit" size={22} /><h2>Edit profile</h2></div>
+          <label>Display name<input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" /></label>
           <label className="file-upload-label">
             <LottieIcon src="/icons/new/edit-profile.json" size={22} /> Profile image
             <input type="file" accept="image/*" onChange={pickPhoto} style={{ display: 'none' }} />
           </label>
           {photoData && <img src={photoData} alt="Preview" className="photo-preview" />}
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Save changes</button>
+            <button type="button" onClick={close}><MatIcon name="close" size={16} /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><MatIcon name="save" size={16} /> Save changes</button>
           </div>
         </form>
       )}
       {type === 'password' && (
         <form className="action-modal liquid-dialog" onSubmit={savePassword}>
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/lock-emoji.json" size={24} /><h2>Change password</h2></div>
-          <label><LottieIcon src="/icons/new/key-emoji.json" size={18} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
-          <label><LottieIcon src="/icons/new/new-password-emoji.json" size={18} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
+          <div className="dialog-title-row"><MatIcon name="lock" size={22} /><h2>Change password</h2></div>
+          <label><MatIcon name="key" size={16} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
+          <label><MatIcon name="lock" size={16} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Change</button>
+            <button type="button" onClick={close}><MatIcon name="close" size={16} /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><MatIcon name="save" size={16} /> Change</button>
           </div>
         </form>
       )}
@@ -1578,8 +1599,8 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
           <p>This key enables Bot login. Keep it private.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Close</button>
-            <button className="modal-save has-lottie" type="button" onClick={resetApi}><LottieIcon src="/icons/new/refresh-emoji.json" size={18} /> Reset key</button>
+            <button type="button" onClick={close}><MatIcon name="close" size={16} /> Close</button>
+            <button className="modal-save has-lottie" type="button" onClick={resetApi}><MatIcon name="refresh" size={16} /> Reset key</button>
           </div>
         </section>
       )}
@@ -1588,7 +1609,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           <div className="dialog-title-row"><LottieIcon src="/icons/new/logout-flash.json" size={24} /><h2>Logout?</h2></div>
           <p>Your local session will be removed from this browser.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+            <button type="button" onClick={close}><MatIcon name="close" size={16} /> Cancel</button>
             <button className="modal-danger" type="button" onClick={onLogout}>Logout</button>
           </div>
         </section>
@@ -1843,7 +1864,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
           })}
         </div>
         <div className="modal-btn-row">
-          <button type="button" onClick={onClose} disabled={saving}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+          <button type="button" onClick={onClose} disabled={saving}><MatIcon name="close" size={16} /> Cancel</button>
           <button className="modal-save" type="button" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : <><MatIcon name="check" size={17} /> Save pricing</>}
           </button>
@@ -2057,7 +2078,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Manage users</h3>
         <div className="search-box admin-search">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <MatIcon name="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, phone, email" />
         </div>
         <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => { await adminAdjustUserFund(fundForm.uid, fundForm.amount, fundForm.mode); setFundForm({ uid: '', amount: '', mode: 'add' }); }, 'User fund updated'); }}>
@@ -2112,7 +2133,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
         <div className="search-box admin-search">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <MatIcon name="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
         <AdminList items={filteredProducts} empty="No API products loaded" render={product => (
@@ -2133,28 +2154,28 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="heading-title-row">
-            <LottieIcon src="/icons/new/gift-code.json" size={24} />
+            <MatIcon name="card_giftcard" size={22} />
             <div><h3>Gift codes</h3><p className="muted">Create and manage gift codes for users</p></div>
           </div>
         </div>
         <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => {
           const res = await adminCreateGiftCode(gcAmount, gcMaxRedeems);
           setGcAmount(''); setGcMaxRedeems('1');
-          toast.success(`Gift code ${res.code} created for ₹${res.amount}`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={20} /> });
+          toast.success(`Gift code ${res.code} created for ₹${res.amount}`, { icon: <MatIcon name="card_giftcard" size={18} /> });
         }, 'Gift code created'); }}>
           <div style={{display:'flex',alignItems:'center',gap:6,flex:1}}>
-            <LottieIcon src="/icons/new/rupee-emoji.json" size={18} />
+            <MatIcon name="currency_rupee" size={16} />
             <input value={gcAmount} onChange={e => setGcAmount(e.target.value)} placeholder="Amount" inputMode="numeric" required style={{flex:1}} />
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
             <MatIcon name="people" size={18} />
             <input value={gcMaxRedeems} onChange={e => setGcMaxRedeems(e.target.value)} placeholder="Max users" inputMode="numeric" style={{width:60}} />
           </div>
-          <button className="modal-save" type="submit"><LottieIcon src="/icons/new/gift-code.json" size={16} /> Create</button>
+          <button className="modal-save" type="submit"><MatIcon name="card_giftcard" size={16} /> Create</button>
         </form>
         <AdminList items={giftCodes} empty="No gift codes created yet" render={gc => (
           <AdminRow
-            title={<span style={{display:'flex',alignItems:'center',gap:6}}><LottieIcon src="/icons/new/gift-code.json" size={16} /> {gc.code}</span>}
+            title={<span style={{display:'flex',alignItems:'center',gap:6}}><MatIcon name="card_giftcard" size={16} /> {gc.code}</span>}
             meta={`₹${gc.amount} · ${gc.totalRedeemed || 0}/${gc.maxRedeems} used · ${fmtDate(gc.createdAt)}`}
             status={gc.active ? '🟢 Active' : '🔴 Exhausted'}
           >
@@ -2344,7 +2365,7 @@ function AdminPage({ session, onSessionChange }) {
         <h3>Site status</h3>
         <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => setSiteStatus(siteStatus, siteStatusMsg), 'Site status updated'); }}>
           <label>
-            <LottieIcon src="/icons/new/shield-verify.json" size={16} /> Status
+            <MatIcon name="security" size={16} /> Status
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <MatIcon name={siteStatus === 'operational' ? 'check_circle' : 'warning'} size={18} style={{ color: siteStatus === 'operational' ? '#74e0a5' : '#ff7089' }} />
               <select value={siteStatus} onChange={e => setSiteStatus(e.target.value)} style={{ flex: 1 }}>
@@ -2357,7 +2378,7 @@ function AdminPage({ session, onSessionChange }) {
             <LottieIcon src="/icons/new/bell.json" size={16} /> Banner message
             <textarea value={siteStatusMsg} onChange={e => setSiteStatusMsg(e.target.value)} placeholder="e.g. Site is completely fine. You can purchase now." rows={2} style={{ marginTop: 4 }} />
           </label>
-          <button className="modal-save" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={16} /> Update status</button>
+          <button className="modal-save" type="submit"><MatIcon name="check_circle" size={16} /> Update status</button>
         </form>
       </div>
       <div className="admin-card">
@@ -2371,7 +2392,7 @@ function AdminPage({ session, onSessionChange }) {
             </div>
           </label>
           <label>
-            <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Minimum deposit
+            <MatIcon name="currency_rupee" size={16} /> Minimum deposit
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <MatIcon name="account_balance_wallet" size={18} />
               <input value={minDeposit} onChange={e => setMinDeposit(e.target.value)} placeholder="50" inputMode="numeric" style={{ flex: 1 }} />
@@ -2412,7 +2433,7 @@ function AdminPage({ session, onSessionChange }) {
             {adminTabs.map(({ id, label, icon }) => (
               <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
                 {id === 'issues' ? <LottieIcon src="/icons/new/feat-crystal-skull.json" size={20} /> :
-                 id === 'gift-codes' ? <LottieIcon src="/icons/new/gift-code.json" size={20} /> :
+                 id === 'gift-codes' ? <MatIcon name="card_giftcard" size={18} /> :
                  <MatIcon name={icon} size={18} />}
                 <span>{label}</span>
               </button>
@@ -2448,7 +2469,7 @@ function AdminLocked({ iconName, title, text, action }) {
         <MatIcon name={iconName} size={32} />
         <h1>{title}</h1>
         <p className="muted">{text}</p>
-        <button className="buy-product" onClick={() => window.location.assign('/low/')}>{action}</button>
+        <button className="buy-product" onClick={() => window.location.assign('/')}>{action}</button>
       </section>
     </main>
   );
@@ -2547,11 +2568,12 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'amount' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link" onClick={goBack}>
-                <MatIcon name="arrow_back" size={20} />
+              <button className="back-link emoji-back mb-[5px]" onClick={goBack}>
+                <MatIcon name="arrow_back" size={26} />
               </button>
               <h2>{isResellerUnlock ? 'Unlock Reseller Panel' : 'Add funds'}</h2>
             </div>
+            {/* Reseller unlock banner — only when not already a reseller */}
             {paySettings.resellerPrice > 0 && profile?.role !== 'reseller' && !isResellerUnlock && (
               <div className="reseller-unlock-banner glass-card">
                 <div className="reseller-unlock-header">
@@ -2573,12 +2595,12 @@ function AddFundPage({ session, onSessionChange }) {
                     <p className="muted" style={{fontSize:12}}>Admin will verify your payment and activate reseller privileges.</p>
                   </div>
                   <button className="deposit-proceed-btn" type="button" onClick={() => { setStep('qr'); }}>
-                    <MatIcon name="payment" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                    <MatIcon name="arrow_forward" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="muted deposit-label"><MatIcon name="payments" size={20} /> Choose amount</p>
+                  <p className="muted deposit-label"><MatIcon name="attach_money" size={18} /> Choose amount</p>
                   <div className="quick-amounts">
                     {quickAmounts.map(a => (
                       <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
@@ -2586,13 +2608,13 @@ function AddFundPage({ session, onSessionChange }) {
                       </button>
                     ))}
                   </div>
-                  <p className="muted deposit-hint"><MatIcon name="info" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
+                  <p className="muted deposit-hint"><MatIcon name="monetization_on" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
                   <hr className="deposit-divider" />
                   <form onSubmit={handleAmountNext}>
-                    <label htmlFor="dep-amount"><MatIcon name="edit" size={18} /> <MatIcon name="currency_rupee" size={14} /> Custom amount</label>
+                    <label htmlFor="dep-amount"><MatIcon name="edit" size={16} /> <MatIcon name="currency_rupee" size={16} /> Custom amount</label>
                     <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={'Min ' + money(paySettings.minDeposit)} required />
                     <button className="deposit-proceed-btn" type="submit">
-                      <MatIcon name="payment" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                      <MatIcon name="arrow_forward" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                     </button>
                   </form>
                 </>
@@ -2605,13 +2627,13 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'qr' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link" onClick={() => setStep('amount')}>
-                <MatIcon name="arrow_back" size={20} />
+              <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('amount')}>
+                <MatIcon name="arrow_back" size={26} />
               </button>
               <h2>Scan &amp; Pay</h2>
             </div>
-            <p className="deposit-label"><MatIcon name="send" size={18} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
-            <p className="upi-id-display"><MatIcon name="account_balance" size={20} /> {paySettings.upiId}</p>
+            <p className="deposit-label"><MatIcon name="send" size={16} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
+            <p className="upi-id-display"><MatIcon name="account_balance" size={18} /> {paySettings.upiId}</p>
             {qrUrl && (
               <div className="qr-wrap">
                 <img className="qr-image" src={qrUrl} alt="UPI QR code" />
@@ -2631,7 +2653,7 @@ function AddFundPage({ session, onSessionChange }) {
                 <SiPaytm size={20} /> Paytm
               </a>
             </div>
-            <p className="muted qr-hint"><MatIcon name="info" size={16} /> Tap an app to pay directly, or scan the QR above <MatIcon name="info" size={16} /></p>
+            <p className="muted qr-hint"><LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /> Tap an app to pay directly, or scan the QR above <LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /></p>
             <button className="deposit-paid-btn" type="button" onClick={() => setStep('confirm')}>
               I have paid <MatIcon name="check_circle" size={24} />
             </button>
@@ -2642,8 +2664,8 @@ function AddFundPage({ session, onSessionChange }) {
         {step === 'confirm' && (
           <div className="deposit-page">
             <div className="deposit-page-header">
-              <button className="back-link" onClick={() => setStep('qr')}>
-                <MatIcon name="arrow_back" size={20} />
+              <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('qr')}>
+                <MatIcon name="arrow_back" size={26} />
               </button>
               <h2>{isResellerUnlock ? 'Confirm Reseller Unlock' : 'Confirm payment'}</h2>
             </div>
@@ -2694,8 +2716,7 @@ function usePathname() {
 }
 
 function navigate(to) {
-  const next = to.startsWith('/low') ? to : `/low${to === '/' ? '/' : to}`;
-  window.history.pushState(null, '', next);
+  window.history.pushState(null, '', to);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
@@ -2703,12 +2724,15 @@ function navigate(to) {
 function App() {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [siteStatus, setSiteStatus] = useState({ status: 'operational', message: '' });
+  const [perfMode, setPerfMode] = useState(() => {
+    if (localStorage.getItem('perf_dont_ask') === '1') return localStorage.getItem('perf_mode') || 'high';
+    return null;
+  });
   const [session, setSession] = useState(() => {
     try { return JSON.parse(localStorage.getItem('app_session') || 'null'); } catch { return null; }
   });
   const path = usePathname();
-  const appPath = path.startsWith('/low') ? (path.slice(4) || '/') : path;
-  const knownPath = appPath === '/' || appPath === '/admin' || appPath === '/add-fund';
+  const knownPath = path === '/' || path === '/admin' || path === '/add-fund';
 
   useEffect(() => { initSecurity(); }, []);
 
@@ -2749,18 +2773,23 @@ function App() {
     return () => { active = false; };
   }, []);
 
-  if (!online) return <ErrorTv mode="offline" />;
-  if (!knownPath) return <ErrorTv mode="404" />;
-  if (!session) return <><Login onSuccess={updateSession} siteStatus={siteStatus} /><Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} /></>;
-  if (appPath === '/admin') return <AdminPage session={session} onSessionChange={updateSession} />;
-  if (appPath === '/add-fund') return <AddFundPage session={session} onSessionChange={updateSession} />;
+  const perfValue = perfMode || 'high';
+  if (!online) return <PerfCtx.Provider value={perfValue}><ErrorTv mode="offline" /></PerfCtx.Provider>;
+  if (!knownPath) return <PerfCtx.Provider value={perfValue}><ErrorTv mode="404" /></PerfCtx.Provider>;
+  if (!session) return <PerfCtx.Provider value={perfValue}><Login onSuccess={updateSession} siteStatus={siteStatus} /><Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} /></PerfCtx.Provider>;
+  if (path === '/admin') return <PerfCtx.Provider value={perfValue}><AdminPage session={session} onSessionChange={updateSession} /></PerfCtx.Provider>;
+  if (path === '/add-fund') return <PerfCtx.Provider value={perfValue}><AddFundPage session={session} onSessionChange={updateSession} /></PerfCtx.Provider>;
   return (
-    <Dashboard
-      session={session}
-      onSessionChange={updateSession}
-      onLogout={logout}
-      siteStatus={siteStatus}
-    />
+    <PerfCtx.Provider value={perfValue}>
+      <Dashboard
+        session={session}
+        onSessionChange={updateSession}
+        onLogout={logout}
+        siteStatus={siteStatus}
+        perfMode={perfMode}
+        onPerfSelect={setPerfMode}
+      />
+    </PerfCtx.Provider>
   );
 }
 
@@ -2810,7 +2839,7 @@ function ErrorTv({ mode }) {
         <img src={logo} alt="Brand logo" />
         <h1>{is404 ? 'Page not found' : 'You are offline'}</h1>
         <p>{is404 ? 'This route does not exist. Go back to the main app.' : 'Please check your internet connection and try again.'}</p>
-        <button className="buy-product error-action" onClick={() => is404 ? window.location.assign('/low/') : window.location.reload()}>
+        <button className="buy-product error-action" onClick={() => is404 ? window.location.assign('/') : window.location.reload()}>
           {is404 ? 'Go Home' : 'Retry'}
         </button>
       </div>
@@ -2835,23 +2864,23 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
   };
 
   const benefits = [
-    { icon: 'crown.json', label: 'Discounted prices', desc: 'Get exclusive lower prices on all products compared to regular users.' },
-    { icon: 'shopping-cart.json', label: 'Resell & earn', desc: 'Purchase at reseller prices and sell to others at your own markup.' },
-    { icon: 'gift-code.json', label: 'Bulk purchasing', desc: 'Buy in bulk quantities with special bulk pricing tiers.' },
-    { icon: 'shield-verify.json', label: 'Priority support', desc: 'Get faster response times and dedicated priority support.' },
-    { icon: 'active-keys.json', label: 'Early access', desc: 'Be first to access new products before they launch publicly.' },
-    { icon: 'verified-badge.json', label: 'Reseller badge', desc: 'Stand out with an exclusive reseller badge on your profile.' },
+    { emoji: 'crown.json', label: 'Discounted prices', desc: 'Get exclusive lower prices on all products compared to regular users.' },
+    { emoji: 'shopping-cart.json', label: 'Resell & earn', desc: 'Purchase at reseller prices and sell to others at your own markup.' },
+    { emoji: 'gift-code.json', label: 'Bulk purchasing', desc: 'Buy in bulk quantities with special bulk pricing tiers.' },
+    { emoji: 'shield-verify.json', label: 'Priority support', desc: 'Get faster response times and dedicated priority support.' },
+    { emoji: 'active-keys.json', label: 'Early access', desc: 'Be first to access new products before they launch publicly.' },
+    { emoji: 'verified-badge.json', label: 'Reseller badge', desc: 'Stand out with an exclusive reseller badge on your profile.' },
   ];
 
   return (
     <div className={`reseller-benefits-backdrop ${visible ? 'visible' : ''}`} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) handleClose(); }}>
       <section className={`reseller-benefits-dialog ${visible ? 'visible' : ''}`}>
         <button className="reseller-benefits-close" onClick={handleClose} aria-label="Close">
-          <MatIcon name="close" size={20} />
+          <MatIcon name="close" size={16} />
         </button>
 
         <div className="reseller-benefits-header">
-          <LottieIcon src="/icons/new/verified-badge.json" size={42} />
+          <MatIcon name="verified_user" size={40} />
           <h2>Reseller Panel</h2>
           <span className="reseller-badge" style={{fontSize:11,padding:'3px 12px'}}>PREMIUM</span>
         </div>
@@ -2864,7 +2893,7 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
           {benefits.map((b, i) => (
             <div key={i} className="reseller-benefit-item" style={{animationDelay: `${0.1 + i * 0.05}s`}}>
               <div className="reseller-benefit-icon">
-                <LottieIcon src={`/icons/new/${b.icon}`} size={24} />
+                <LottieIcon src={`/icons/new/${b.emoji}`} size={24} />
               </div>
               <div className="reseller-benefit-text">
                 <strong>{b.label}</strong>
@@ -2880,7 +2909,7 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
             Don't show again
           </label>
           <button className="reseller-unlock-btn" onClick={onUnlock}>
-            <LottieIcon src="/icons/new/verified-check.json" size={22} />
+            <MatIcon name="check_circle" size={20} />
             {resellerPrice > 0 ? `Unlock for ${money(resellerPrice)}` : 'Unlock now'}
           </button>
           <p className="muted" style={{fontSize:11,marginTop:6}}>One-time payment · No recurring fees</p>

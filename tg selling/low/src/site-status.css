@@ -1,0 +1,74 @@
+/* ── Site Status Banner ───────────────────────────────────────── */
+.site-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 520px;
+  width: 90%;
+  backdrop-filter: blur(18px) saturate(155%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  animation: banner-slide-in .5s cubic-bezier(.16,1,.28,1) both;
+  pointer-events: auto;
+}
+
+.site-status-banner.down {
+  background: linear-gradient(135deg, rgba(255,112,137,.22), rgba(255,112,137,.08) 60%, rgba(0,0,0,.3));
+  border: 1px solid rgba(255,112,137,.3);
+  color: #ffe0e6;
+}
+
+.site-status-banner.ok {
+  background: linear-gradient(135deg, rgba(116,224,165,.2), rgba(116,224,165,.08) 60%, rgba(0,0,0,.3));
+  border: 1px solid rgba(116,224,165,.3);
+  color: #d4f5e0;
+}
+
+.site-status-banner span {
+  flex: 1;
+}
+
+@keyframes banner-slide-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(.95); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* ── Admin Alerts ──────────────────────────────────────────────── */
+.admin-alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  background: rgba(255,112,137,.08);
+  border: 1px solid rgba(255,112,137,.15);
+}
+
+.admin-alert-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-alert-info > div {
+  min-width: 0;
+}
+
+.admin-alert-info strong {
+  display: block;
+  color: #ffb3c1;
+  font-size: 13px;
+}
+
+.admin-alert-info p {
+  margin: 2px 0 0;
+  font-size: 11px;
+}
