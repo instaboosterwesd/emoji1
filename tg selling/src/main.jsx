@@ -1421,7 +1421,7 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
           </button>
         )}
         <button className="has-lottie" onClick={onShowPerf}><DeviceIcon emoji="/icons/new/crown.json" icon="crown" size={22} />Device Performance</button>
-        <button className="danger has-lottie bg-[#c22b2b99] border-t-[#ffffff] border-r-[#ffffff] border-b-[#ffffff] border-l-[#ffffff]" onClick={() => openDialog('logout')}><DeviceIcon emoji="/icons/new/logout-flash.json" icon="logout-flash" size={24} />Logout</button>
+        <button className="danger has-lottie logout-btn" onClick={() => openDialog('logout')}><DeviceIcon emoji="/icons/new/logout-flash.json" icon="logout-flash" size={24} />Logout</button>
         <p className="version-tag">V1.1</p>
       </div>
       {giftOpen && <GiftCodeDialog uid={profile.uid} name={profile.name} phone={profile.phone} onClose={() => setGiftOpen(false)} />}
