@@ -37,6 +37,7 @@ import {
   createCashfreeOrder,
   verifyCashfreeOrder,
   getUserTransactions,
+  subscribeUserTransactions,
   getUserLicenseKeys,
   getAdminPricingRules,
   adminAddManualKey,
@@ -674,8 +675,11 @@ function WalletView({ session, profile, refreshProfile }) {
   }, [session.uid]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => subscribeUserTransactions(session.uid, setTransactions), [session.uid]);
 
   const txIcon = type => {
+    if (type === 'deposit_pending' || type === 'reseller_unlock_pending') return 'schedule';
+    if (type === 'deposit_rejected') return 'cancel';
     if (type === 'deposit_approved') return 'add_circle';
     if (type === 'gateway_deposit') return 'payment';
     if (type === 'purchase') return 'shopping_cart';
@@ -684,6 +688,8 @@ function WalletView({ session, profile, refreshProfile }) {
   };
 
   const txColor = type => {
+    if (type === 'deposit_pending' || type === 'reseller_unlock_pending') return '#fbbf24';
+    if (type === 'deposit_rejected') return '#f87171';
     if (type === 'deposit_approved' || type === 'gateway_deposit' || type === 'admin_add') return '#4ade80';
     if (type === 'purchase' || type === 'admin_subtract') return '#f87171';
     return '#94a3b8';
@@ -724,6 +730,8 @@ function WalletView({ session, profile, refreshProfile }) {
                         ? <img src={productIconForWithFallback((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
                          : tx.type === 'deposit_approved' || tx.type === 'gateway_deposit'
                           ? <DeviceIcon emoji="/icons/new/add-funds-plus.json" icon="add" size={20} />
+                          : tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending'
+                            ? <MatIcon name="schedule" size={18} style={{ color: '#fbbf24' }} />
                           : tx.type === 'admin_add'
                             ? <DeviceIcon emoji="/icons/new/topup-emoji.json" icon="add_box" size={20} />
                             : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
@@ -733,7 +741,11 @@ function WalletView({ session, profile, refreshProfile }) {
                       <span>{fmtDate(tx.createdAt)}</span>
                     </div>
                     <b className="tx-amount" style={{ color: txColor(tx.type) }}>
-                       {(tx.type === 'deposit_approved' || tx.type === 'gateway_deposit' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} />
+                       {tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending'
+                         ? 'Pending'
+                         : tx.type === 'deposit_rejected'
+                           ? 'Rejected'
+                           : <>{(tx.type === 'deposit_approved' || tx.type === 'gateway_deposit' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} /></>}
                     </b>
                   </div>
                 ))}
@@ -1679,13 +1691,13 @@ function UserHistoryDialog({ user, onClose }) {
             <div className="history-scroll">
               {transactions.length === 0 ? <p className="muted empty-state">No transactions</p> : transactions.slice(0, 30).map(tx => (
                 <div className="tx-row compact" key={tx.id}>
-                  <MatIcon name={tx.type === 'deposit_approved' ? 'add_circle' : 'shopping_cart'} size={15} style={{ filter: 'invert(0.6)' }} />
+                  <MatIcon name={tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? 'schedule' : tx.type === 'deposit_approved' ? 'add_circle' : tx.type === 'deposit_rejected' ? 'cancel' : 'shopping_cart'} size={15} style={{ filter: 'invert(0.6)' }} />
                   <div className="tx-main">
                     <strong>{tx.note || tx.type}</strong>
                     <span>{fmtDate(tx.createdAt)}</span>
                   </div>
-                  <b style={{ color: tx.type === 'purchase' ? '#f87171' : '#4ade80', fontSize: '0.85rem' }}>
-                    {tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} />
+                  <b style={{ color: tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? '#fbbf24' : tx.type === 'deposit_rejected' || tx.type === 'purchase' ? '#f87171' : '#4ade80', fontSize: '0.85rem' }}>
+                    {tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? 'Pending' : tx.type === 'deposit_rejected' ? 'Rejected' : <>{tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} /></>}
                   </b>
                 </div>
               ))}

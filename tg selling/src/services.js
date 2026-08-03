@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { getDatabase, get, ref, set, update, runTransaction } from 'firebase/database';
+import { getDatabase, get, ref, set, update, runTransaction, onValue } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -452,9 +452,14 @@ export async function adminUpdatePaymentRequest(requestId, status) {
   if (existingRequestSnap.exists() && existingRequestSnap.val()?.method === 'Cashfree') {
     throw new Error('Cashfree payments are auto-approved after gateway verification.');
   }
+  const request = existingRequestSnap.exists() ? existingRequestSnap.val() : null;
+  const pendingTransactionId = request?.transactionId || `tx_pending_${requestId}`;
+
+  // Keep approval idempotent. A repeated admin action must not credit the wallet twice.
+  if (request?.status === 'approved' && status === 'approved') return true;
+
   if (status === 'approved') {
-    if (existingRequestSnap.exists()) {
-      const request = existingRequestSnap.val();
+    if (request) {
       const uid = request.uid;
       const amount = Number(request.amount || 0);
       if (uid && amount > 0) {
@@ -470,10 +475,10 @@ export async function adminUpdatePaymentRequest(requestId, status) {
         }
         await update(ref(firebaseDb, `users/${uid}`), updates);
         const txType = request.type === 'reseller' ? 'reseller_unlock' : 'deposit_approved';
-        const txId = `tx_dep_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        await set(ref(firebaseDb, `transactions/${txId}`), {
+        await update(ref(firebaseDb, `transactions/${pendingTransactionId}`), {
           uid,
           type: txType,
+          status: 'approved',
           amount,
           before: currentBalance,
           after: newBalance,
@@ -481,12 +486,30 @@ export async function adminUpdatePaymentRequest(requestId, status) {
             ? `Reseller panel unlocked (request ${requestId})`
             : `Deposit approved (request ${requestId})`,
           method: request.method || 'UPI',
-          createdAt: Date.now(),
+          paymentRequestId: requestId,
+          createdAt: request.createdAt || Date.now(),
+          approvedAt: Date.now(),
         });
       }
     }
   }
-  await update(ref(firebaseDb, `paymentRequests/${requestId}`), { status, updatedAt: Date.now() });
+  if (status === 'rejected' && request) {
+    await update(ref(firebaseDb, `transactions/${pendingTransactionId}`), {
+      uid: request.uid,
+      type: 'deposit_rejected',
+      status: 'rejected',
+      amount: Number(request.amount || 0),
+      note: `Deposit rejected (request ${requestId})`,
+      method: request.method || 'UPI',
+      paymentRequestId: requestId,
+      updatedAt: Date.now(),
+    });
+  }
+  await update(ref(firebaseDb, `paymentRequests/${requestId}`), {
+    status,
+    transactionId: pendingTransactionId,
+    updatedAt: Date.now(),
+  });
   return true;
 }
 
@@ -513,15 +536,32 @@ export async function createPaymentRequest(uid, amount, senderUpi, userName, typ
   if (!value) throw new Error('Enter a valid deposit amount.');
   if (!senderUpi?.trim()) throw new Error('Enter your UPI/UTR number.');
   const id = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  await set(ref(firebaseDb, `paymentRequests/${id}`), {
-    uid,
-    user: userName || uid,
-    amount: value,
-    method: 'UPI',
-    senderUpi: senderUpi.trim(),
-    type: type || 'deposit',
-    status: 'pending',
-    createdAt: Date.now(),
+  const transactionId = `tx_pending_${id}`;
+  const now = Date.now();
+  await update(ref(firebaseDb), {
+    [`paymentRequests/${id}`]: {
+      uid,
+      user: userName || uid,
+      amount: value,
+      method: 'UPI',
+      senderUpi: senderUpi.trim(),
+      type: type || 'deposit',
+      status: 'pending',
+      transactionId,
+      createdAt: now,
+    },
+    [`transactions/${transactionId}`]: {
+      uid,
+      type: type === 'reseller' ? 'reseller_unlock_pending' : 'deposit_pending',
+      status: 'pending',
+      amount: value,
+      note: type === 'reseller'
+        ? `Reseller unlock pending approval (request ${id})`
+        : `Deposit pending approval (request ${id})`,
+      method: 'UPI',
+      paymentRequestId: id,
+      createdAt: now,
+    },
   });
   return id;
 }
@@ -631,6 +671,18 @@ export async function getUserTransactions(uid) {
   return toArray(snap.val())
     .filter(tx => tx.uid === uid)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export function subscribeUserTransactions(uid, onChange) {
+  if (!firebaseDb || !uid || typeof onChange !== 'function') return () => {};
+  return onValue(ref(firebaseDb, 'transactions'), snap => {
+    const transactions = snap.exists()
+      ? toArray(snap.val())
+        .filter(tx => tx.uid === uid)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      : [];
+    onChange(transactions);
+  });
 }
 
 export async function getUserLicenseKeys(uid) {
