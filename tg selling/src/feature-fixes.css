@@ -2784,3 +2784,142 @@ html.perf-low .pdp-media {
 }
 html.perf-low .pdp-name { color: #1C1B1F !important; }
 html.perf-low .pdp-meta { color: #49454F !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LOW-PERF ICON FIX — ALL BLANK ICONS
+   MatIcon and low-perf LottieIcon both render <img src="/icons/material/*.svg">
+   The SVGs use stroke="currentColor". On dark theme the global .mat-icon filter
+   (invert 0.85) makes them white; on low-perf light bg we must make them dark.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 1. Reset the GLOBAL .mat-icon invert filter in low-perf mode */
+html.perf-low .mat-icon {
+  filter: none !important;
+}
+/* Set a baseline dark color so all .mat-icon images are visible on light bg */
+html.perf-low .mat-icon,
+html.perf-low img[src*="/icons/material/"] {
+  color: #1C1B1F !important;
+}
+
+/* 2. Force ALL material SVG images to be dark in low-perf mode.
+   This catches every MatIcon and every low-perf LottieIcon at once. */
+html.perf-low img[src*="/icons/material/"] {
+  filter: brightness(0) opacity(0.65) !important;
+}
+
+/* 3. EXCEPTIONS — places where icons must stay white/light on colored buttons */
+
+/* Buy Now buttons (purple bg) — icons must be white/light */
+html.perf-low .primary.buy-product img[src*="/icons/material/"],
+html.perf-low .pdp-buy img[src*="/icons/material/"] {
+  filter: none !important;
+  color: #fff !important;
+}
+/* Buy Now arrow inside button */
+html.perf-low .primary.buy-product .mat-icon,
+html.perf-low .pdp-buy .mat-icon {
+  filter: none !important;
+  color: #fff !important;
+}
+
+/* Play badge — typically on top of a dark overlay / video thumbnail */
+html.perf-low .play-badge img[src*="/icons/material/"] {
+  filter: none !important;
+  color: #fff !important;
+}
+
+/* Bottom nav active icons — purple tinted */
+html.perf-low .bottom-nav button.active img[src*="/icons/material/"],
+html.perf-low .bottom-nav button.active .mat-icon {
+  filter: brightness(0) saturate(1) !important;
+  color: #21005D !important;
+}
+html.perf-low .bottom-nav button:not(.active) img[src*="/icons/material/"],
+html.perf-low .bottom-nav button:not(.active) .mat-icon {
+  filter: brightness(0) opacity(0.5) !important;
+  color: #49454F !important;
+}
+
+/* Danger / delete action icons (red tint) */
+html.perf-low .danger img[src*="/icons/material/"],
+html.perf-low .danger .mat-icon {
+  filter: brightness(0) saturate(1) !important;
+  color: #B3261E !important;
+}
+
+/* Duration-grid timer icons inside pricing */
+html.perf-low .duration-grid button img[src*="/icons/material/"] {
+  filter: brightness(0) opacity(0.6) !important;
+  color: #1C1B1F !important;
+}
+
+/* Notification icons */
+html.perf-low .notif-title img[src*="/icons/material/"],
+html.perf-low .notif-item img[src*="/icons/material/"] {
+  filter: brightness(0) opacity(0.6) !important;
+  color: #6750A4 !important;
+}
+
+/* Profile action buttons */
+html.perf-low .profile-actions button img[src*="/icons/material/"],
+html.perf-low .profile-actions button .mat-icon {
+  filter: brightness(0) opacity(0.55) !important;
+  color: #49454F !important;
+}
+
+/* Stat cards */
+html.perf-low .stat-card img[src*="/icons/material/"],
+html.perf-low .stat-card .mat-icon {
+  filter: brightness(0) opacity(0.5) !important;
+  color: #49454F !important;
+}
+
+/* Back-link icons */
+html.perf-low .back-link img[src*="/icons/material/"],
+html.perf-low .back-link .mat-icon {
+  filter: brightness(0) opacity(0.5) !important;
+  color: #6750A4 !important;
+}
+
+/* Dialog close / action icons */
+html.perf-low .action-modal img[src*="/icons/material/"],
+html.perf-low .liquid-dialog img[src*="/icons/material/"],
+html.perf-low .action-modal .mat-icon,
+html.perf-low .liquid-dialog .mat-icon {
+  filter: brightness(0) opacity(0.55) !important;
+  color: #49454F !important;
+}
+
+/* Section title icons */
+html.perf-low .section-title img[src*="/icons/material/"],
+html.perf-low .section-title .mat-icon {
+  filter: brightness(0) opacity(0.6) !important;
+  color: #6750A4 !important;
+}
+
+/* Admin sidebar icons */
+html.perf-low .admin-tab-list button img[src*="/icons/material/"],
+html.perf-low .admin-tab-list button .mat-icon {
+  filter: brightness(0) opacity(0.5) !important;
+  color: #49454F !important;
+}
+html.perf-low .admin-tab-list button.active img[src*="/icons/material/"],
+html.perf-low .admin-tab-list button.active .mat-icon {
+  filter: brightness(0) saturate(1) !important;
+  color: #21005D !important;
+}
+
+/* Copy / eye-toggle in key box */
+html.perf-low .copy-key-btn img[src*="/icons/material/"],
+html.perf-low .eye-toggle-btn img[src*="/icons/material/"] {
+  filter: brightness(0) opacity(0.55) !important;
+  color: #21005D !important;
+}
+
+/* Dialog title icon */
+html.perf-low .dialog-title-row .mat-icon,
+html.perf-low .dialog-title-row img[src*="/icons/material/"] {
+  filter: brightness(0) saturate(1) !important;
+  color: #6750A4 !important;
+}
