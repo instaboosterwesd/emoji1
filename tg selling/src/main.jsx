@@ -1074,7 +1074,7 @@ function ProductsView({ session, onBuy }) {
         {/* Search — opens full search page on click */}
         <button className="search-box search-box-tap" type="button" onClick={() => setSearchActive(true)}>
           <LottieIcon src="/icons/new/search-emoji.json" size={18} />
-          <span className="search-placeholder">Search product or PID</span>
+          <span className="search-placeholder">Search product</span>
         </button>
         <select className="product-select" value={filter} onChange={e => setFilter(e.target.value)}>
           {games.map(g => <option value={g} key={g}>{g === 'all' ? 'All' : g}</option>)}
