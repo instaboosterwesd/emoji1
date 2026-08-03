@@ -227,7 +227,7 @@ function Login({ onSuccess, siteStatus }) {
       )}
       {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
         <div className="site-status-banner ok" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
-          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} />
           <span>{siteStatus.message}</span>
         </div>
       )}
@@ -277,13 +277,13 @@ function Login({ onSuccess, siteStatus }) {
           <>
             <button className="back-link" type="button" onClick={() => setStep('phone')}><MatIcon name="arrow_back" size={16} /> Change number</button>
             <img className="devx-logo small" src={logo} alt="Brand logo" />
-            <p className="eyebrow"><LottieIcon src="/icons/new/shield-verify.json" size={20} /> SECURE VERIFICATION <LottieIcon src="/icons/new/shield-verify.json" size={20} /></p>
+            <p className="eyebrow"><DeviceIcon emoji="/icons/new/shield-verify.json" icon="security" size={18} /> SECURE VERIFICATION <DeviceIcon emoji="/icons/new/shield-verify.json" icon="security" size={18} /></p>
             <h1><LottieIcon src="/icons/new/otp-clipboard.json" size={28} /> Enter your OTP</h1>
             <p className="intro">We sent a 4-digit code to +{country.dialCode} {phone}.</p>
             <form onSubmit={verifyOtp}>
               <label htmlFor="otp">Verification code</label>
               <input className="otp-input" id="otp" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} placeholder="0000" autoFocus required />
-              <button className="primary" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={22} /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
+              <button className="primary" type="submit"><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={20} /> Verify &amp; continue <MatIcon name="arrow_forward" size={19} /></button>
             </form>
           </>
         )}
@@ -460,7 +460,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
       )}
       {siteStatus && siteStatus.status === 'operational' && siteStatus.message && (
         <div className="site-status-banner ok">
-          <LottieIcon src="/icons/new/verified-check.json" size={18} />
+          <DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} />
           <span>{siteStatus.message}</span>
         </div>
       )}
@@ -483,7 +483,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
             <div className="notif-dialog-header">
               <LottieIcon src="/icons/new/bell.json" size={26} />
               <h3>Notifications</h3>
-              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><LottieIcon src="/icons/new/close-emoji.json" size={16} /></button>
+              <button className="notif-close-btn" onClick={() => setShowNotifs(false)}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /></button>
             </div>
             {notifs.length === 0
               ? <p className="muted empty-state" style={{ padding: '24px 0' }}>No notifications yet</p>
@@ -506,7 +506,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
             <div className="resolved-issue-icon">
               <LottieIcon src="/icons/new/issue-resolved.json" size={64} />
             </div>
-            <h2><LottieIcon src="/icons/new/verified-badge.json" size={22} /> Issue Resolved!</h2>
+            <h2><DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={20} /> Issue Resolved!</h2>
             <p className="muted" style={{ textAlign: 'center', fontSize: '14px', lineHeight: 1.6 }}>
               Your issue has been resolved by the admin. <br />
               You can now purchase your product.
@@ -519,7 +519,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
                 setResolvedNotif(null);
                 setTab('buy');
               }}>
-                <LottieIcon src="/icons/new/shopping-cart.json" size={18} /> Buy now
+                <DeviceIcon emoji="/icons/new/shopping-cart.json" icon="shopping_cart" size={16} /> Buy now
               </button>
               <button type="button" onClick={() => {
                 if (session?.uid && resolvedNotif?.id) {
@@ -541,7 +541,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           onClose={() => setResellerBenefitsOpen(false)}
         />
       )}
-      <Toaster position="top-center" offset={78} theme={theme} toastOptions={toastOptions} icons={{ success: <LottieIcon src="/icons/new/verified-check.json" size={22} /> }} />
+      <Toaster position="top-center" offset={78} theme={theme} toastOptions={toastOptions} icons={{ success: <DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={20} /> }} />
     </main>
   );
 }
@@ -550,12 +550,12 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
 function DashboardHome({ profile, role, setTab }) {
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <LottieIcon src="/icons/new/today-emoji.json" size={18} /></>} />
+      <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <DeviceIcon emoji="/icons/new/today-emoji.json" icon="today" size={16} /></>} />
       <div className="balance-card">
         <span>My balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => setTab('wallet')}>
-          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Deposit
+          <DeviceIcon emoji="/icons/new/add-funds-plus.json" icon="add" size={20} /> Deposit
         </button>
       </div>
       <div className="stats-grid">
@@ -566,7 +566,7 @@ function DashboardHome({ profile, role, setTab }) {
       </div>
       {role === 'admin' && (
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
-          <LottieIcon src="/icons/new/crown.json" size={22} /> Open admin dashboard
+          <DeviceIcon emoji="/icons/new/crown.json" icon="workspace_premium" size={20} /> Open admin dashboard
         </button>
       )}
       <div className="glass-card">
@@ -583,6 +583,13 @@ function DashboardHome({ profile, role, setTab }) {
 }
 
 /* ── LottieIcon — high=Lottie, low=static SVG ───────────────────── */
+function DeviceIcon({ emoji, icon, size = 22, ...rest }) {
+  if (window.__LOW_MODE__) {
+    return <MatIcon name={icon} size={size} />;
+  }
+  return <LottieIcon src={emoji} size={size} />;
+}
+
 function LottieIcon({ src, size = 24, loop = true, className = '' }) {
   const perf = usePerf();
   const ref = useRef(null);
@@ -681,7 +688,7 @@ function WalletView({ session, profile, refreshProfile }) {
         <span>Available balance</span>
         <strong className="balance-amount"><LottieIcon src="/icons/new/balance-emoji.json" size={22} /><span>₹{money(profile.balance)}</span></strong>
         <button className="add-funds has-lottie" onClick={() => navigate('/add-fund')}>
-          <LottieIcon src="/icons/new/add-funds-plus.json" size={22} /> Add funds
+          <DeviceIcon emoji="/icons/new/add-funds-plus.json" icon="add" size={20} /> Add funds
         </button>
       </div>
 
@@ -689,11 +696,11 @@ function WalletView({ session, profile, refreshProfile }) {
       <div className="glass-card">
         <div className="card-heading history-heading">
           <div className="heading-title-row">
-            <LottieIcon src="/icons/new/history-title-emoji.json" size={26} />
+            <DeviceIcon emoji="/icons/new/history-title-emoji.json" icon="history" size={24} />
             <div><h3>Transaction history</h3><p className="muted">All deposits and purchases</p></div>
           </div>
           <button className="icon-button" onClick={loadData} aria-label="Refresh">
-            <LottieIcon src="/icons/new/history-emoji.json" size={26} />
+            <DeviceIcon emoji="/icons/new/history-emoji.json" icon="history" size={24} />
           </button>
         </div>
         {txLoading
@@ -708,9 +715,9 @@ function WalletView({ session, profile, refreshProfile }) {
                       {tx.type === 'purchase'
                         ? <img src={productIconForWithFallback((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
                         : tx.type === 'deposit_approved'
-                          ? <LottieIcon src="/icons/new/add-funds-plus.json" size={22} />
+                          ? <DeviceIcon emoji="/icons/new/add-funds-plus.json" icon="add" size={20} />
                           : tx.type === 'admin_add'
-                            ? <LottieIcon src="/icons/new/topup-emoji.json" size={22} />
+                            ? <DeviceIcon emoji="/icons/new/topup-emoji.json" icon="add_box" size={20} />
                             : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
                     </span>
                     <div className="tx-main">
@@ -919,13 +926,13 @@ function OrdersView({ session }) {
 
   return (
     <>
-      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle={<><LottieIcon src="/icons/new/track-emoji.json" size={16} /> Track your purchased license keys</>} />
+      <SectionTitle title={<><LottieIcon src="/icons/new/my-orders.json" size={26} /> My Orders</>} subtitle={<><DeviceIcon emoji="/icons/new/track-emoji.json" icon="track_changes" size={16} /> Track your purchased license keys</>} />
       <div className="filter-row">
         <div className="search-box">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search orders" />
         </div>
-        <button className="icon-button" onClick={load} aria-label="Refresh orders"><LottieIcon src="/icons/new/refresh-emoji.json" size={22} /></button>
+        <button className="icon-button" onClick={load} aria-label="Refresh orders"><DeviceIcon emoji="/icons/new/refresh-emoji.json" icon="refresh" size={20} /></button>
       </div>
       <div className="glass-card">
         {loading
@@ -979,7 +986,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
     <div className="product-detail-page">
       <div className="pdp-topbar">
         <button className="pdp-back" onClick={onBack} aria-label="Back">
-          <LottieIcon src="/icons/new/back-arrow-emoji.json" size={22} />
+          <DeviceIcon emoji="/icons/new/back-arrow-emoji.json" icon="arrow_back" size={20} />
         </button>
         <span className="pdp-title">{product.name}</span>
       </div>
@@ -999,7 +1006,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
                   </div>
               }
               {product.videos[0] && (
-                <span className="play-badge"><LottieIcon src="/icons/new/play-emoji.json" size={60} /></span>
+                <span className="play-badge"><DeviceIcon emoji="/icons/new/play-emoji.json" icon="play_arrow" size={58} /></span>
               )}
             </button>
           )}
@@ -1015,14 +1022,14 @@ function ProductDetailPage({ product, onBack, onBuy }) {
         </div>
 
         {/* Duration grid — always visible */}
-        <div className="pdp-section-label"><LottieIcon src="/icons/new/timer.json" size={17} /> Select duration</div>
+        <div className="pdp-section-label"><DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} /> Select duration</div>
         {available ? (
           <div className="duration-grid">
             {product.pricing.slice(0, 8).map(item => (
               <button key={`${product.pid}-${item.label}`}
                 onClick={() => onBuy({ product, duration: item })}>
                 <span className="duration-label-row">
-                  <LottieIcon src="/icons/new/timer.json" size={18} />{item.label}
+                  <DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} />{item.label}
                 </span>
                 <b><MoneyDisplay value={item.price} /></b>
                 {item.originalPrice && item.originalPrice !== item.price &&
@@ -1036,12 +1043,12 @@ function ProductDetailPage({ product, onBack, onBuy }) {
 
         {/* Buy callout */}
         {available && (
-          <p className="pdp-buy-hint"><LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Tap a duration above to buy</p>
+          <p className="pdp-buy-hint"><DeviceIcon emoji="/icons/new/pig-emoji.json" icon="savings" size={16} /> Tap a duration above to buy</p>
         )}
 
         {/* Features at bottom */}
         {product.features.length > 0 && (
-          <div className="pdp-section-label" style={{ marginTop: 22 }}><LottieIcon src="/icons/new/feat-gift-boxes.json" size={17} /> Features</div>
+          <div className="pdp-section-label" style={{ marginTop: 22 }}><DeviceIcon emoji="/icons/new/feat-gift-boxes.json" icon="card_giftcard" size={16} /> Features</div>
         )}
         {product.features.length > 0 && (
           <div className="feature-list pdp-features">
@@ -1074,15 +1081,15 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
     <div className="search-results-page">
       <div className="srp-topbar">
         <button className="srp-back" onClick={onBack} aria-label="Back">
-          <LottieIcon src="/icons/new/back-arrow-emoji.json" size={22} />
+          <DeviceIcon emoji="/icons/new/back-arrow-emoji.json" icon="arrow_back" size={20} />
         </button>
         <div className="srp-search-box">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search product or PID" autoComplete="off" />
           {search && (
             <button className="srp-clear" onClick={() => setSearch('')} aria-label="Clear">
-              <LottieIcon src="/icons/new/close-emoji.json" size={16} />
+              <DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} />
             </button>
           )}
         </div>
@@ -1093,13 +1100,13 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
       <div className="srp-list">
         {filtered.length === 0 && search.trim() && (
           <div className="srp-empty">
-            <LottieIcon src="/icons/new/search-emoji.json" size={36} />
+            <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={34} />
             <p className="muted">No products match "{search}"</p>
           </div>
         )}
         {filtered.length === 0 && !search.trim() && (
           <div className="srp-empty">
-            <LottieIcon src="/icons/new/search-emoji.json" size={36} />
+            <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={34} />
             <p className="muted">Type to search products…</p>
           </div>
         )}
@@ -1123,7 +1130,7 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
                   <span className="srp-price">from <b>₹{minPrice}</b></span>
                 )}
               </div>
-              <LottieIcon src="/icons/new/proceed-emoji.json" size={20} />
+              <DeviceIcon emoji="/icons/new/proceed-emoji.json" icon="arrow_forward" size={18} />
             </button>
           );
         })}
@@ -1229,12 +1236,12 @@ function ProductsView({ session, onBuy }) {
   return (
     <div className="buy-view">
       <SectionTitle
-        title={<><LottieIcon src="/icons/new/shopping-cart.json" size={26} /> Buy Products</>}
+        title={<><DeviceIcon emoji="/icons/new/shopping-cart.json" icon="shopping_cart" size={24} /> Buy Products</>}
         subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         {/* Search — opens full search page on click */}
         <button className="search-box search-box-tap" type="button" onClick={() => setSearchActive(true)}>
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <span className="search-placeholder">Search product</span>
         </button>
         <select className="product-select" value={filter} onChange={e => setFilter(e.target.value)}>
@@ -1285,7 +1292,7 @@ function ProductsView({ session, onBuy }) {
                     <span className="cpr-price text-[15px]">from <b>₹{minPrice}</b></span>
                   )}
                 </div>
-                <span className="cpr-arrow"><LottieIcon src="/icons/new/proceed-emoji.json" size={20} /></span>
+                <span className="cpr-arrow"><DeviceIcon emoji="/icons/new/proceed-emoji.json" icon="arrow_forward" size={18} /></span>
               </button>
             );
           })}
@@ -1337,7 +1344,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
         {result ? (
           <>
             <div className="dialog-title-row">
-              <LottieIcon src="/icons/new/verified-check.json" size={26} />
+              <DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={24} />
               <h2>Order placed!</h2>
             </div>
             <p className="muted dialog-sub">{product.name} · {duration.duration || duration.label}</p>
@@ -1345,17 +1352,17 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
               <label>Your license key</label>
               <code>{result.key}</code>
               <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
-                <LottieIcon src="/icons/new/download-emoji.json" size={15} /> Copy key
+                <DeviceIcon emoji="/icons/new/download-emoji.json" icon="download" size={16} /> Copy key
               </button>
             </div>
             <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
             <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
-              <button className="modal-save" type="button" onClick={handleClose}><LottieIcon src="/icons/new/verified-check.json" size={17} /> Done</button>
+              <button className="modal-save" type="button" onClick={handleClose}><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Done</button>
             </div>
           </>
         ) : (
           <>
-            <h2><LottieIcon src="/icons/new/confirm-buy-emoji.json" size={24} /> Confirm purchase</h2>
+            <h2><DeviceIcon emoji="/icons/new/confirm-buy-emoji.json" icon="check_circle" size={22} /> Confirm purchase</h2>
             <div className="purchase-summary">
               <div className="purchase-title">
                 <span>Selected product</span>
@@ -1366,13 +1373,13 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
             </div>
             <div className="purchase-meta-grid">
               <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
-              <div><span><LottieIcon src="/icons/new/timer.json" size={18} /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
-              <div><span><LottieIcon src="/icons/new/money-bag.json" size={18} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
-              <div><span><LottieIcon src="/icons/new/platform-emoji.json" size={18} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
+              <div><span><DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} /> Duration</span><strong>{duration.duration || duration.label}</strong></div>
+              <div><span><DeviceIcon emoji="/icons/new/money-bag.json" icon="account_balance_wallet" size={16} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
+              <div><span><DeviceIcon emoji="/icons/new/platform-emoji.json" icon="devices" size={16} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
-            <p className="purchase-note"><LottieIcon src="/icons/new/pig-emoji.json" size={18} /> Balance will be deducted. A key will be delivered instantly.</p>
+            <p className="purchase-note"><DeviceIcon emoji="/icons/new/pig-emoji.json" icon="savings" size={16} /> Balance will be deducted. A key will be delivered instantly.</p>
             <div className="modal-btn-row">
-              <button type="button" onClick={close} disabled={busy}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+              <button type="button" onClick={close} disabled={busy}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Cancel</button>
               <button className="modal-save" type="button" onClick={confirm} disabled={busy}>
                 {busy ? 'Buying…' : <><video src="/icons/new/buy.webm" autoPlay loop muted playsInline style={{width:18,height:18,display:'inline-block',verticalAlign:'middle'}} /> Confirm buy</>}
               </button>
@@ -1393,23 +1400,23 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
       <div className="glass-card profile-card">
         <img src={profile.photoData || logo} alt="Profile" />
         <div>
-          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<LottieIcon src="/icons/new/verified-badge.json" size={22} /></h3>
+          <h3 style={{display:'flex',alignItems:'center',gap:'6px'}}>{profile.name || 'Account holder'}<DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={20} /></h3>
           <p className="muted">{profile.email || profile.phone || 'Verified account'}</p>
           <p className="muted">Balance <MoneyDisplay value={profile.balance} /> · {profile.status || 'active'}</p>
-          {profile.role === 'reseller' && <p className="muted" style={{color:'#c795ff',fontWeight:600,marginTop:4}}><LottieIcon src="/icons/new/verified-badge.json" size={16} /> Reseller account</p>}
+          {profile.role === 'reseller' && <p className="muted" style={{color:'#c795ff',fontWeight:600,marginTop:4}}><DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={16} /> Reseller account</p>}
         </div>
       </div>
       <div className="glass-card profile-actions">
         <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
-        <button className="has-lottie" onClick={() => openDialog('password')}><LottieIcon src="/icons/new/lock-emoji.json" size={24} />Change password</button>
+        <button className="has-lottie" onClick={() => openDialog('password')}><DeviceIcon emoji="/icons/new/lock-emoji.json" icon="lock" size={22} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
-        <button className="has-lottie" onClick={() => setGiftOpen(true)}><LottieIcon src="/icons/new/gift-code.json" size={24} />Gift code</button>
+        <button className="has-lottie" onClick={() => setGiftOpen(true)}><DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={22} />Gift code</button>
         {profile.role !== 'reseller' && (
           <button className="has-lottie reseller-profile-btn" onClick={onResellerBenefits}>
-            <LottieIcon src="/icons/new/verified-badge.json" size={22} /> Unlock Reseller
+            <DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={20} /> Unlock Reseller
           </button>
         )}
-        <button className="has-lottie" onClick={onShowPerf}><LottieIcon src="/icons/new/crown.json" size={24} />Device Performance</button>
+        <button className="has-lottie" onClick={onShowPerf}><DeviceIcon emoji="/icons/new/crown.json" icon="workspace_premium" size={22} />Device Performance</button>
         <button className="danger has-lottie" onClick={() => openDialog('logout')}><LottieIcon src="/icons/new/logout-flash.json" size={24} />Logout</button>
         <p className="version-tag">V1.1</p>
       </div>
@@ -1436,7 +1443,7 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
     try {
       const res = await redeemGiftCode(uid, name, phone, code);
       setResult(res);
-      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={22} /> });
+      toast.success(`Gift code redeemed! ₹${res.amount} added to wallet.`, { icon: <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={20} /> });
       setCode('');
       getUserGiftRedemptions(uid).then(setHistory).catch(() => {});
     } catch (err) { toast.error(err.message); }
@@ -1447,22 +1454,22 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="action-modal liquid-dialog" style={{ maxWidth: 420 }}>
         <div className="dialog-title-row">
-          <LottieIcon src="/icons/new/gift-code.json" size={24} />
+          <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={22} />
           <h2>Gift code</h2>
-          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><LottieIcon src="/icons/new/close-emoji.json" size={22} /></button>
+          <button className="icon-button" type="button" onClick={onClose} style={{marginLeft:'auto',display:'flex',alignItems:'center',justifyContent:'center'}}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={20} /></button>
         </div>
         <form onSubmit={redeem} style={{ margin: '8px 0 14px' }}>
            <div className="gift-input-row">
              <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Enter code" maxLength={10} required className="gift-input-wide" />
             <button className="modal-save gift-redeem-btn" type="submit" disabled={busy || !code.trim()}>
-              {busy ? '…' : <><LottieIcon src="/icons/new/verified-check.json" size={16} /> Redeem</>}
+              {busy ? '…' : <><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Redeem</>}
             </button>
           </div>
         </form>
 
         {result && (
           <div className="gift-result-card">
-            <LottieIcon src="/icons/new/verified-badge.json" size={24} />
+            <DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={22} />
             <div>
               <strong>₹{result.amount} credited!</strong>
               <p className="muted">Code: {result.code}</p>
@@ -1471,14 +1478,14 @@ function GiftCodeDialog({ uid, name, phone, onClose }) {
         )}
 
         <h4 style={{ display:'flex', alignItems:'center', gap: 6, margin:'14px 0 6px' }}>
-          <LottieIcon src="/icons/new/history-emoji.json" size={18} /> Redemption history
+          <DeviceIcon emoji="/icons/new/history-emoji.json" icon="history" size={16} /> Redemption history
         </h4>
         {history.length === 0
           ? <p className="muted empty-state">No redemptions yet</p>
           : <div className="gift-history-list">{
             history.map((h, i) => (
               <div key={i} className="gift-history-row">
-                <LottieIcon src="/icons/new/gift-code.json" size={18} />
+                <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={16} />
                 <div className="tx-main">
                   <strong>{h.code}</strong>
                   <span>{fmtDate(h.redeemedAt)}</span>
@@ -1501,7 +1508,7 @@ function GiftCodeUsersDialog({ gc, onClose }) {
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="action-modal liquid-dialog" style={{ maxWidth: 400 }}>
         <div className="dialog-title-row">
-          <LottieIcon src="/icons/new/gift-code.json" size={22} />
+          <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={20} />
           <h2>Code: {gc.code}</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
@@ -1569,7 +1576,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}>
       {type === 'edit' && (
         <form className="action-modal liquid-dialog" onSubmit={saveProfile}>
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/edit-title-emoji.json" size={24} /><h2>Edit profile</h2></div>
+          <div className="dialog-title-row"><DeviceIcon emoji="/icons/new/edit-title-emoji.json" icon="edit" size={22} /><h2>Edit profile</h2></div>
           <label>Display name<input value={name} onChange={e => setName(e.target.value)} placeholder="Account holder" /></label>
           <label className="file-upload-label">
             <LottieIcon src="/icons/new/edit-profile.json" size={22} /> Profile image
@@ -1577,19 +1584,19 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           </label>
           {photoData && <img src={photoData} alt="Preview" className="photo-preview" />}
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Save changes</button>
+            <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><DeviceIcon emoji="/icons/new/save-emoji.json" icon="save" size={16} /> Save changes</button>
           </div>
         </form>
       )}
       {type === 'password' && (
         <form className="action-modal liquid-dialog" onSubmit={savePassword}>
-          <div className="dialog-title-row"><LottieIcon src="/icons/new/lock-emoji.json" size={24} /><h2>Change password</h2></div>
-          <label><LottieIcon src="/icons/new/key-emoji.json" size={18} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
-          <label><LottieIcon src="/icons/new/new-password-emoji.json" size={18} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
+          <div className="dialog-title-row"><DeviceIcon emoji="/icons/new/lock-emoji.json" icon="lock" size={22} /><h2>Change password</h2></div>
+          <label><DeviceIcon emoji="/icons/new/key-emoji.json" icon="key" size={16} /> Old password<input value={oldPassword} onChange={e => setOldPassword(e.target.value)} type="password" placeholder="Old password" /></label>
+          <label><DeviceIcon emoji="/icons/new/new-password-emoji.json" icon="lock" size={16} /> New password<input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" minLength={6} placeholder="New password (min 6)" required /></label>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
-            <button className="modal-save has-lottie" type="submit"><LottieIcon src="/icons/new/save-emoji.json" size={18} /> Change</button>
+            <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Cancel</button>
+            <button className="modal-save has-lottie" type="submit"><DeviceIcon emoji="/icons/new/save-emoji.json" icon="save" size={16} /> Change</button>
           </div>
         </form>
       )}
@@ -1599,8 +1606,8 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
           <p>This key enables Bot login. Keep it private.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Close</button>
-            <button className="modal-save has-lottie" type="button" onClick={resetApi}><LottieIcon src="/icons/new/refresh-emoji.json" size={18} /> Reset key</button>
+            <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Close</button>
+            <button className="modal-save has-lottie" type="button" onClick={resetApi}><DeviceIcon emoji="/icons/new/refresh-emoji.json" icon="refresh" size={16} /> Reset key</button>
           </div>
         </section>
       )}
@@ -1609,7 +1616,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           <div className="dialog-title-row"><LottieIcon src="/icons/new/logout-flash.json" size={24} /><h2>Logout?</h2></div>
           <p>Your local session will be removed from this browser.</p>
           <div className="modal-btn-row">
-            <button type="button" onClick={close}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+            <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Cancel</button>
             <button className="modal-danger" type="button" onClick={onLogout}>Logout</button>
           </div>
         </section>
@@ -1864,7 +1871,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
           })}
         </div>
         <div className="modal-btn-row">
-          <button type="button" onClick={onClose} disabled={saving}><LottieIcon src="/icons/new/close-emoji.json" size={18} /> Cancel</button>
+          <button type="button" onClick={onClose} disabled={saving}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Cancel</button>
           <button className="modal-save" type="button" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : <><MatIcon name="check" size={17} /> Save pricing</>}
           </button>
@@ -2078,7 +2085,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Manage users</h3>
         <div className="search-box admin-search">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, phone, email" />
         </div>
         <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => { await adminAdjustUserFund(fundForm.uid, fundForm.amount, fundForm.mode); setFundForm({ uid: '', amount: '', mode: 'add' }); }, 'User fund updated'); }}>
@@ -2133,7 +2140,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
         <div className="search-box admin-search">
-          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
+          <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
         <AdminList items={filteredProducts} empty="No API products loaded" render={product => (
@@ -2154,28 +2161,28 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="heading-title-row">
-            <LottieIcon src="/icons/new/gift-code.json" size={24} />
+            <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={22} />
             <div><h3>Gift codes</h3><p className="muted">Create and manage gift codes for users</p></div>
           </div>
         </div>
         <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => {
           const res = await adminCreateGiftCode(gcAmount, gcMaxRedeems);
           setGcAmount(''); setGcMaxRedeems('1');
-          toast.success(`Gift code ${res.code} created for ₹${res.amount}`, { icon: <LottieIcon src="/icons/new/gift-code.json" size={20} /> });
+          toast.success(`Gift code ${res.code} created for ₹${res.amount}`, { icon: <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={18} /> });
         }, 'Gift code created'); }}>
           <div style={{display:'flex',alignItems:'center',gap:6,flex:1}}>
-            <LottieIcon src="/icons/new/rupee-emoji.json" size={18} />
+            <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} />
             <input value={gcAmount} onChange={e => setGcAmount(e.target.value)} placeholder="Amount" inputMode="numeric" required style={{flex:1}} />
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
             <MatIcon name="people" size={18} />
             <input value={gcMaxRedeems} onChange={e => setGcMaxRedeems(e.target.value)} placeholder="Max users" inputMode="numeric" style={{width:60}} />
           </div>
-          <button className="modal-save" type="submit"><LottieIcon src="/icons/new/gift-code.json" size={16} /> Create</button>
+          <button className="modal-save" type="submit"><DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={16} /> Create</button>
         </form>
         <AdminList items={giftCodes} empty="No gift codes created yet" render={gc => (
           <AdminRow
-            title={<span style={{display:'flex',alignItems:'center',gap:6}}><LottieIcon src="/icons/new/gift-code.json" size={16} /> {gc.code}</span>}
+            title={<span style={{display:'flex',alignItems:'center',gap:6}}><DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={16} /> {gc.code}</span>}
             meta={`₹${gc.amount} · ${gc.totalRedeemed || 0}/${gc.maxRedeems} used · ${fmtDate(gc.createdAt)}`}
             status={gc.active ? '🟢 Active' : '🔴 Exhausted'}
           >
@@ -2365,7 +2372,7 @@ function AdminPage({ session, onSessionChange }) {
         <h3>Site status</h3>
         <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => setSiteStatus(siteStatus, siteStatusMsg), 'Site status updated'); }}>
           <label>
-            <LottieIcon src="/icons/new/shield-verify.json" size={16} /> Status
+            <DeviceIcon emoji="/icons/new/shield-verify.json" icon="security" size={16} /> Status
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <MatIcon name={siteStatus === 'operational' ? 'check_circle' : 'warning'} size={18} style={{ color: siteStatus === 'operational' ? '#74e0a5' : '#ff7089' }} />
               <select value={siteStatus} onChange={e => setSiteStatus(e.target.value)} style={{ flex: 1 }}>
@@ -2378,7 +2385,7 @@ function AdminPage({ session, onSessionChange }) {
             <LottieIcon src="/icons/new/bell.json" size={16} /> Banner message
             <textarea value={siteStatusMsg} onChange={e => setSiteStatusMsg(e.target.value)} placeholder="e.g. Site is completely fine. You can purchase now." rows={2} style={{ marginTop: 4 }} />
           </label>
-          <button className="modal-save" type="submit"><LottieIcon src="/icons/new/verified-check.json" size={16} /> Update status</button>
+          <button className="modal-save" type="submit"><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Update status</button>
         </form>
       </div>
       <div className="admin-card">
@@ -2392,7 +2399,7 @@ function AdminPage({ session, onSessionChange }) {
             </div>
           </label>
           <label>
-            <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Minimum deposit
+            <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} /> Minimum deposit
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <MatIcon name="account_balance_wallet" size={18} />
               <input value={minDeposit} onChange={e => setMinDeposit(e.target.value)} placeholder="50" inputMode="numeric" style={{ flex: 1 }} />
@@ -2433,7 +2440,7 @@ function AdminPage({ session, onSessionChange }) {
             {adminTabs.map(({ id, label, icon }) => (
               <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
                 {id === 'issues' ? <LottieIcon src="/icons/new/feat-crystal-skull.json" size={20} /> :
-                 id === 'gift-codes' ? <LottieIcon src="/icons/new/gift-code.json" size={20} /> :
+                 id === 'gift-codes' ? <DeviceIcon emoji="/icons/new/gift-code.json" icon="card_giftcard" size={18} /> :
                  <MatIcon name={icon} size={18} />}
                 <span>{label}</span>
               </button>
@@ -2569,7 +2576,7 @@ function AddFundPage({ session, onSessionChange }) {
           <div className="deposit-page">
             <div className="deposit-page-header">
               <button className="back-link emoji-back mb-[5px]" onClick={goBack}>
-                <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
+                <DeviceIcon emoji="/icons/new/back-arrow-emoji.json" icon="arrow_back" size={26} />
               </button>
               <h2>{isResellerUnlock ? 'Unlock Reseller Panel' : 'Add funds'}</h2>
             </div>
@@ -2595,12 +2602,12 @@ function AddFundPage({ session, onSessionChange }) {
                     <p className="muted" style={{fontSize:12}}>Admin will verify your payment and activate reseller privileges.</p>
                   </div>
                   <button className="deposit-proceed-btn" type="button" onClick={() => { setStep('qr'); }}>
-                    <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                    <DeviceIcon emoji="/icons/new/proceed-emoji.json" icon="arrow_forward" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="muted deposit-label"><LottieIcon src="/icons/new/choose-amount-emoji.json" size={20} /> Choose amount</p>
+                  <p className="muted deposit-label"><DeviceIcon emoji="/icons/new/choose-amount-emoji.json" icon="attach_money" size={18} /> Choose amount</p>
                   <div className="quick-amounts">
                     {quickAmounts.map(a => (
                       <button key={a} type="button" className={`quick-chip${amount == a ? ' active' : ''}`} onClick={() => setAmount(String(a))}>
@@ -2608,13 +2615,13 @@ function AddFundPage({ session, onSessionChange }) {
                       </button>
                     ))}
                   </div>
-                  <p className="muted deposit-hint"><LottieIcon src="/icons/new/min-deposit-emoji.json" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
+                  <p className="muted deposit-hint"><DeviceIcon emoji="/icons/new/min-deposit-emoji.json" icon="monetization_on" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
                   <hr className="deposit-divider" />
                   <form onSubmit={handleAmountNext}>
-                    <label htmlFor="dep-amount"><LottieIcon src="/icons/new/custom-amount-emoji.json" size={18} /> <LottieIcon src="/icons/new/rupee-emoji.json" size={14} /> Custom amount</label>
+                    <label htmlFor="dep-amount"><DeviceIcon emoji="/icons/new/custom-amount-emoji.json" icon="edit" size={16} /> <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} /> Custom amount</label>
                     <input id="dep-amount" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder={'Min ' + money(paySettings.minDeposit)} required />
                     <button className="deposit-proceed-btn" type="submit">
-                      <LottieIcon src="/icons/new/proceed-emoji.json" size={20} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
+                      <DeviceIcon emoji="/icons/new/proceed-emoji.json" icon="arrow_forward" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                     </button>
                   </form>
                 </>
@@ -2628,17 +2635,17 @@ function AddFundPage({ session, onSessionChange }) {
           <div className="deposit-page">
             <div className="deposit-page-header">
               <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('amount')}>
-                <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
+                <DeviceIcon emoji="/icons/new/back-arrow-emoji.json" icon="arrow_back" size={26} />
               </button>
               <h2>Scan &amp; Pay</h2>
             </div>
-            <p className="deposit-label"><LottieIcon src="/icons/new/send-emoji.json" size={18} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
-            <p className="upi-id-display"><LottieIcon src="/icons/new/bank-emoji.json" size={20} /> {paySettings.upiId}</p>
+            <p className="deposit-label"><DeviceIcon emoji="/icons/new/send-emoji.json" icon="send" size={16} /> Send exactly <strong><MoneyDisplay value={amount} /></strong> to:</p>
+            <p className="upi-id-display"><DeviceIcon emoji="/icons/new/bank-emoji.json" icon="account_balance" size={18} /> {paySettings.upiId}</p>
             {qrUrl && (
               <div className="qr-wrap">
                 <img className="qr-image" src={qrUrl} alt="UPI QR code" />
                 <button type="button" className="qr-dl-btn" onClick={downloadQR}>
-                  <LottieIcon src="/icons/new/download-emoji.json" size={16} /> Download QR
+                  <DeviceIcon emoji="/icons/new/download-emoji.json" icon="download" size={16} /> Download QR
                 </button>
               </div>
             )}
@@ -2655,7 +2662,7 @@ function AddFundPage({ session, onSessionChange }) {
             </div>
             <p className="muted qr-hint"><LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /> Tap an app to pay directly, or scan the QR above <LottieIcon src="/icons/new/qr-hint-emoji.json" size={16} /></p>
             <button className="deposit-paid-btn" type="button" onClick={() => setStep('confirm')}>
-              I have paid <LottieIcon src="/icons/new/verified-check.json" size={26} />
+              I have paid <DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={24} />
             </button>
           </div>
         )}
@@ -2665,7 +2672,7 @@ function AddFundPage({ session, onSessionChange }) {
           <div className="deposit-page">
             <div className="deposit-page-header">
               <button className="back-link emoji-back mb-[5px]" onClick={() => setStep('qr')}>
-                <LottieIcon src="/icons/new/back-arrow-emoji.json" size={28} />
+                <DeviceIcon emoji="/icons/new/back-arrow-emoji.json" icon="arrow_back" size={26} />
               </button>
               <h2>{isResellerUnlock ? 'Confirm Reseller Unlock' : 'Confirm payment'}</h2>
             </div>
@@ -2732,7 +2739,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('app_session') || 'null'); } catch { return null; }
   });
   const path = usePathname();
-  const knownPath = path === '/' || path === '/admin' || path === '/add-fund';
+  const knownPath = path === '/' || path === '/admin' || path === '/add-fund' || path === '/low' || path === '/low/';
 
   useEffect(() => { initSecurity(); }, []);
 
@@ -2876,11 +2883,11 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
     <div className={`reseller-benefits-backdrop ${visible ? 'visible' : ''}`} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) handleClose(); }}>
       <section className={`reseller-benefits-dialog ${visible ? 'visible' : ''}`}>
         <button className="reseller-benefits-close" onClick={handleClose} aria-label="Close">
-          <LottieIcon src="/icons/new/close-emoji.json" size={18} />
+          <DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} />
         </button>
 
         <div className="reseller-benefits-header">
-          <LottieIcon src="/icons/new/verified-badge.json" size={42} />
+          <DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={40} />
           <h2>Reseller Panel</h2>
           <span className="reseller-badge" style={{fontSize:11,padding:'3px 12px'}}>PREMIUM</span>
         </div>
@@ -2909,7 +2916,7 @@ function ResellerBenefitsDialog({ resellerPrice, onUnlock, onClose }) {
             Don't show again
           </label>
           <button className="reseller-unlock-btn" onClick={onUnlock}>
-            <LottieIcon src="/icons/new/verified-check.json" size={22} />
+            <DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={20} />
             {resellerPrice > 0 ? `Unlock for ${money(resellerPrice)}` : 'Unlock now'}
           </button>
           <p className="muted" style={{fontSize:11,marginTop:6}}>One-time payment · No recurring fees</p>
