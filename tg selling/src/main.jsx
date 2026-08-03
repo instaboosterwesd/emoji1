@@ -844,7 +844,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
     <div className="product-detail-page">
       <div className="pdp-topbar">
         <button className="pdp-back" onClick={onBack} aria-label="Back">
-          <MatIcon name="arrow_back" size={22} />
+          <LottieIcon src="/icons/new/back-arrow-emoji.json" size={22} />
         </button>
         <span className="pdp-title">{product.name}</span>
       </div>
@@ -894,7 +894,7 @@ function ProductDetailPage({ product, onBack, onBuy }) {
         <button className="primary buy-product pdp-buy" type="button"
           disabled={!available} onClick={() => setPricingOpen(s => !s)}>
           <LottieIcon src="/icons/new/buy-now-btn.json" size={22} />
-          Buy Now <MatIcon name="arrow_forward" size={17} />
+          Buy Now <LottieIcon src="/icons/new/proceed-emoji.json" size={17} />
         </button>
 
         {/* Pricing grid */}
@@ -936,15 +936,15 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
     <div className="search-results-page">
       <div className="srp-topbar">
         <button className="srp-back" onClick={onBack} aria-label="Back">
-          <MatIcon name="arrow_back" size={22} />
+          <LottieIcon src="/icons/new/back-arrow-emoji.json" size={22} />
         </button>
         <div className="srp-search-box">
-          <MatIcon name="search" size={18} />
+          <LottieIcon src="/icons/new/search-emoji.json" size={18} />
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search product or PID" autoComplete="off" />
           {search && (
             <button className="srp-clear" onClick={() => setSearch('')} aria-label="Clear">
-              <MatIcon name="close" size={16} />
+              <LottieIcon src="/icons/new/close-emoji.json" size={16} />
             </button>
           )}
         </div>
@@ -955,13 +955,13 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
       <div className="srp-list">
         {filtered.length === 0 && search.trim() && (
           <div className="srp-empty">
-            <MatIcon name="search_off" size={36} />
+            <LottieIcon src="/icons/new/search-emoji.json" size={36} />
             <p className="muted">No products match "{search}"</p>
           </div>
         )}
         {filtered.length === 0 && !search.trim() && (
           <div className="srp-empty">
-            <MatIcon name="manage_search" size={36} />
+            <LottieIcon src="/icons/new/search-emoji.json" size={36} />
             <p className="muted">Type to search products…</p>
           </div>
         )}
@@ -985,7 +985,7 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
                   <span className="srp-price">from <b>₹{minPrice}</b></span>
                 )}
               </div>
-              <MatIcon name="chevron_right" size={20} className="srp-arrow" />
+              <LottieIcon src="/icons/new/proceed-emoji.json" size={20} />
             </button>
           );
         })}
@@ -1103,7 +1103,7 @@ function ProductsView({ session, onBuy }) {
           <option value="ios">iOS</option>
         </select>
         <button className="icon-button reload-btn" onClick={load} aria-label="Refresh">
-          <MatIcon name="refresh" size={17} />
+          <LottieIcon src="/icons/new/refresh-emoji.json" size={17} />
         </button>
       </div>
 
@@ -1132,7 +1132,7 @@ function ProductsView({ session, onBuy }) {
                     ? <img src={p.image} alt={p.name} loading="lazy" />
                     : <img src={productIconFor(p.name)} alt="" className="cpr-fallback-icon" />
                   }
-                  {p.videos[0] && <span className="cpr-play-dot"><MatIcon name="play_circle" size={13} /></span>}
+                  {p.videos[0] && <span className="cpr-play-dot"><LottieIcon src="/icons/new/play-emoji.json" size={13} /></span>}
                 </div>
                 <div className="cpr-meta">
                   <span className="cpr-name">{p.name}</span>
@@ -1144,7 +1144,7 @@ function ProductsView({ session, onBuy }) {
                     <span className="cpr-price">from <b>₹{minPrice}</b></span>
                   )}
                 </div>
-                <MatIcon name="chevron_right" size={20} className="cpr-arrow" />
+                <LottieIcon src="/icons/new/proceed-emoji.json" size={20} />
               </button>
             );
           })}
@@ -1196,7 +1196,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
         {result ? (
           <>
             <div className="dialog-title-row">
-              <MatIcon name="check_circle" size={26} style={{ filter: 'invert(70%) sepia(1) saturate(3) hue-rotate(85deg)' }} />
+              <LottieIcon src="/icons/new/verified-check.json" size={26} />
               <h2>Order placed!</h2>
             </div>
             <p className="muted dialog-sub">{product.name} · {duration.duration || duration.label}</p>
@@ -1204,12 +1204,12 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
               <label>Your license key</label>
               <code>{result.key}</code>
               <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
-                <MatIcon name="content_copy" size={15} /> Copy key
+                <LottieIcon src="/icons/new/download-emoji.json" size={15} /> Copy key
               </button>
             </div>
             <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
             <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
-              <button className="modal-save" type="button" onClick={handleClose}><MatIcon name="check" size={17} /> Done</button>
+              <button className="modal-save" type="button" onClick={handleClose}><LottieIcon src="/icons/new/verified-check.json" size={17} /> Done</button>
             </div>
           </>
         ) : (
