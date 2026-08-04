@@ -4,6 +4,7 @@ import lottie from 'lottie-web';
 import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
 import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
+import { ChevronRight, LayoutList, MoreVertical, PanelRight, Plus, RefreshCw, Send, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import countryData from 'country-telephone-data';
@@ -112,6 +113,54 @@ const MatIcon = ({ name, size = 20, className = '', style: extraStyle, ...rest }
 
 /* ── Brand icon map (defined in services.js, imported here) ────── */
 const productIconForWithFallback = name => productIconFor(name) || '/icons/new/product-box.png';
+const AI_CATALOG_REFRESH_MS = 120000;
+const MAX_AI_CART_CALLS_PER_MINUTE = 6;
+
+function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
+  const isReseller = role === 'reseller';
+  return {
+    ...product,
+    pricing: (product.pricing || []).map(item => {
+      const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
+      const rule = pricingRules[key] || {};
+      const apiPrice = Number(item.price || 0);
+      const fixedUserPrice = Number(rule.price);
+      const fixedResellerPrice = Number(rule.resellerPrice);
+      const userPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+        ? fixedUserPrice
+        : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+      const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+        ? fixedResellerPrice
+        : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+      return { ...item, price: isReseller ? resellerPrice : userPrice, isResellerPrice: isReseller };
+    }),
+  };
+}
+
+function catalogTokens(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9₹]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+}
+
+function rankCatalogMatches(products, query) {
+  const terms = catalogTokens(query);
+  if (!terms.length) return [];
+  return products
+    .map(product => {
+      const name = String(product.name || '').toLowerCase();
+      const searchable = `${name} ${product.game || ''} ${product.platform || ''} ${(product.features || []).join(' ')}`.toLowerCase();
+      const score = terms.reduce((total, term) => total + (name.includes(term) ? 5 : searchable.includes(term) ? 2 : 0), 0);
+      return { product, score };
+    })
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.product);
+}
+
+function safeCatalogDetails(product) {
+  const features = (product.features || []).filter(Boolean);
+  const description = String(product.description || '').replace(/<[^>]*>/g, '').trim();
+  return description || features.join(' · ') || 'Package details are available in the live catalog.';
+}
 
 /* ── Shared micro-components ────────────────────────────────────── */
 const SectionTitle = ({ title, subtitle }) => (
@@ -338,6 +387,268 @@ function Terms() {
   );
 }
 
+function AiShopTrigger({ open, onClick, hasHelpLink }) {
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 150);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <button
+      className={`ai-shop-trigger${compact ? ' compact' : ''}${open ? ' is-open' : ''}`}
+      style={hasHelpLink ? { bottom: 148 } : undefined}
+      type="button"
+      onClick={onClick}
+      aria-label="Shop with AI"
+      aria-expanded={open}
+    >
+      <span className="ai-shop-trigger-icon"><Sparkles size={16} strokeWidth={2.4} /></span>
+      <span className="ai-shop-trigger-label">Shop with AI</span>
+    </button>
+  );
+}
+
+function AiShopPanel({ session, onBuy, onClose }) {
+  const [products, setProducts] = useState([]);
+  const [pricingRules, setPricingRules] = useState({});
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10 });
+  const [loading, setLoading] = useState(true);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([{
+    id: 'welcome',
+    role: 'assistant',
+    text: 'Hi! Ask me about a product, package, price, or what is trending. I use the live catalog only.',
+    suggestions: ['Best sellers', 'Show all packages'],
+  }]);
+  const [cart, setCart] = useState([]);
+  const [cartCalls, setCartCalls] = useState([]);
+  const [lastFetchedAt, setLastFetchedAt] = useState(0);
+  const [compactView, setCompactView] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const threadRef = useRef(null);
+
+  const loadCatalog = useCallback(async (force = false) => {
+    if (!force && products.length && Date.now() - lastFetchedAt < AI_CATALOG_REFRESH_MS) return;
+    setLoading(true);
+    try {
+      const [catalog, rules, settings] = await Promise.all([
+        fetchGameProducts(),
+        getAdminPricingRules().catch(() => ({})),
+        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
+      ]);
+      setProducts(catalog);
+      setPricingRules(rules);
+      setPricingSettings(settings);
+      setLastFetchedAt(Date.now());
+      return catalog;
+    } catch (err) {
+      setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'assistant', text: err.message || 'The live catalog could not be loaded. Please try again.', suggestions: ['Refresh catalog'] }]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [lastFetchedAt, products.length]);
+
+  useEffect(() => { loadCatalog(true); }, []);
+  useEffect(() => {
+    if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [messages, cart]);
+
+  const pricedProducts = useMemo(
+    () => products.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role)),
+    [products, pricingRules, pricingSettings, session?.role],
+  );
+
+  const addToCart = useCallback((product, duration) => {
+    const now = Date.now();
+    const recentCalls = cartCalls.filter(timestamp => now - timestamp < 60000);
+    if (recentCalls.length >= MAX_AI_CART_CALLS_PER_MINUTE) {
+      setMessages(prev => [...prev, { id: `limit-${now}`, role: 'assistant', text: 'You have reached the add-to-cart limit for this minute. Please wait a moment and try again.' }]);
+      return false;
+    }
+    if (!product || !duration || Number(duration.price) <= 0) {
+      setMessages(prev => [...prev, { id: `unavailable-${now}`, role: 'assistant', text: 'That package is currently unavailable. I cannot add it without a live price. Try another package from this product.' }]);
+      return false;
+    }
+    setCartCalls([...recentCalls, now]);
+    setCart([{ product, duration }]);
+    setMessages(prev => [...prev, {
+      id: `cart-${now}`,
+      role: 'assistant',
+      text: `${product.name} · ${duration.duration || duration.label} is ready for confirmation.`,
+      cartItem: { product, duration },
+      suggestions: ['Show other packages', 'Best sellers'],
+    }]);
+    return true;
+  }, [cartCalls]);
+
+  const answer = useCallback(async rawQuery => {
+    const query = String(rawQuery || '').trim();
+    if (!query) return;
+    const now = Date.now();
+    setInput('');
+    setMessages(prev => [...prev, { id: `user-${now}`, role: 'user', text: query }]);
+    const freshProducts = Date.now() - lastFetchedAt > AI_CATALOG_REFRESH_MS || /price|cost|₹|rupee|package|best|trend/i.test(query);
+    const catalog = await loadCatalog(freshProducts) || pricedProducts;
+    const visible = catalog.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role));
+    const lower = query.toLowerCase();
+    const ranked = rankCatalogMatches(visible, query);
+    const isTrending = /best|trend|popular|selling|seller|top/i.test(lower);
+    if (/refresh/i.test(lower)) {
+      await loadCatalog(true);
+      setMessages(prev => [...prev, { id: `refresh-${now}`, role: 'assistant', text: 'The live catalog was refreshed. Ask me for a product or package.', suggestions: ['Best sellers', 'Show all packages'] }]);
+      return;
+    }
+    if (isTrending) {
+      const trending = [...visible].sort((a, b) => {
+        const salesDiff = Number(b.salesCount || 0) - Number(a.salesCount || 0);
+        return salesDiff || a.name.localeCompare(b.name);
+      }).slice(0, 5);
+      setMessages(prev => [...prev, {
+        id: `trending-${now}`,
+        role: 'assistant',
+        text: trending.length ? 'Trending products from the live catalog:' : 'No trending products are available right now.',
+        products: trending,
+        suggestions: ['Show all packages'],
+      }]);
+      return;
+    }
+    if (/all package|show products|catalog|what do you have/i.test(lower)) {
+      setMessages(prev => [...prev, {
+        id: `catalog-${now}`,
+        role: 'assistant',
+        text: visible.length ? 'Here are the available products from the live catalog:' : 'No products are currently available.',
+        products: visible.slice(0, 8),
+        suggestions: ['Best sellers'],
+      }]);
+      return;
+    }
+    if (!ranked.length) {
+      const category = rankCatalogMatches(visible, lower.split(/\s+/).slice(0, 1).join(' '));
+      setMessages(prev => [...prev, {
+        id: `nomatch-${now}`,
+        role: 'assistant',
+        text: category.length
+          ? `I could not find an exact catalog match. The closest available category is ${category[0].game || 'the available catalog'}.`
+          : 'I could not find that in the live catalog. Try a product name, game, or “Best sellers”.',
+        products: category.slice(0, 3),
+        suggestions: ['Best sellers', 'Show all packages'],
+      }]);
+      return;
+    }
+    const product = ranked[0];
+    const wantsDetails = /include|included|feature|detail|what is|package|price|cost|how much/i.test(lower);
+    setMessages(prev => [...prev, {
+      id: `product-${now}`,
+      role: 'assistant',
+      text: wantsDetails
+        ? `${product.name} is available in the live catalog. ${safeCatalogDetails(product)}`
+        : `I found ${product.name} in the live catalog.`,
+      products: [product],
+      suggestions: ['Show other packages', 'Best sellers'],
+    }]);
+  }, [lastFetchedAt, loadCatalog, pricingRules, pricingSettings, pricedProducts, session?.role]);
+
+  const submit = e => {
+    e.preventDefault();
+    answer(input);
+  };
+
+  const chooseSuggestion = suggestion => {
+    if (suggestion === 'Show other packages') {
+      const lastProduct = [...messages].reverse().find(message => message.products?.length)?.products?.[0];
+      if (lastProduct) {
+        setMessages(prev => [...prev, { id: `packages-${Date.now()}`, role: 'assistant', text: `${lastProduct.name} packages currently available:`, products: [lastProduct] }]);
+      } else answer('Show all packages');
+      return;
+    }
+    answer(suggestion);
+  };
+
+  return (
+    <aside className={`ai-shop-panel${compactView ? ' compact' : ''}`} role="dialog" aria-modal="true" aria-label="Shop with AI">
+      <header className="ai-shop-header">
+        <div className="ai-shop-brand">
+          <span className="ai-shop-sparkle"><Sparkles size={17} /></span>
+          <div><strong>reversebypass</strong><small>Live catalog assistant</small></div>
+        </div>
+        <div className="ai-shop-header-actions">
+          {cart.length > 0 && <span className="ai-shop-cart-count"><ShoppingCart size={16} /> {cart.length}</span>}
+          <button type="button" aria-label="Toggle layout" onClick={() => setCompactView(value => !value)}><LayoutList size={17} /></button>
+          <div className="ai-shop-menu-wrap">
+            <button type="button" aria-label="More options" onClick={() => setMenuOpen(value => !value)}><MoreVertical size={17} /></button>
+            {menuOpen && (
+              <div className="ai-shop-menu">
+                <button type="button" onClick={() => { setMessages([]); setCart([]); setMenuOpen(false); }}>Clear chat</button>
+                <button type="button" onClick={() => { loadCatalog(true); setMenuOpen(false); }}>Refresh catalog</button>
+              </div>
+            )}
+          </div>
+          <button type="button" aria-label="Close shop" onClick={onClose}><X size={18} /></button>
+        </div>
+      </header>
+      <div className="ai-shop-thread" ref={threadRef}>
+        {loading && <div className="ai-shop-loading"><RefreshCw size={15} className="ai-spin" /> Loading live products…</div>}
+        {messages.map(message => (
+          <div className={`ai-shop-message ${message.role}`} key={message.id}>
+            <div className="ai-shop-bubble">
+              {message.role === 'assistant' ? <p>{message.text}</p> : <p>{message.text}</p>}
+              {message.products?.map((product, productIndex) => (
+                <div className="ai-shop-product" key={product.pid || product.id || product.name}>
+                  {message.id.startsWith('trending-') && <div className="ai-shop-ranking">#{productIndex + 1} trending</div>}
+                  <div className="ai-shop-product-top">
+                    <img src={productIconForWithFallback(product.name)} alt="" />
+                    <div><strong>{product.name}</strong><small>{product.game} · {product.platform || 'Access key'}</small></div>
+                  </div>
+                  <p className="ai-shop-description">{safeCatalogDetails(product)}</p>
+                  <div className="ai-shop-package-list">
+                    {(product.pricing || []).slice(0, 6).map(duration => (
+                      <div className="ai-shop-package" key={`${product.pid}-${duration.duration || duration.label}`}>
+                        <span>{duration.duration || duration.label}</span>
+                        <strong>{duration.price > 0 ? `₹${money(duration.price)}` : 'Unavailable'}</strong>
+                        <button
+                          type="button"
+                          disabled={duration.price <= 0}
+                          onClick={() => addToCart(product, duration)}
+                          title={duration.price <= 0 ? 'Package unavailable' : 'Add to cart'}
+                        >
+                          <Plus size={14} /> Add
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {product.pricing?.length === 0 && <small className="ai-shop-unavailable">No packages are currently available.</small>}
+                </div>
+              ))}
+              {message.cartItem && (
+                <button className="ai-shop-confirm" type="button" onClick={() => {
+                  onBuy(message.cartItem);
+                  onClose();
+                }}>
+                  Confirm purchase <ChevronRight size={16} />
+                </button>
+              )}
+            </div>
+            {message.suggestions?.length > 0 && (
+              <div className="ai-shop-suggestions">
+                {message.suggestions.map(suggestion => <button type="button" key={suggestion} onClick={() => chooseSuggestion(suggestion)}>{suggestion}</button>)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <form className="ai-shop-input-bar" onSubmit={submit}>
+        <input value={input} onChange={e => setInput(e.target.value)} placeholder="Message areversebypass" aria-label="Message reversebypass" />
+        <button type="submit" aria-label="Send message" disabled={!input.trim()}><Send size={17} /></button>
+      </form>
+    </aside>
+  );
+}
+
 /* ── Dashboard shell ────────────────────────────────────────────── */
 function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, onPerfSelect }) {
   const prevPerf = useRef(perfMode);
@@ -366,6 +677,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [hasUnread, setHasUnread] = useState(false);
   const [resolvedNotif, setResolvedNotif] = useState(null);
   const [communityLinks, setCommunityLinks] = useState({ resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' });
+  const [aiShopOpen, setAiShopOpen] = useState(false);
   const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(() => {
     if (localStorage.getItem('reseller_dont_show') === '1') return false;
     return false; // will check after profile loads
@@ -487,6 +799,8 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           <img src={telegramLogo} alt="" /> <span>Help</span>
         </a>
       )}
+      <AiShopTrigger open={aiShopOpen} hasHelpLink={Boolean(communityLinks.helpUrl)} onClick={() => setAiShopOpen(true)} />
+      {aiShopOpen && <AiShopPanel session={profile} onBuy={setPurchase} onClose={() => setAiShopOpen(false)} />}
       <nav className="bottom-nav">
         {navItems.map(({ id, label, icon, lottieIcon }) => (
           <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>

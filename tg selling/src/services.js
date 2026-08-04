@@ -248,6 +248,8 @@ export async function fetchGameProducts() {
       image: brandIcon || product.image || '',
       videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
       features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
+      description: typeof product.description === 'string' ? product.description : '',
+      salesCount: product.salesCount ?? product.purchaseCount ?? product.orders ?? product.sold ?? null,
       pricing: pricing.map((item, index) => ({
         label: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
         duration: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
