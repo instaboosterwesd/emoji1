@@ -41,6 +41,11 @@ import {
   getUserLicenseKeys,
   getAdminPricingRules,
   getProductPricingSettings,
+  getCommunityLinks,
+  createKeyResetRequest,
+  getUserKeyResetRequests,
+  adminSaveCommunityLinks,
+  adminReviewKeyResetRequest,
   adminAddManualKey,
   adminDeleteManualKey,
   purchaseProduct,
@@ -360,6 +365,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [showNotifs, setShowNotifs] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [resolvedNotif, setResolvedNotif] = useState(null);
+  const [communityLinks, setCommunityLinks] = useState({ resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' });
   const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(() => {
     if (localStorage.getItem('reseller_dont_show') === '1') return false;
     return false; // will check after profile loads
@@ -376,6 +382,10 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
       const seenAt = parseInt(localStorage.getItem('notif_seen_at') || '0');
       if (list.some(n => (n.createdAt || 0) > seenAt)) setHasUnread(true);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getCommunityLinks().then(setCommunityLinks).catch(() => {});
   }, []);
 
   const openNotifs = () => {
@@ -426,11 +436,11 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   ];
 
   const section =
-    tab === 'orders' ? <OrdersView session={session} /> :
+    tab === 'orders' ? <OrdersView session={session} communityLinks={communityLinks} /> :
     tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
-    <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
+    tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
+    <DashboardHome profile={profile} role={profile.role} setTab={setTab} communityLinks={communityLinks} />;
 
   return (
     <main className={`dashboard-page ${theme}`}>
@@ -472,6 +482,11 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
       <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'} tab-${tab}`}>
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
+      {communityLinks.helpUrl && (
+        <a className="telegram-float-btn" href={communityLinks.helpUrl} target="_blank" rel="noreferrer" aria-label="Get Telegram help">
+          <img src={telegramLogo} alt="" /> <span>Help</span>
+        </a>
+      )}
       <nav className="bottom-nav">
         {navItems.map(({ id, label, icon, lottieIcon }) => (
           <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
@@ -538,7 +553,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           </section>
         </div>
       )}
-      <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
+      <PurchaseDialog purchase={purchase} session={session} communityLinks={communityLinks} close={() => setPurchase(null)} onPurchased={refreshProfile} />
       {resellerBenefitsOpen && (
         <ResellerBenefitsDialog
           resellerPrice={0}
@@ -552,7 +567,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
 }
 
 /* ── DashboardHome ──────────────────────────────────────────────── */
-function DashboardHome({ profile, role, setTab }) {
+function DashboardHome({ profile, role, setTab, communityLinks }) {
   return (
     <>
       <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <DeviceIcon emoji="/icons/new/today-emoji.json" icon="today" size={16} /></>} />
@@ -573,6 +588,19 @@ function DashboardHome({ profile, role, setTab }) {
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
           <DeviceIcon emoji="/icons/new/crown.json" icon="workspace_premium" size={20} /> Open admin dashboard
         </button>
+      )}
+      {role === 'reseller' && (
+        <div className="community-action-card glass-card">
+          <div>
+            <strong><DeviceIcon emoji="/icons/new/telegram-lottie.json" icon="campaign" size={20} /> Reseller All Update</strong>
+            <p className="muted">Join the reseller updates channel for files and announcements.</p>
+          </div>
+          {communityLinks.resellerUpdatesUrl && (
+            <a className="community-action-btn" href={communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+              <img src={telegramLogo} alt="" /> Join
+            </a>
+          )}
+        </div>
       )}
       <div className="glass-card">
         <div className="card-heading recent-heading">
@@ -759,18 +787,21 @@ function WalletView({ session, profile, refreshProfile }) {
 }
 
 /* ── OrdersView ─────────────────────────────────────────────────── */
-function OrdersView({ session }) {
+function OrdersView({ session, communityLinks }) {
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);
+  const [resetRequests, setResetRequests] = useState([]);
+  const [resetOrder, setResetOrder] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getUserLicenseKeys(session.uid);
       setKeys(data);
+      setResetRequests(await getUserKeyResetRequests(session.uid));
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   }, [session.uid]);
@@ -814,7 +845,31 @@ function OrdersView({ session }) {
               <MatIcon name="description" size={16} /> Download Invoice (PDF)
             </button>
           )}
+          <div className="order-action-row">
+            {(communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
+              <a className="community-action-btn" href={communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+                <img src={telegramLogo} alt="" /> Get File
+              </a>
+            )}
+            <button className="reset-key-btn" type="button" onClick={() => setResetOrder(selected)}>
+              <MatIcon name="restart_alt" size={16} /> Reset Key
+            </button>
+          </div>
+          {resetRequests.filter(request => request.keyId === selected.id).map(request => (
+            <div className={`reset-request-status ${request.status}`} key={request.id}>
+              <MatIcon name={request.status === 'approved' ? 'check_circle' : request.status === 'rejected' ? 'cancel' : 'schedule'} size={16} />
+              {request.status === 'pending' ? 'Your key reset request is pending.' :
+                request.status === 'approved' ? 'Your key reset request is approved.' : 'Your key reset request was rejected.'}
+            </div>
+          ))}
         </div>
+        {resetOrder && (
+          <ResetKeyDialog
+            license={resetOrder}
+            onClose={() => setResetOrder(null)}
+            onSubmitted={async () => { setResetOrder(null); setResetRequests(await getUserKeyResetRequests(session.uid)); }}
+          />
+        )}
       </>
     );
   }
@@ -1083,6 +1138,54 @@ function ProductDetailPage({ product, onBack, onBuy }) {
   );
 }
 
+function ResetKeyDialog({ license, onClose, onSubmitted }) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await createKeyResetRequest(license.uid, license, reason);
+      toast.success('Key reset request sent to admin.');
+      await onSubmitted();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+      <section className="action-modal liquid-dialog reset-key-dialog">
+        <div className="dialog-title-row">
+          <MatIcon name="restart_alt" size={22} />
+          <h2>Reset key</h2>
+          <button className="icon-button" type="button" onClick={onClose} disabled={busy}><MatIcon name="close" size={18} /></button>
+        </div>
+        <p className="muted dialog-sub">Tell admin why you need a reset for {license.productName || license.product}.</p>
+        <form onSubmit={submit}>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="Explain your situation..."
+            rows={4}
+            minLength={5}
+            required
+          />
+          <div className="modal-btn-row">
+            <button type="button" onClick={onClose} disabled={busy}>Cancel</button>
+            <button className="modal-save" type="submit" disabled={busy}>
+              <MatIcon name="send" size={16} /> {busy ? 'Sending…' : 'Send request'}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 /* ── SearchResultsPage — full-screen search overlay ─────────────── */
 function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, onSelectProduct }) {
   const inputRef = useRef(null);
@@ -1334,7 +1437,7 @@ function ProductsView({ session, onBuy }) {
 }
 
 /* ── PurchaseDialog — real purchaseProduct() ────────────────────── */
-function PurchaseDialog({ purchase, session, close, onPurchased }) {
+function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // { key, source }
 
@@ -1380,6 +1483,11 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
               </button>
             </div>
             <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
+            {(communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
+              <a className="community-action-btn" href={communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer" style={{ width: '100%', marginTop: 12 }}>
+                <img src={telegramLogo} alt="" /> Get File
+              </a>
+            )}
             <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
               <button className="modal-save" type="button" onClick={handleClose}><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Done</button>
             </div>
@@ -1416,7 +1524,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
 }
 
 /* ── ProfileView ────────────────────────────────────────────────── */
-function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenefits }) {
+function ProfileView({ profile, communityLinks, openDialog, openApi, onShowPerf, onResellerBenefits }) {
   const [giftOpen, setGiftOpen] = useState(false);
   return (
     <>
@@ -1439,6 +1547,16 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
           <button className="has-lottie reseller-profile-btn" onClick={onResellerBenefits}>
             <DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={20} /> Unlock Reseller
           </button>
+        )}
+        {profile.role === 'reseller' && communityLinks.resellerUpdatesUrl && (
+          <a className="has-lottie profile-community-btn" href={communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+            <img src={telegramLogo} alt="" /> Reseller All Update · Join
+          </a>
+        )}
+        {communityLinks.helpUrl && (
+          <a className="has-lottie profile-community-btn" href={communityLinks.helpUrl} target="_blank" rel="noreferrer">
+            <img src={telegramLogo} alt="" /> Get Help on Telegram
+          </a>
         )}
         <button className="has-lottie" onClick={onShowPerf}><DeviceIcon emoji="/icons/new/crown.json" icon="crown" size={22} />Device Performance</button>
         <button className="danger has-lottie logout-btn" onClick={() => openDialog('logout')}><DeviceIcon emoji="/icons/new/logout-flash.json" icon="logout-flash" size={24} />Logout</button>
@@ -1923,6 +2041,7 @@ function AdminPage({ session, onSessionChange }) {
   const [upiEnabled, setUpiEnabled] = useState(true);
   const [gatewayFee, setGatewayFee] = useState('0');
   const [cashfreeAppId, setCashfreeAppId] = useState('');
+  const [communityLinks, setCommunityLinks] = useState({ resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' });
   const [historyUser, setHistoryUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
@@ -1966,6 +2085,7 @@ function AdminPage({ session, onSessionChange }) {
         fetchGameProducts().catch(() => []),
         getAdminAlerts().catch(() => []),
         getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
+        getGiftCodes().catch(() => []),
       ]);
       setData(overview);
       setProducts(productList);
@@ -1976,6 +2096,11 @@ function AdminPage({ session, onSessionChange }) {
       setUpiEnabled(overview.upiEnabled !== false);
       setGatewayFee(String(overview.gatewayFee || 0));
       setCashfreeAppId(overview.cashfreeAppId || '');
+      setCommunityLinks({
+        resellerUpdatesUrl: overview.communityLinks?.resellerUpdatesUrl || '',
+        getFileUrl: overview.communityLinks?.getFileUrl || '',
+        helpUrl: overview.communityLinks?.helpUrl || '',
+      });
       setManualKeys(overview.manualKeys || []);
       setAdminAlerts(alerts);
       setSiteStatus(status.status || 'operational');
@@ -2418,6 +2543,53 @@ function AdminPage({ session, onSessionChange }) {
           </label>
           <button className="modal-save" type="submit"><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Update status</button>
         </form>
+      </div>
+      <div className="admin-card">
+        <h3><img src={telegramLogo} alt="" style={{ width: 20, height: 20, verticalAlign: 'middle', marginRight: 7 }} /> Telegram community links</h3>
+        <p className="muted">These links control reseller updates, purchased file access, and the floating help button.</p>
+        <form className="admin-form" onSubmit={e => {
+          e.preventDefault();
+          safeAction(() => adminSaveCommunityLinks(communityLinks), 'Telegram links saved');
+        }}>
+          <label>
+            Reseller All Update / Join link
+            <input value={communityLinks.resellerUpdatesUrl} onChange={e => setCommunityLinks(v => ({ ...v, resellerUpdatesUrl: e.target.value }))} placeholder="https://t.me/your_reseller_channel" type="url" />
+          </label>
+          <label>
+            Get File link
+            <input value={communityLinks.getFileUrl} onChange={e => setCommunityLinks(v => ({ ...v, getFileUrl: e.target.value }))} placeholder="https://t.me/your_files_channel" type="url" />
+          </label>
+          <label>
+            Get Help link
+            <input value={communityLinks.helpUrl} onChange={e => setCommunityLinks(v => ({ ...v, helpUrl: e.target.value }))} placeholder="https://t.me/your_support" type="url" />
+          </label>
+          <button className="modal-save" type="submit"><img src={telegramLogo} alt="" style={{ width: 17, height: 17 }} /> Save Telegram links</button>
+        </form>
+      </div>
+      <div className="admin-card">
+        <h3><MatIcon name="restart_alt" size={20} /> Key reset requests</h3>
+        <p className="muted">Review user requests from My Orders.</p>
+        <AdminList items={data?.keyResetRequests || []} empty="No key reset requests" render={request => (
+          <AdminRow
+            title={`${request.productName || 'License'} · ${request.duration || '—'}`}
+            meta={<>{request.uid} · {request.reason} · {fmtDate(request.createdAt)}</>}
+            status={request.status || 'pending'}
+          >
+            {request.status === 'pending' && (
+              <>
+                <button className="modal-save" onClick={() => {
+                  const replacement = window.prompt('Replacement key (optional):', '');
+                  safeAction(() => adminReviewKeyResetRequest(request.id, 'approved', replacement || ''), 'Key reset approved');
+                }}>
+                  <MatIcon name="check_circle" size={13} /> Approve
+                </button>
+                <button className="danger-mini" onClick={() => safeAction(() => adminReviewKeyResetRequest(request.id, 'rejected'), 'Key reset rejected')}>
+                  <MatIcon name="close" size={13} /> Reject
+                </button>
+              </>
+            )}
+          </AdminRow>
+        )} />
       </div>
       <div className="admin-card">
         <h3>UPI payment settings</h3>

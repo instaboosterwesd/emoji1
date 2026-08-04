@@ -40,3 +40,13 @@ The Cashfree App ID may be stored through Admin → Payment Settings because it 
 - Cashfree Production credentials must be paired with `Cashfree({ mode: 'production' })`, which this flow uses.
 - Configure Firebase Realtime Database rules so users can create only their own payment requests and only admins can approve manual UPI requests. Cashfree requests are verified and auto-credited after a successful gateway response.
 - Test with a small real amount after adding the secret and confirming the Cashfree merchant account is activated for production.
+
+## Telegram community and key reset tools
+
+Open **Admin → Payment Settings** and use **Telegram community links**:
+
+- **Reseller All Update / Join link** appears for reseller accounts on the dashboard and profile.
+- **Get File link** appears after a successful purchase and inside each order.
+- **Get Help link** powers the floating Telegram help button across the user dashboard.
+
+Users can open an order in **My Orders**, choose **Reset Key**, enter a reason, and submit it. The request is stored as pending and appears in the admin settings panel. Admin can approve or reject it; an optional replacement key can be entered while approving. The user then sees the approved or rejected status in the order details.

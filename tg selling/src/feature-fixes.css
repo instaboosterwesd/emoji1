@@ -2512,3 +2512,109 @@
   transform: scale(0.98);
 }
 
+/* ── Telegram community actions ────────────────────────────────── */
+.telegram-float-btn {
+  position: fixed;
+  right: 18px;
+  bottom: 88px;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 13px 10px 10px;
+  border-radius: 999px;
+  background: #229ed9;
+  color: #fff;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(34,158,217,.35);
+  transition: transform .2s, box-shadow .2s;
+}
+.telegram-float-btn:hover {
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(34,158,217,.48);
+}
+.telegram-float-btn img,
+.community-action-btn img,
+.profile-community-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.community-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 14px 0;
+  padding: 16px;
+  border-color: rgba(34,158,217,.32);
+}
+.community-action-card strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.community-action-card p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+.community-action-btn,
+.reset-key-btn,
+.profile-community-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid rgba(34,158,217,.42);
+  border-radius: 12px;
+  background: rgba(34,158,217,.13);
+  color: #8ecff0;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.community-action-btn:hover,
+.reset-key-btn:hover,
+.profile-community-btn:hover {
+  background: rgba(34,158,217,.24);
+  color: #fff;
+}
+.profile-community-btn {
+  width: 100%;
+}
+.order-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+.reset-key-btn {
+  flex: 1;
+  color: #f6c779;
+  border-color: rgba(246,199,121,.35);
+  background: rgba(246,199,121,.1);
+}
+.reset-request-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.reset-request-status.pending { color: #fbbf24; background: rgba(251,191,36,.1); }
+.reset-request-status.approved { color: #74e0a5; background: rgba(116,224,165,.1); }
+.reset-request-status.rejected { color: #ff9bae; background: rgba(255,112,137,.1); }
+@media (max-width: 520px) {
+  .telegram-float-btn { right: 12px; bottom: 82px; }
+  .community-action-card { align-items: flex-start; }
+  .community-action-card .community-action-btn { flex: none; }
+}
+

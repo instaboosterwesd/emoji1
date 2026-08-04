@@ -308,7 +308,7 @@ const toArray = value => Object.entries(value || {}).map(([id, item]) => ({ id, 
 
 export async function getAdminOverview() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, paymentSettingsSnap, manualKeysSnap] = await Promise.all([
+  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, paymentSettingsSnap, manualKeysSnap, communitySnap, keyResetSnap] = await Promise.all([
     get(ref(firebaseDb, 'users')),
     get(ref(firebaseDb, 'licenseKeys')),
     get(ref(firebaseDb, 'paymentRequests')),
@@ -318,6 +318,8 @@ export async function getAdminOverview() {
     get(ref(firebaseDb, 'adminProductPricing')),
     get(ref(firebaseDb, 'settings/payment')),
     get(ref(firebaseDb, 'manualLicenseKeys')),
+    get(ref(firebaseDb, 'settings/community')),
+    get(ref(firebaseDb, 'keyResetRequests')),
   ]);
   const users = Object.entries(usersSnap.val() || {}).map(([uid, value]) => publicProfile(uid, value));
   const keys = toArray(keysSnap.val());
@@ -336,6 +338,8 @@ export async function getAdminOverview() {
     announcements,
     pricingRules,
     manualKeys,
+    communityLinks: communitySnap.exists() ? communitySnap.val() : {},
+    keyResetRequests: toArray(keyResetSnap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
     ...(paymentSettingsSnap.exists() ? paymentSettingsSnap.val() : {}),
     upiId: paymentSettingsSnap.val()?.upiId || '',
     minDeposit: Number(paymentSettingsSnap.val()?.minDeposit || 50),
@@ -463,6 +467,103 @@ export async function adminSaveUpi(upiId, minDeposit, resellerPrice, paymentOpti
   if (!next.gatewayEnabled && !next.upiEnabled) throw new Error('Turn on at least one payment method.');
   await set(ref(firebaseDb, 'settings/payment'), next);
   return next;
+}
+
+function cleanCommunityUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let parsed;
+  try { parsed = new URL(raw); } catch { throw new Error('Telegram links must be valid HTTPS URLs.'); }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('Telegram links must use HTTP or HTTPS.');
+  return parsed.toString();
+}
+
+export async function getCommunityLinks() {
+  if (!firebaseDb) return { resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' };
+  const snap = await get(ref(firebaseDb, 'settings/community'));
+  const value = snap.exists() ? snap.val() : {};
+  return {
+    resellerUpdatesUrl: value.resellerUpdatesUrl || '',
+    getFileUrl: value.getFileUrl || '',
+    helpUrl: value.helpUrl || '',
+  };
+}
+
+export async function adminSaveCommunityLinks(links) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const next = {
+    resellerUpdatesUrl: cleanCommunityUrl(links.resellerUpdatesUrl),
+    getFileUrl: cleanCommunityUrl(links.getFileUrl),
+    helpUrl: cleanCommunityUrl(links.helpUrl),
+    updatedAt: Date.now(),
+  };
+  await set(ref(firebaseDb, 'settings/community'), next);
+  return next;
+}
+
+export async function getUserKeyResetRequests(uid) {
+  if (!firebaseDb || !uid) return [];
+  const snap = await get(ref(firebaseDb, 'keyResetRequests'));
+  return toArray(snap.val())
+    .filter(request => request.uid === uid)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export async function createKeyResetRequest(uid, license, reason) {
+  if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
+  if (!license?.id) throw new Error('Order details are missing.');
+  const message = String(reason || '').trim();
+  if (message.length < 5) throw new Error('Please explain the reset reason.');
+  const existing = await getUserKeyResetRequests(uid);
+  if (existing.some(request => request.keyId === license.id && request.status === 'pending')) {
+    throw new Error('A reset request for this order is already pending.');
+  }
+  const id = `reset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await set(ref(firebaseDb, `keyResetRequests/${id}`), {
+    uid,
+    keyId: license.id,
+    productName: license.productName || license.product || '',
+    duration: license.duration || '',
+    reason: message,
+    status: 'pending',
+    createdAt: Date.now(),
+  });
+  return id;
+}
+
+export async function adminReviewKeyResetRequest(requestId, status, replacementKey = '') {
+  if (!firebaseDb || !requestId) throw new Error('Reset request is missing.');
+  if (!['approved', 'rejected'].includes(status)) throw new Error('Invalid reset request status.');
+  const requestRef = ref(firebaseDb, `keyResetRequests/${requestId}`);
+  const snap = await get(requestRef);
+  if (!snap.exists()) throw new Error('Reset request not found.');
+  const request = snap.val();
+  const keyValue = String(replacementKey || '').trim();
+  const now = Date.now();
+  await update(requestRef, {
+    status,
+    replacementKey: status === 'approved' && keyValue ? keyValue : '',
+    reviewedAt: now,
+  });
+  if (status === 'approved' && keyValue && request.keyId) {
+    await update(ref(firebaseDb, `licenseKeys/${request.keyId}`), {
+      key: keyValue,
+      keyCode: keyValue,
+      status: 'active',
+      resetAt: now,
+    });
+  }
+  await set(ref(firebaseDb, `userNotifications/${request.uid}/${requestId}`), {
+    type: 'key_reset',
+    title: status === 'approved' ? 'Key reset approved' : 'Key reset rejected',
+    message: status === 'approved'
+      ? 'Your key reset request is approved.'
+      : 'Your key reset request was rejected by admin.',
+    requestId,
+    createdAt: now,
+    dismissed: false,
+  });
+  return true;
 }
 
 export async function adminDeleteLicenseKey(keyId) {
