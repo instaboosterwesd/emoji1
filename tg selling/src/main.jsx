@@ -54,6 +54,10 @@ import {
   adminCreateGiftCode,
   getGiftCodes,
   productIconFor,
+  getProductChannels,
+  findProductChannel,
+  adminSaveProductChannel,
+  adminDeleteProductChannel,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -744,6 +748,7 @@ function WalletView({ session, profile, refreshProfile }) {
 /* ── OrdersView ─────────────────────────────────────────────────── */
 function OrdersView({ session }) {
   const [keys, setKeys] = useState([]);
+  const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
@@ -752,8 +757,12 @@ function OrdersView({ session }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getUserLicenseKeys(session.uid);
+      const [data, productChannels] = await Promise.all([
+        getUserLicenseKeys(session.uid),
+        getProductChannels().catch(() => []),
+      ]);
       setKeys(data);
+      setChannels(productChannels);
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   }, [session.uid]);
@@ -765,6 +774,7 @@ function OrdersView({ session }) {
   );
 
   if (selected) {
+    const channel = findProductChannel(selected.productName || selected.product, channels);
     return (
       <>
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
@@ -797,6 +807,25 @@ function OrdersView({ session }) {
               <MatIcon name="description" size={16} /> Download Invoice (PDF)
             </button>
           )}
+          <div className="order-support-actions">
+            {channel?.fileUpdateUrl ? (
+              <a className="order-support-btn file-update" href={channel.fileUpdateUrl} target="_blank" rel="noreferrer">
+                <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={20} />
+                <span><strong>File Update</strong><small>Get the latest product file</small></span>
+              </a>
+            ) : (
+              <button className="order-support-btn file-update is-disabled" type="button" disabled>
+                <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={20} />
+                <span><strong>File Update</strong><small>Update link will be added by admin</small></span>
+              </button>
+            )}
+            {channel?.feedbackUrl && (
+              <a className="order-support-btn feedback" href={channel.feedbackUrl} target="_blank" rel="noreferrer">
+                <DeviceIcon emoji="/icons/new/verified-check.json" icon="campaign" size={20} />
+                <span><strong>Feedback</strong><small>Open the product feedback channel</small></span>
+              </a>
+            )}
+          </div>
         </div>
       </>
     );
@@ -982,7 +1011,7 @@ function featIcon(pid, f) {
 }
 
 /* ── ProductDetailPage — full-screen overlay (hides bottom-nav) ─── */
-function ProductDetailPage({ product, onBack, onBuy }) {
+function ProductDetailPage({ product, onBack, onBuy, channel }) {
   const [playingVideo, setPlayingVideo] = useState(false);
   const available = product.pricing.length > 0;
 
@@ -1023,6 +1052,26 @@ function ProductDetailPage({ product, onBack, onBuy }) {
             <h2 className="pdp-name">{product.name}</h2>
             <p className="pdp-meta muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p>
           </div>
+        </div>
+
+        <div className="pdp-support-actions">
+          {channel?.fileUpdateUrl ? (
+            <a className="pdp-support-btn file-update" href={channel.fileUpdateUrl} target="_blank" rel="noreferrer">
+              <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={21} />
+              <span><strong>File Update</strong><small>Latest file and update details</small></span>
+            </a>
+          ) : (
+            <button className="pdp-support-btn file-update is-disabled" type="button" disabled>
+              <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={21} />
+              <span><strong>File Update</strong><small>Update link will be added by admin</small></span>
+            </button>
+          )}
+          {channel?.feedbackUrl && (
+            <a className="pdp-support-btn feedback" href={channel.feedbackUrl} target="_blank" rel="noreferrer">
+              <DeviceIcon emoji="/icons/new/verified-check.json" icon="campaign" size={21} />
+              <span><strong>Feedback</strong><small>Join the product feedback channel</small></span>
+            </a>
+          )}
         </div>
 
         {/* Duration grid — always visible */}
@@ -1155,6 +1204,7 @@ function ProductsView({ session, onBuy }) {
   const [searchActive, setSearchActive] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [channels, setChannels] = useState([]);
 
   const applyPricing = useCallback((product) => {
     const isReseller = session?.role === 'reseller';
@@ -1182,12 +1232,14 @@ function ProductsView({ session, onBuy }) {
   const load = async () => {
     setLoading(true); setError('');
     try {
-      const [prods, rules] = await Promise.all([
+      const [prods, rules, productChannels] = await Promise.all([
         fetchGameProducts(),
         getAdminPricingRules().catch(() => ({})),
+        getProductChannels().catch(() => []),
       ]);
       setPricingRules(rules);
       setProducts(prods);
+      setChannels(productChannels);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -1214,6 +1266,7 @@ function ProductsView({ session, onBuy }) {
     return (
       <ProductDetailPage
         product={applyPricing(selectedProduct)}
+        channel={findProductChannel(selectedProduct.name, channels)}
         onBack={() => setSelectedProduct(null)}
         onBuy={onBuy}
       />
@@ -1902,6 +1955,8 @@ function AdminPage({ session, onSessionChange }) {
   const [resellerPrice, setResellerPrice] = useState('');
   const [historyUser, setHistoryUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
+  const [productChannels, setProductChannels] = useState([]);
+  const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
   const [apiStatus, setApiStatus] = useState(null);
   const [apiChecking, setApiChecking] = useState(false);
   // Manual keys
@@ -1926,6 +1981,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'users', label: 'Users', icon: 'people' },
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
+    { id: 'channels', label: 'Feedback & Files', icon: 'link' },
     { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
     { id: 'key-history', label: 'License History', icon: 'history' },
@@ -1938,11 +1994,13 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status, gcList] = await Promise.all([
+      const [overview, productList, alerts, status, gcList, channelList] = await Promise.all([
         getAdminOverview(),
         fetchGameProducts().catch(() => []),
         getAdminAlerts().catch(() => []),
         getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
+        getGiftCodes().catch(() => []),
+        getProductChannels().catch(() => []),
       ]);
       setData(overview);
       setProducts(productList);
@@ -1954,6 +2012,7 @@ function AdminPage({ session, onSessionChange }) {
       setSiteStatus(status.status || 'operational');
       setSiteStatusMsg(status.message || '');
       setGiftCodes(gcList);
+      setProductChannels(channelList);
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2155,6 +2214,89 @@ function AdminPage({ session, onSessionChange }) {
           >
             <button onClick={() => setPricingProduct(product)}>
               <MatIcon name="edit" size={13} /> Edit pricing
+            </button>
+          </AdminRow>
+        )} />
+      </div>
+    ),
+
+    channels: (
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <DeviceIcon emoji="/icons/new/verified-check.json" icon="link" size={22} />
+            <div>
+              <h3>Feedback &amp; File Update links</h3>
+              <p className="muted">Manage the links shown on product and order details.</p>
+            </div>
+          </div>
+        </div>
+        <form className="admin-form channel-form" onSubmit={e => {
+          e.preventDefault();
+          safeAction(async () => {
+            await adminSaveProductChannel(channelForm);
+            setChannelForm({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
+          }, 'Product links saved');
+        }}>
+          <input
+            value={channelForm.productName}
+            onChange={e => setChannelForm(f => ({ ...f, productName: e.target.value }))}
+            placeholder="Product name (must match API product)"
+            list="product-channel-names"
+            required
+          />
+          <datalist id="product-channel-names">
+            {products.map(product => <option key={product.pid} value={product.name} />)}
+          </datalist>
+          <input
+            value={channelForm.feedbackUrl}
+            onChange={e => setChannelForm(f => ({ ...f, feedbackUrl: e.target.value }))}
+            placeholder="Feedback channel URL (https://t.me/...)"
+            type="url"
+          />
+          <input
+            value={channelForm.fileUpdateUrl}
+            onChange={e => setChannelForm(f => ({ ...f, fileUpdateUrl: e.target.value }))}
+            placeholder="File Update URL (optional)"
+            type="url"
+          />
+          <div className="modal-btn-row">
+            <button className="modal-save" type="submit">
+              <MatIcon name={channelForm.id ? 'save' : 'add_link'} size={16} /> {channelForm.id ? 'Update link' : 'Add link'}
+            </button>
+            {channelForm.id && (
+              <button type="button" onClick={() => setChannelForm({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' })}>
+                <MatIcon name="close" size={16} /> Cancel edit
+              </button>
+            )}
+          </div>
+        </form>
+        <AdminList items={productChannels} empty="No product links configured" render={channel => (
+          <AdminRow
+            title={channel.productName}
+            meta={
+              <span className="channel-meta">
+                {channel.feedbackUrl ? 'Feedback ready' : 'No feedback link'}
+                {' · '}
+                {channel.fileUpdateUrl ? 'File Update ready' : 'File Update not set'}
+              </span>
+            }
+            status={channel.isDefault ? 'Default' : 'Custom'}
+          >
+            <button onClick={() => setChannelForm({
+              id: channel.id,
+              productName: channel.productName || '',
+              feedbackUrl: channel.feedbackUrl || '',
+              fileUpdateUrl: channel.fileUpdateUrl || '',
+            })}>
+              <MatIcon name="edit" size={13} /> Edit
+            </button>
+            <button className="danger-mini" onClick={() => {
+              if (window.confirm(`Hide links for ${channel.productName}?`)) {
+                safeAction(() => adminDeleteProductChannel(channel), 'Product link deleted');
+              }
+            }}>
+              <MatIcon name="delete" size={13} /> Delete
             </button>
           </AdminRow>
         )} />

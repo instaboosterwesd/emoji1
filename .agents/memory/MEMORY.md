@@ -1,1 +1,2 @@
 - [Credential-safe Git history](credential-safe-git-history.md) — never commit uploaded service-account files or private credentials; GitHub push protection rejects them even from earlier commits.
+- [Product support links](product-support-links.md) — built-in Telegram defaults stay usable while Firebase provides admin overrides.

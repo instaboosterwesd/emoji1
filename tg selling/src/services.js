@@ -46,6 +46,125 @@ const productBrandIconRules = [
 ];
 export const productIconFor = name => productBrandIconRules.find(b => b.test(name || ''))?.icon || null;
 
+/* ── Product support channels ─────────────────────────────────────
+   These defaults keep the supplied links available immediately. Firebase
+   records override them, so an admin can edit or hide any channel later. */
+const DEFAULT_PRODUCT_CHANNELS = [
+  ['A,XYZ MAIN ID FF NONROOT', 'https://t.me/+5owd4nRLLYgxN2Nl'],
+  ['REVERSE BYPASS ALL FEEDBACK PROOF', 'https://t.me/+kaazzM96cLs3ZmJl'],
+  ['BALA MOD FF MAIN ID NONROOT', 'https://t.me/+272Q3no3ie9lZGNl'],
+  ['APK MC PANEL FF ROOT ANDROID', 'https://t.me/+5owd4nRLLYgxN2Nl'],
+  ['BR MOD FF PC VERSION', 'https://t.me/+DTYiBfieU1JhYTY9'],
+  ['BR MOD FF ROOT ANDROID', 'https://t.me/+272Q3no3ie9lZGNl'],
+  ['DRIPCLIENT 8BP NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
+  ['DRIPCLIENT FF NONROOT APKMOD', 'https://t.me/+dL1cxRra1c43ZWQ9'],
+  ['DRIPCLIENT FF PC AIMKILL', 'https://t.me/+dL1cxRra1c43ZWQ9'],
+  ['DRIPCLIENT FF ROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
+  ['DRIPCLIENT PROXY FF NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
+  ['FLUORITE IOS FF', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
+  ['HAXX-CKER PRO FF ROOT ANDROID', 'https://t.me/+wEAjebIfrxZhZTBl'],
+  ['HG CHEATS ANDROID PROXY FF NONROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
+  ['HG CHEATS FF APKMOD NONROOT+ROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
+  ['IOS CLOUD CODM', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
+  ['IOS FLUORITE 8 BALL POOL', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
+  ['IOS IPHONE ALL GBOX CERTIFICATE', 'https://t.me/+g2HHYnpoFmBlMjA1'],
+  ['KOS 8 BALL POOL NONROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
+  ['KOS CARROM POOL NONROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
+  ['KOS FF ROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
+  ['MIGUL IPHONE IOS FF', 'https://t.me/+aFWvR5tU3rM1Yzdl'],
+  ['PATO TEAM FF ALL ANDROID', 'https://t.me/+crO0UPtpG0tjNzU1'],
+  ['PRIME HOOK FF NONROOT ANDROID', 'https://t.me/+KHQ2r77mt2kwZmQ1'],
+  ['RAPID CORE FF ROOT ANDROID', 'https://t.me/+gl9VOfvlTNI2MjRl'],
+  ['REAPER X PRO FF ROOT ANDROID', 'https://t.me/+wc8YzxBjI7FlYzY9'],
+  ['SILENT CHEAT FF NONROOT APKMOD', 'https://t.me/+G0znUI3Bhq4xYTY1'],
+  ['SILENT CHEAT FF ROOT ANDROID', 'https://t.me/+G0znUI3Bhq4xYTY1'],
+  ['SNAKE 8 BALL POOL NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
+  ['SNAKE CARROM POOL NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
+  ['SNAKE SOCCER STARS NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
+  ['XYZ CHEATS FF ROOT ANDROID', 'https://t.me/+g33QD2-jTN5hYWRl'],
+  ['XYZ CHEATS UNLIMITED CREDIT FOR 1 SEASON', 'https://t.me/+5owd4nRLLYgxN2Nl'],
+].map(([productName, feedbackUrl]) => ({
+  id: `default_${productName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+  productName,
+  feedbackUrl,
+  fileUpdateUrl: '',
+  isDefault: true,
+}));
+
+const normaliseChannelName = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+export async function getProductChannels() {
+  const defaults = DEFAULT_PRODUCT_CHANNELS.map(item => ({ ...item }));
+  if (!firebaseDb) return defaults;
+  let overrides = [];
+  try {
+    const snap = await get(ref(firebaseDb, 'productChannels'));
+    if (snap.exists()) {
+      overrides = Object.entries(snap.val() || {}).map(([id, item]) => ({ id, ...(item || {}) }));
+    }
+  } catch {
+    // The built-in links remain usable while database rules are being updated.
+    return defaults;
+  }
+  const byName = new Map(defaults.map(item => [normaliseChannelName(item.productName), item]));
+  const custom = [];
+  overrides.forEach(item => {
+    const key = normaliseChannelName(item.productName);
+    if (!key) return;
+    if (item.deleted) {
+      byName.delete(key);
+      return;
+    }
+    const existing = byName.get(key);
+    const merged = { ...(existing || {}), ...item, id: item.id || existing?.id || id, productName: item.productName };
+    byName.set(key, merged);
+    if (!existing) custom.push(merged);
+  });
+  return [...byName.values(), ...custom.filter(item => !byName.has(normaliseChannelName(item.productName)))];
+}
+
+export function findProductChannel(productName, channels = []) {
+  const name = normaliseChannelName(productName);
+  if (!name) return null;
+  const exact = channels.find(item => normaliseChannelName(item.productName) === name);
+  if (exact) return exact;
+  // Product APIs occasionally change suffixes; brand-level matching keeps
+  // the supplied channel useful for newly renamed variants.
+  return channels.find(item => {
+    const candidate = normaliseChannelName(item.productName);
+    const words = candidate.split(' ').filter(word => word.length > 2);
+    return words.length >= 2 && words.every(word => name.includes(word));
+  }) || null;
+}
+
+export async function adminSaveProductChannel({ id, productName, feedbackUrl, fileUpdateUrl }) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const cleanName = productName?.trim();
+  if (!cleanName) throw new Error('Enter a product name.');
+  if (feedbackUrl && !/^https?:\/\//i.test(feedbackUrl.trim())) throw new Error('Feedback link must start with http:// or https://.');
+  if (fileUpdateUrl && !/^https?:\/\//i.test(fileUpdateUrl.trim())) throw new Error('File Update link must start with http:// or https://.');
+  const recordId = id || `channel_${normaliseChannelName(cleanName).replace(/ /g, '_')}`;
+  await set(ref(firebaseDb, `productChannels/${recordId}`), {
+    productName: cleanName,
+    feedbackUrl: feedbackUrl?.trim() || '',
+    fileUpdateUrl: fileUpdateUrl?.trim() || '',
+    deleted: false,
+    updatedAt: Date.now(),
+  });
+  return recordId;
+}
+
+export async function adminDeleteProductChannel(channel) {
+  if (!firebaseDb || !channel?.productName) throw new Error('Firebase database is not configured.');
+  const id = channel.id || `channel_${normaliseChannelName(channel.productName).replace(/ /g, '_')}`;
+  await set(ref(firebaseDb, `productChannels/${id}`), {
+    productName: channel.productName,
+    deleted: true,
+    updatedAt: Date.now(),
+  });
+  return true;
+}
+
 export async function sendIndiaOtp(phone) {
   const value = cleanPhone(phone);
   if (value.length !== 10) throw new Error('Enter a valid 10-digit Indian mobile number.');
