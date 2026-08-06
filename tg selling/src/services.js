@@ -49,6 +49,8 @@ export const productIconFor = name => productBrandIconRules.find(b => b.test(nam
 /* ── Product support channels ─────────────────────────────────────
    These defaults keep the supplied links available immediately. Firebase
    records override them, so an admin can edit or hide any channel later. */
+const DEFAULT_FEEDBACK_CHANNEL_URL = 'https://t.me/+kaazzM96cLs3ZmJl';
+
 const DEFAULT_PRODUCT_CHANNELS = [
   ['A,XYZ MAIN ID FF NONROOT', 'https://t.me/+5owd4nRLLYgxN2Nl'],
   ['REVERSE BYPASS ALL FEEDBACK PROOF', 'https://t.me/+kaazzM96cLs3ZmJl'],
@@ -83,10 +85,12 @@ const DEFAULT_PRODUCT_CHANNELS = [
   ['SNAKE SOCCER STARS NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
   ['XYZ CHEATS FF ROOT ANDROID', 'https://t.me/+g33QD2-jTN5hYWRl'],
   ['XYZ CHEATS UNLIMITED CREDIT FOR 1 SEASON', 'https://t.me/+5owd4nRLLYgxN2Nl'],
-].map(([productName, feedbackUrl]) => ({
+].map(([productName]) => ({
   id: `default_${productName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
   productName,
-  feedbackUrl,
+  // Every default Feedback button intentionally points to the one
+  // official feedback channel. File Update remains a separate field.
+  feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
   fileUpdateUrl: '',
   isDefault: true,
 }));
@@ -112,11 +116,17 @@ export async function getProductChannels() {
     const key = normaliseChannelName(item.productName);
     if (!key) return;
     if (item.deleted) {
-      byName.delete(key);
+      // Keep a tombstone so an admin deletion does not get recreated by
+      // the universal official-feedback fallback.
+      const existing = byName.get(key);
+      if (existing) byName.set(key, { ...existing, ...item, deleted: true });
       return;
     }
     const existing = byName.get(key);
     const merged = { ...(existing || {}), ...item, id: item.id || existing?.id || id, productName: item.productName };
+    // Existing database records may contain the old per-product feedback
+    // URLs. All current product Feedback buttons use the official channel.
+    if (existing?.isDefault && !item.feedbackManaged) merged.feedbackUrl = DEFAULT_FEEDBACK_CHANNEL_URL;
     byName.set(key, merged);
     if (!existing) custom.push(merged);
   });
@@ -125,16 +135,22 @@ export async function getProductChannels() {
 
 export function findProductChannel(productName, channels = []) {
   const name = normaliseChannelName(productName);
-  if (!name) return null;
+  if (!name) return { productName: productName || 'Product', feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL, fileUpdateUrl: '' };
   const exact = channels.find(item => normaliseChannelName(item.productName) === name);
-  if (exact) return exact;
+  if (exact) return exact.deleted ? null : exact;
   // Product APIs occasionally change suffixes; brand-level matching keeps
   // the supplied channel useful for newly renamed variants.
-  return channels.find(item => {
+  const matched = channels.find(item => {
     const candidate = normaliseChannelName(item.productName);
     const words = candidate.split(' ').filter(word => word.length > 2);
     return words.length >= 2 && words.every(word => name.includes(word));
-  }) || null;
+  });
+  return matched || {
+    productName: productName || 'Product',
+    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+    fileUpdateUrl: '',
+    isDefault: true,
+  };
 }
 
 export async function adminSaveProductChannel({ id, productName, feedbackUrl, fileUpdateUrl }) {
@@ -148,6 +164,7 @@ export async function adminSaveProductChannel({ id, productName, feedbackUrl, fi
     productName: cleanName,
     feedbackUrl: feedbackUrl?.trim() || '',
     fileUpdateUrl: fileUpdateUrl?.trim() || '',
+    feedbackManaged: true,
     deleted: false,
     updatedAt: Date.now(),
   });

@@ -1078,8 +1078,8 @@ function ProductDetailPage({ product, onBack, onBuy, channel }) {
         <div className="pdp-section-label"><DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} /> Select duration</div>
         {available ? (
           <div className="duration-grid">
-            {product.pricing.slice(0, 8).map(item => (
-              <button key={`${product.pid}-${item.label}`}
+            {product.pricing.slice(0, 8).map((item, index) => (
+              <button key={`${product.pid}-${item.label}-${index}`}
                 onClick={() => onBuy({ product, duration: item })}>
                 <span className="duration-label-row">
                   <DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} />{item.label}
@@ -1883,11 +1883,11 @@ function PricingEditDialog({ product, onClose, onSave }) {
         </div>
         <p className="muted dialog-sub">PID {product.pid} · Set user price and reseller price per duration.</p>
         <div className="pricing-edit-list">
-          {product.pricing.map(item => {
+          {product.pricing.map((item, index) => {
             const dur = item.duration || item.label;
             const rule = getRule(dur);
             return (
-              <div className="pricing-edit-row" key={dur}>
+              <div className="pricing-edit-row" key={`${product.pid}-${dur}-${index}`}>
                 <div className="pricing-edit-label">
                   <strong>{dur}</strong>
                   <span className="muted">API: <MoneyDisplay value={item.price} /></span>
