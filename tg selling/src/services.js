@@ -19,7 +19,6 @@ export const firebaseDb = firebaseApp ? getDatabase(firebaseApp) : null;
 const resellerEndpoint = import.meta.env.VITE_RESELLER_ENDPOINT;
 const resellerApiKey = import.meta.env.VITE_RESELLER_API_KEY;
 const resellerMasterKey = import.meta.env.VITE_RESELLER_MASTER_KEY;
-const productsEndpoint = import.meta.env.VITE_PRODUCTS_ENDPOINT || 'https://game-cheats-api.vercel.app/products';
 
 const otpHeaders = { accept: '*/*', 'auth-key': 'appxapi', 'client-service': 'Appx', 'device-type': '', source: 'website' };
 const cleanPhone = phone => phone.replace(/\D/g, '').slice(-10);
@@ -371,32 +370,141 @@ export async function loginWithApiKey(apiKey) {
   return getUserProfile(uid);
 }
 
-export async function fetchGameProducts() {
-  const response = await fetch(productsEndpoint);
-  if (!response.ok) throw new Error('Products could not be loaded.');
-  const data = await response.json();
-  const products = Array.isArray(data?.products) ? data.products : [];
-  return products.map(product => {
-    const name = product.name || 'Untitled product';
-    // Override broken/missing API images with brand icons
+const PRODUCT_CATALOG_PATH = 'productCatalogs';
+
+const cleanSourceText = value => String(value || '').replace(/\s+/g, ' ').trim();
+
+const sourceUrl = (value, sourceDomain) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^(data:|blob:|https?:\/\/|\/\/)/i.test(raw)) {
+    return raw.startsWith('//') ? `https:${raw}` : raw;
+  }
+  if (!sourceDomain?.trim()) return raw;
+  try {
+    const base = /^https?:\/\//i.test(sourceDomain.trim()) ? sourceDomain.trim() : `https://${sourceDomain.trim()}`;
+    return new URL(raw, base.endsWith('/') ? base : `${base}/`).href;
+  } catch {
+    return raw;
+  }
+};
+
+const numberFromText = value => {
+  const match = String(value || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : 0;
+};
+
+/*
+ * The supplied User/Reseller pages are server-rendered HTML snapshots.
+ * Keep the importer tolerant of small markup changes: product identity comes
+ * from #product-card-PID, while prices/media/links are read from the card.
+ */
+export function parseProductSource(html, sourceDomain = '') {
+  if (typeof DOMParser === 'undefined') throw new Error('HTML import is only available in the browser.');
+  const document = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const cards = [...document.querySelectorAll('[id^="product-card-"]')];
+  if (!cards.length) throw new Error('No product cards found. Paste the complete User or Reseller page source.');
+
+  const products = cards.map((card, index) => {
+    const pid = card.id.match(/^product-card-(.+)$/i)?.[1] || String(index + 1);
+    const name = cleanSourceText(card.querySelector('.product-title, h5, h4')?.textContent) || `Product ${pid}`;
+    const game = cleanSourceText(card.getAttribute('data-game')) || 'Unknown';
+    const device = cleanSourceText(card.getAttribute('data-device'));
+    const images = [...card.querySelectorAll('img[src]')]
+      .map(item => sourceUrl(item.getAttribute('src'), sourceDomain))
+      .filter(Boolean);
+    const videos = [...card.querySelectorAll('video source[src], video[src]')]
+      .map(item => sourceUrl(item.getAttribute('src'), sourceDomain))
+      .filter(Boolean);
+    const features = [...card.querySelectorAll('.desc-line span, .desc-line')]
+      .map(item => cleanSourceText(item.textContent))
+      .filter(value => value && !/^(check|show|more|less)$/i.test(value))
+      .filter((value, featureIndex, list) => list.indexOf(value) === featureIndex);
+    const links = [...card.querySelectorAll('a[href]')].map(link => ({
+      text: cleanSourceText(link.textContent).toLowerCase(),
+      href: sourceUrl(link.getAttribute('href'), sourceDomain),
+    })).filter(link => link.href);
+    const updateLink = links.find(link => /update|download|file/i.test(link.text));
+    const feedbackLink = links.find(link => /feedback|video|youtube|watch/i.test(link.text) && link.href !== updateLink?.href);
+
+    const pricing = [...card.querySelectorAll('.duration-box')].map(box => {
+      const duration = cleanSourceText(
+        box.querySelector('[style*="font-size"], .duration, div > div')?.textContent
+      ) || cleanSourceText(box.textContent).split(/₹|\d+(?:\.\d+)?/)[0];
+      const price = numberFromText(box.querySelector('.price-text')?.textContent || box.textContent.match(/₹\s*[\d,.]+/)?.[0]);
+      const quantity = box.querySelector('input[type="number"]');
+      return {
+        label: duration || 'Default',
+        duration: duration || 'Default',
+        price,
+        stock: quantity?.getAttribute('max') ? Number(quantity.getAttribute('max')) : null,
+      };
+    }).filter(item => item.duration && item.price >= 0);
+
     const brandIcon = productIconFor(name);
     return {
-      id: product.id,
-      pid: product.product_id || product.pid || product.id,
+      id: pid,
+      pid,
       name,
-      game: product.game || 'Unknown',
-      image: brandIcon || product.image || '',
-      videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
-      features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
-      pricing: Array.isArray(product.pricing) ? product.pricing.map(item => ({
-        label: item.duration || 'Default',
-        duration: item.duration || 'Default',
-        price: Number(item.price || 0),
-        stock: item.stock ?? null,
-      })) : [],
-      platform: product.platform || '',
+      game,
+      platform: device,
+      image: brandIcon || images[0] || '',
+      videos: [...new Set(videos)],
+      features,
+      pricing,
+      feedbackUrl: feedbackLink?.href || '',
+      fileUpdateUrl: updateLink?.href || '',
+      sourceDomain: sourceDomain.trim(),
     };
   });
+
+  return products.filter(product => product.name && product.pricing.length);
+}
+
+export async function getProductCatalog(type = 'user') {
+  if (!firebaseDb) return [];
+  const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}`));
+  if (!snap.exists()) return [];
+  const value = snap.val() || {};
+  return Array.isArray(value.products) ? value.products : [];
+}
+
+export async function getProductCatalogMeta() {
+  if (!firebaseDb) return {};
+  const [userSnap, resellerSnap] = await Promise.all([
+    get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/user`)),
+    get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/reseller`)),
+  ]);
+  const meta = {};
+  for (const [type, snap] of [['user', userSnap], ['reseller', resellerSnap]]) {
+    const value = snap.exists() ? snap.val() || {} : {};
+    meta[type] = {
+      count: Array.isArray(value.products) ? value.products.length : 0,
+      sourceDomain: value.sourceDomain || '',
+      updatedAt: value.updatedAt || 0,
+    };
+  }
+  return meta;
+}
+
+export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  const products = parseProductSource(html, sourceDomain);
+  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`), {
+    type: catalogType,
+    sourceDomain: sourceDomain.trim(),
+    products,
+    count: products.length,
+    updatedAt: Date.now(),
+  });
+  return { type: catalogType, count: products.length };
+}
+
+export async function fetchGameProducts(role = 'user') {
+  // Product display data is intentionally sourced only from the admin-imported
+  // Firebase catalog. The old public products endpoint is no longer used.
+  return getProductCatalog(role === 'reseller' ? 'reseller' : 'user');
 }
 
 export async function buyResellerProduct(productId, duration) {

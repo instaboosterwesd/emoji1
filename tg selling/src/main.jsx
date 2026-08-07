@@ -58,6 +58,9 @@ import {
   findProductChannel,
   adminSaveProductChannel,
   adminDeleteProductChannel,
+  getProductCatalog,
+  getProductCatalogMeta,
+  adminSaveProductCatalog,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -749,6 +752,7 @@ function WalletView({ session, profile, refreshProfile }) {
 function OrdersView({ session }) {
   const [keys, setKeys] = useState([]);
   const [channels, setChannels] = useState([]);
+  const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
@@ -757,12 +761,14 @@ function OrdersView({ session }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, productChannels] = await Promise.all([
+      const [data, productChannels, productCatalog] = await Promise.all([
         getUserLicenseKeys(session.uid),
         getProductChannels().catch(() => []),
+        getProductCatalog(session?.role === 'reseller' ? 'reseller' : 'user').catch(() => []),
       ]);
       setKeys(data);
       setChannels(productChannels);
+      setCatalog(productCatalog);
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   }, [session.uid]);
@@ -774,7 +780,14 @@ function OrdersView({ session }) {
   );
 
   if (selected) {
-    const channel = findProductChannel(selected.productName || selected.product, channels);
+    const catalogProduct = catalog.find(product =>
+      String(product.name || '').toLowerCase() === String(selected.productName || selected.product || '').toLowerCase()
+    );
+    const channel = {
+      ...findProductChannel(selected.productName || selected.product, channels),
+      feedbackUrl: catalogProduct?.feedbackUrl || findProductChannel(selected.productName || selected.product, channels)?.feedbackUrl || '',
+      fileUpdateUrl: catalogProduct?.fileUpdateUrl || findProductChannel(selected.productName || selected.product, channels)?.fileUpdateUrl || '',
+    };
     return (
       <>
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
@@ -1233,7 +1246,7 @@ function ProductsView({ session, onBuy }) {
     setLoading(true); setError('');
     try {
       const [prods, rules, productChannels] = await Promise.all([
-        fetchGameProducts(),
+        fetchGameProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
         getProductChannels().catch(() => []),
       ]);
@@ -1266,7 +1279,11 @@ function ProductsView({ session, onBuy }) {
     return (
       <ProductDetailPage
         product={applyPricing(selectedProduct)}
-        channel={findProductChannel(selectedProduct.name, channels)}
+        channel={{
+          ...findProductChannel(selectedProduct.name, channels),
+          feedbackUrl: selectedProduct.feedbackUrl || findProductChannel(selectedProduct.name, channels)?.feedbackUrl || '',
+          fileUpdateUrl: selectedProduct.fileUpdateUrl || findProductChannel(selectedProduct.name, channels)?.fileUpdateUrl || '',
+        }}
         onBack={() => setSelectedProduct(null)}
         onBuy={onBuy}
       />
@@ -1294,7 +1311,7 @@ function ProductsView({ session, onBuy }) {
     <div className="buy-view">
       <SectionTitle
         title={<><DeviceIcon emoji="/icons/new/shopping-cart.json" icon="shopping_cart" size={24} /> Buy Products</>}
-        subtitle="Live products with pricing" />
+        subtitle="Imported products with live pricing" />
       <div className="filter-row product-filter">
         {/* Search — opens full search page on click */}
         <button className="search-box search-box-tap" type="button" onClick={() => setSearchActive(true)}>
@@ -1945,6 +1962,11 @@ function AdminPage({ session, onSessionChange }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [products, setProducts] = useState([]);
+  const [catalogMeta, setCatalogMeta] = useState({});
+  const [catalogImportType, setCatalogImportType] = useState('user');
+  const [catalogImportHtml, setCatalogImportHtml] = useState('');
+  const [catalogSourceDomain, setCatalogSourceDomain] = useState('');
+  const [catalogImporting, setCatalogImporting] = useState(false);
   const [search, setSearch] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [annTitle, setAnnTitle] = useState('');
@@ -1981,6 +2003,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'users', label: 'Users', icon: 'people' },
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
+    { id: 'product-data', label: 'Product Data', icon: 'cloud_upload' },
     { id: 'channels', label: 'Feedback & Files', icon: 'link' },
     { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
@@ -1994,13 +2017,14 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status, gcList, channelList] = await Promise.all([
+      const [overview, productList, alerts, status, gcList, channelList, catalogInfo] = await Promise.all([
         getAdminOverview(),
         fetchGameProducts().catch(() => []),
         getAdminAlerts().catch(() => []),
         getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
         getGiftCodes().catch(() => []),
         getProductChannels().catch(() => []),
+        getProductCatalogMeta().catch(() => ({})),
       ]);
       setData(overview);
       setProducts(productList);
@@ -2013,6 +2037,7 @@ function AdminPage({ session, onSessionChange }) {
       setSiteStatusMsg(status.message || '');
       setGiftCodes(gcList);
       setProductChannels(channelList);
+      setCatalogMeta(catalogInfo);
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2048,6 +2073,26 @@ function AdminPage({ session, onSessionChange }) {
       setApiStatus(result);
     } catch (err) { setApiStatus({ error: true, message: err.message }); }
     finally { setApiChecking(false); }
+  };
+
+  const importCatalog = async e => {
+    e.preventDefault();
+    if (!catalogImportHtml.trim()) {
+      toast.error('Paste the complete User or Reseller page source first.');
+      return;
+    }
+    setCatalogImporting(true);
+    try {
+      const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain);
+      setCatalogImportHtml('');
+      setCatalogMeta(await getProductCatalogMeta().catch(() => catalogMeta));
+      await loadAdmin();
+      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog updated: ${result.count} products`);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCatalogImporting(false);
+    }
   };
 
   const section = {
@@ -2217,6 +2262,82 @@ function AdminPage({ session, onSessionChange }) {
             </button>
           </AdminRow>
         )} />
+      </div>
+    ),
+
+    'product-data': (
+      <div className="admin-card product-data-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <MatIcon name="cloud_upload" size={22} />
+            <div>
+              <h3>Product Data Import</h3>
+              <p className="muted">Paste the complete HTML source from your User or Reseller page.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="catalog-import-tabs" role="tablist" aria-label="Catalog type">
+          {[
+            { id: 'user', label: 'User Data', icon: 'person' },
+            { id: 'reseller', label: 'Reseller Data', icon: 'verified_user' },
+          ].map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={catalogImportType === item.id ? 'active' : ''}
+              onClick={() => setCatalogImportType(item.id)}
+            >
+              <MatIcon name={item.icon} size={17} /> {item.label}
+            </button>
+          ))}
+        </div>
+
+        <form className="admin-form catalog-import-form" onSubmit={importCatalog}>
+          <label>
+            Source domain
+            <input
+              value={catalogSourceDomain}
+              onChange={e => setCatalogSourceDomain(e.target.value)}
+              placeholder="https://your-domain.com/"
+              type="url"
+              required
+            />
+            <small className="muted">Used to turn relative image/video links such as ../uploads/... into full URLs.</small>
+          </label>
+          <label>
+            Complete page source
+            <textarea
+              value={catalogImportHtml}
+              onChange={e => setCatalogImportHtml(e.target.value)}
+              placeholder="Paste the full HTML source here…"
+              rows={12}
+              required
+            />
+          </label>
+          <button className="modal-save" type="submit" disabled={catalogImporting}>
+            <MatIcon name="sync" size={16} />
+            {catalogImporting ? 'Updating catalog…' : `Submit ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`}
+          </button>
+        </form>
+
+        <div className="catalog-status-grid">
+          {['user', 'reseller'].map(type => {
+            const info = catalogMeta[type] || {};
+            return (
+              <div className={`catalog-status-item${catalogImportType === type ? ' selected' : ''}`} key={type}>
+                <strong>{type === 'user' ? 'User Data' : 'Reseller Data'}</strong>
+                <span>{info.count || 0} products</span>
+                <small>{info.updatedAt ? `Updated ${fmtDate(info.updatedAt)}` : 'Not imported yet'}</small>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="muted catalog-import-note">
+          Each submit replaces that catalog completely: removed source products disappear, new products are added,
+          prices/features/videos and update links are refreshed. User and reseller prices remain separate.
+        </p>
       </div>
     ),
 
