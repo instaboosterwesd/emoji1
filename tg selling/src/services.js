@@ -190,11 +190,34 @@ export async function getProductCatalog(type = 'user') {
   if (!snap.exists()) return [];
   const value = snap.val() || {};
   const sourceLinksEnabled = value.sourceLinksEnabled === true;
-  return Array.isArray(value.products) ? value.products.map(product => ({
-    ...product,
-    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-    fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : defaultFileUpdateUrlFor(product.name),
-  })) : [];
+  return Array.isArray(value.products) ? value.products
+    .map(product => {
+      const name = product.name || 'Untitled product';
+      const pid = String(product.pid || product.id || product.purchasePid || '');
+      const pricing = Array.isArray(product.pricing) ? product.pricing.map(item => ({
+        ...item,
+        label: item.label || item.duration || 'Default',
+        duration: item.duration || item.label || 'Default',
+        price: Number(item.price || 0),
+        stock: item.stock ?? null,
+      })).filter(item => item.price >= 0) : [];
+      return {
+        ...product,
+        id: product.id || pid,
+        pid,
+        purchasePid: product.purchasePid || pid,
+        name,
+        game: product.game || 'Unknown',
+        platform: product.platform || '',
+        image: product.image || productIconFor(name) || '',
+        videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
+        features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
+        pricing,
+        feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+        fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : defaultFileUpdateUrlFor(name),
+      };
+    })
+    .filter(product => product.name && product.pid && product.pricing.length) : [];
 }
 
 export async function getProductCatalogMeta() {
@@ -458,6 +481,17 @@ export async function fetchGameProducts() {
       platform: product.platform || '',
     };
   });
+}
+
+export async function fetchStorefrontProducts(role = 'user') {
+  const catalogType = role === 'reseller' ? 'reseller' : 'user';
+  try {
+    const importedProducts = await getProductCatalog(catalogType);
+    if (importedProducts.length) return importedProducts;
+  } catch {
+    // A missing/permission-limited imported catalog should not hide live products.
+  }
+  return fetchGameProducts();
 }
 
 function normaliseProductName(name) {

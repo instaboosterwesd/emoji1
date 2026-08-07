@@ -70,6 +70,7 @@ import {
   adminSaveProductChannel,
   adminDeleteProductChannel,
   getProductCatalogMeta,
+  fetchStorefrontProducts,
   adminSaveProductCatalog,
   adminSetProductCatalogLinkMode,
 } from './services';
@@ -443,7 +444,7 @@ function AiShopPanel({ session, onBuy, onClose }) {
     setLoading(true);
     try {
       const [catalog, rules, settings] = await Promise.all([
-        fetchGameProducts(),
+        fetchStorefrontProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
         getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
       ]);
@@ -1625,7 +1626,7 @@ function ProductsView({ session, onBuy }) {
     setLoading(true); setError('');
     try {
       const [prods, rules, pricing] = await Promise.all([
-        fetchGameProducts(),
+        fetchStorefrontProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
         getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
       ]);
