@@ -2182,11 +2182,34 @@
   border-radius: 12px !important;
   background: rgba(255,255,255,.04) !important;
 }
+.dashboard-page .product-detail-page .pdp-community-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 14px 0 4px !important;
+}
+.dashboard-page .product-detail-page .pdp-community-actions .community-action-btn {
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: 10px 8px !important;
+  border-color: rgba(34,158,217,.5) !important;
+  background: linear-gradient(135deg, rgba(34,158,217,.2), rgba(126,87,194,.18)) !important;
+}
+.dashboard-page .product-detail-page .pdp-community-actions .pdp-feedback-btn {
+  border-color: rgba(199,149,255,.5) !important;
+  background: linear-gradient(135deg, rgba(199,149,255,.2), rgba(34,158,217,.16)) !important;
+}
 .dashboard-page .product-detail-page .pdp-features {
   margin-bottom: 24px !important;
 }
 
 @media (max-width: 520px) {
+  .dashboard-page .product-detail-page .pdp-community-actions {
+    gap: 8px !important;
+  }
+  .dashboard-page .product-detail-page .pdp-community-actions .community-action-btn {
+    font-size: 11px !important;
+  }
   .dashboard-page .buy-view .product-filter {
     gap: 7px !important;
   }

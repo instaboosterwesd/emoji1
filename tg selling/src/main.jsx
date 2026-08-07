@@ -1379,9 +1379,13 @@ function featIcon(pid, f) {
 }
 
 /* ── ProductDetailPage — full-screen overlay (hides bottom-nav) ─── */
-function ProductDetailPage({ product, onBack, onBuy }) {
+function ProductDetailPage({ product, channel, fallbackGetFileUrl = '', onBack, onBuy }) {
   const [playingVideo, setPlayingVideo] = useState(false);
   const available = product.pricing.length > 0;
+  const feedbackUrl = channel?.isDefault ? (product.feedbackUrl || channel.feedbackUrl || '') : (channel?.feedbackUrl || product.feedbackUrl || '');
+  const fileUpdateUrl = channel?.isDefault
+    ? (product.fileUpdateUrl || channel.fileUpdateUrl || fallbackGetFileUrl || '')
+    : (channel?.fileUpdateUrl || product.fileUpdateUrl || fallbackGetFileUrl || '');
 
   return (
     <div className="product-detail-page">
@@ -1443,6 +1447,21 @@ function ProductDetailPage({ product, onBack, onBuy }) {
         {/* Buy callout */}
         {available && (
           <p className="pdp-buy-hint"><DeviceIcon emoji="/icons/new/pig-emoji.json" icon="savings" size={16} /> Tap a duration above to buy</p>
+        )}
+
+        {(fileUpdateUrl || feedbackUrl) && (
+          <div className="pdp-community-actions">
+            {fileUpdateUrl && (
+              <a className="community-action-btn" href={fileUpdateUrl} target="_blank" rel="noreferrer">
+                <img src={telegramLogo} alt="" /> Get File
+              </a>
+            )}
+            {feedbackUrl && (
+              <a className="community-action-btn pdp-feedback-btn" href={feedbackUrl} target="_blank" rel="noreferrer">
+                <img src={telegramLogo} alt="" /> Feedback
+              </a>
+            )}
+          </div>
         )}
 
         {/* Features at bottom */}
@@ -1599,6 +1618,8 @@ function ProductsView({ session, onBuy }) {
   const [searchActive, setSearchActive] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productChannels, setProductChannels] = useState([]);
+  const [communityLinks, setCommunityLinks] = useState({ getFileUrl: '' });
 
   const applyPricing = useCallback((product) => {
     const isReseller = session?.role === 'reseller';
@@ -1643,7 +1664,11 @@ function ProductsView({ session, onBuy }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    getProductChannels().then(setProductChannels).catch(() => {});
+    getCommunityLinks().then(links => setCommunityLinks({ getFileUrl: links.getFileUrl || '' })).catch(() => {});
+  }, []);
 
   const games = useMemo(() => ['all', ...new Set(products.map(p => p.game).filter(Boolean))], [products]);
 
@@ -1662,9 +1687,12 @@ function ProductsView({ session, onBuy }) {
 
   /* ── Detail page ── */
   if (selectedProduct) {
+    const channel = findProductChannel(selectedProduct.name, productChannels);
     return (
       <ProductDetailPage
         product={applyPricing(selectedProduct)}
+        channel={channel}
+        fallbackGetFileUrl={communityLinks.getFileUrl}
         onBack={() => setSelectedProduct(null)}
         onBuy={onBuy}
       />
