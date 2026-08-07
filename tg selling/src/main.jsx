@@ -65,6 +65,13 @@ import {
   adminCreateGiftCode,
   getGiftCodes,
   productIconFor,
+  getProductChannels,
+  findProductChannel,
+  adminSaveProductChannel,
+  adminDeleteProductChannel,
+  getProductCatalogMeta,
+  adminSaveProductCatalog,
+  adminSetProductCatalogLinkMode,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -2343,6 +2350,13 @@ function AdminPage({ session, onSessionChange }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [products, setProducts] = useState([]);
+  const [catalogMeta, setCatalogMeta] = useState({});
+  const [catalogImportType, setCatalogImportType] = useState('user');
+  const [catalogImportHtml, setCatalogImportHtml] = useState('');
+  const [catalogSourceDomain, setCatalogSourceDomain] = useState('');
+  const [catalogImporting, setCatalogImporting] = useState(false);
+  const [productChannels, setProductChannels] = useState([]);
+  const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
   const [search, setSearch] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [annTitle, setAnnTitle] = useState('');
@@ -2382,6 +2396,8 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'users', label: 'Users', icon: 'people' },
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
+    { id: 'product-data', label: 'Product Data', icon: 'cloud_upload' },
+    { id: 'channels', label: 'Feedback & Files', icon: 'link' },
     { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
     { id: 'key-history', label: 'License History', icon: 'history' },
@@ -2394,12 +2410,14 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status, gcList] = await Promise.all([
+      const [overview, productList, alerts, status, gcList, channelList, catalogInfo] = await Promise.all([
         getAdminOverview(),
         fetchGameProducts().catch(() => []),
         getAdminAlerts().catch(() => []),
         getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
         getGiftCodes().catch(() => []),
+        getProductChannels().catch(() => []),
+        getProductCatalogMeta().catch(() => ({})),
       ]);
       setData(overview);
       setProducts(productList);
@@ -2420,6 +2438,9 @@ function AdminPage({ session, onSessionChange }) {
       setSiteStatus(status.status || 'operational');
       setSiteStatusMsg(status.message || '');
       setGiftCodes(gcList);
+      setProductChannels(channelList);
+      setCatalogMeta(catalogInfo);
+      setCatalogSourceDomain(catalogInfo[catalogImportType]?.sourceDomain || '');
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2455,6 +2476,50 @@ function AdminPage({ session, onSessionChange }) {
       setApiStatus(result);
     } catch (err) { setApiStatus({ error: true, message: err.message }); }
     finally { setApiChecking(false); }
+  };
+
+  const importCatalog = async event => {
+    event.preventDefault();
+    if (!catalogImportHtml.trim()) {
+      toast.error('Paste the complete User or Reseller page source first.');
+      return;
+    }
+    setCatalogImporting(true);
+    try {
+      const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain);
+      setCatalogImportHtml('');
+      const nextMeta = await getProductCatalogMeta().catch(() => catalogMeta);
+      setCatalogMeta(nextMeta);
+      await loadAdmin();
+      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog updated: ${result.count} products${result.newProducts?.length ? ` · ${result.newProducts.length} new` : ''}`);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCatalogImporting(false);
+    }
+  };
+
+  const setSourceLinkMode = async enabled => {
+    try {
+      await adminSetProductCatalogLinkMode(catalogImportType, enabled);
+      setCatalogMeta(current => ({
+        ...current,
+        [catalogImportType]: { ...(current[catalogImportType] || {}), sourceLinksEnabled: enabled },
+      }));
+      toast.success(enabled ? 'Pasted File Update links enabled' : 'Default group File Update links enabled');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const editCatalogProductLinks = product => {
+    setChannelForm({
+      id: '',
+      productName: product.name || '',
+      feedbackUrl: product.feedbackUrl || '',
+      fileUpdateUrl: product.fileUpdateUrl || '',
+    });
+    setTab('channels');
   };
 
   const section = {
@@ -2621,6 +2686,205 @@ function AdminPage({ session, onSessionChange }) {
           >
             <button onClick={() => setPricingProduct(product)}>
               <MatIcon name="edit" size={13} /> Edit pricing
+            </button>
+          </AdminRow>
+        )} />
+      </div>
+    ),
+
+    'product-data': (
+      <div className="admin-card product-data-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <MatIcon name="cloud_upload" size={22} />
+            <div>
+              <h3>Product Data Import</h3>
+              <p className="muted">Paste the complete HTML source from your User or Reseller page.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="catalog-import-tabs" role="tablist" aria-label="Catalog type">
+          {[
+            { id: 'user', label: 'User Data', icon: 'person' },
+            { id: 'reseller', label: 'Reseller Data', icon: 'verified_user' },
+          ].map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={catalogImportType === item.id ? 'active' : ''}
+              onClick={() => {
+                setCatalogImportType(item.id);
+                setCatalogSourceDomain(catalogMeta[item.id]?.sourceDomain || '');
+              }}
+            >
+              <MatIcon name={item.icon} size={17} /> {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="catalog-source-link-toggle">
+          <div>
+            <strong>Use File Update links from pasted source</strong>
+            <small className="muted">
+              Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
+            </small>
+          </div>
+          <button
+            type="button"
+            className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
+            role="switch"
+            aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
+            onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
+          >
+            <span />
+            {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
+
+        <form className="admin-form catalog-import-form" onSubmit={importCatalog}>
+          <label>
+            Source domain
+            <input
+              value={catalogSourceDomain}
+              onChange={e => setCatalogSourceDomain(e.target.value)}
+              placeholder="https://your-domain.com/"
+              type="url"
+              required
+            />
+            <small className="muted">Used to turn relative image/video links into full URLs.</small>
+          </label>
+          <label>
+            Complete page source
+            <textarea
+              value={catalogImportHtml}
+              onChange={e => setCatalogImportHtml(e.target.value)}
+              placeholder="Paste the full HTML source here…"
+              rows={12}
+              required
+            />
+          </label>
+          <button className="modal-save" type="submit" disabled={catalogImporting}>
+            <MatIcon name="sync" size={16} />
+            {catalogImporting ? 'Updating catalog…' : `Submit ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`}
+          </button>
+        </form>
+
+        <div className="catalog-status-grid">
+          {['user', 'reseller'].map(type => {
+            const info = catalogMeta[type] || {};
+            return (
+              <div className={`catalog-status-item${catalogImportType === type ? ' selected' : ''}`} key={type}>
+                <strong>{type === 'user' ? 'User Data' : 'Reseller Data'}</strong>
+                <span>{info.count || 0} products</span>
+                <small>{info.updatedAt ? `Updated ${fmtDate(info.updatedAt)}` : 'Not imported yet'}</small>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="catalog-new-products">
+          <div className="admin-card-header">
+            <div>
+              <h3>New products</h3>
+              <p className="muted">Edit Feedback and File Update links for products detected in the latest import.</p>
+            </div>
+          </div>
+          <AdminList
+            items={catalogMeta[catalogImportType]?.newProducts || []}
+            empty="No new products from the latest import"
+            render={product => (
+              <AdminRow
+                title={product.name}
+                meta={`PID ${product.pid || '—'}`}
+                status={product.fileUpdateUrl ? 'File Update mapped' : 'File Update not set'}
+              >
+                <button type="button" onClick={() => editCatalogProductLinks(product)}>
+                  <MatIcon name="edit" size={13} /> Edit links
+                </button>
+              </AdminRow>
+            )}
+          />
+        </div>
+      </div>
+    ),
+
+    channels: (
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <MatIcon name="link" size={22} />
+            <div>
+              <h3>Feedback &amp; File Update links</h3>
+              <p className="muted">Manual Firebase records override the built-in product mappings.</p>
+            </div>
+          </div>
+        </div>
+        <form className="admin-form" onSubmit={e => {
+          e.preventDefault();
+          safeAction(async () => {
+            await adminSaveProductChannel(channelForm);
+            setChannelForm({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
+          }, 'Product links saved');
+        }}>
+          <label>
+            Product name
+            <input
+              value={channelForm.productName}
+              onChange={e => setChannelForm(v => ({ ...v, productName: e.target.value }))}
+              placeholder="Product name or brand"
+              required
+            />
+          </label>
+          <label>
+            Feedback URL
+            <input
+              value={channelForm.feedbackUrl}
+              onChange={e => setChannelForm(v => ({ ...v, feedbackUrl: e.target.value }))}
+              placeholder="https://t.me/..."
+              type="url"
+            />
+          </label>
+          <label>
+            File Update URL
+            <input
+              value={channelForm.fileUpdateUrl}
+              onChange={e => setChannelForm(v => ({ ...v, fileUpdateUrl: e.target.value }))}
+              placeholder="https://t.me/..."
+              type="url"
+            />
+          </label>
+          <div className="modal-btn-row">
+            <button className="modal-save" type="submit">
+              <MatIcon name={channelForm.id ? 'save' : 'add_link'} size={16} /> {channelForm.id ? 'Update link' : 'Add link'}
+            </button>
+            {channelForm.id && (
+              <button type="button" onClick={() => setChannelForm({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' })}>
+                <MatIcon name="close" size={16} /> Cancel edit
+              </button>
+            )}
+          </div>
+        </form>
+        <AdminList items={productChannels} empty="No manual product links configured" render={channel => (
+          <AdminRow
+            title={channel.productName}
+            meta={<>{channel.feedbackUrl ? 'Feedback ready' : 'No feedback link'} · {channel.fileUpdateUrl ? 'File Update ready' : 'File Update not set'}</>}
+            status="Custom"
+          >
+            <button type="button" onClick={() => setChannelForm({
+              id: channel.id,
+              productName: channel.productName || '',
+              feedbackUrl: channel.feedbackUrl || '',
+              fileUpdateUrl: channel.fileUpdateUrl || '',
+            })}>
+              <MatIcon name="edit" size={13} /> Edit
+            </button>
+            <button type="button" className="danger-mini" onClick={() => {
+              if (window.confirm(`Hide links for ${channel.productName}?`)) {
+                safeAction(() => adminDeleteProductChannel(channel), 'Product link deleted');
+              }
+            }}>
+              <MatIcon name="delete" size={13} /> Delete
             </button>
           </AdminRow>
         )} />

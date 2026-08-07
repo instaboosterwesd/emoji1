@@ -47,6 +47,204 @@ const productBrandIconRules = [
 ];
 export const productIconFor = name => productBrandIconRules.find(b => b.test(name || ''))?.icon || null;
 
+/* ── Imported product catalog and support channels ───────────────── */
+const PRODUCT_CATALOG_PATH = 'productCatalogs';
+const DEFAULT_FEEDBACK_CHANNEL_URL = 'https://t.me/+kaazzM96cLs3ZmJl';
+
+const DEFAULT_GROUP_CHANNELS = [
+  { test: name => /\bbala\b/.test(name), fileUpdateUrl: 'https://t.me/+272Q3no3ie9lZGNl' },
+  { test: name => /\bbr\b|br mod|br mode/.test(name), fileUpdateUrl: 'https://t.me/+DTYiBfieU1JhYTY9' },
+  { test: name => /dripclient|drip line/.test(name), fileUpdateUrl: 'https://t.me/+dL1cxRra1c43ZWQ9' },
+  { test: name => /fluorite/.test(name), fileUpdateUrl: 'https://t.me/+HFaGDp_8E_9kMzY1' },
+  { test: name => /haxx cker/.test(name), fileUpdateUrl: 'https://t.me/+wEAjebIfrxZhZTBl' },
+  { test: name => /hg cheats/.test(name), fileUpdateUrl: 'https://t.me/+Un2b-EXVgudmMTc1' },
+  { test: name => /ios all setup|ios setup|gbox|esign|iphone all|ios cloud/.test(name), fileUpdateUrl: 'https://t.me/+g2HHYn3X5y1mZmY1' },
+  { test: name => /\bkos\b/.test(name), fileUpdateUrl: 'https://t.me/+WkGSBvCjVlo5YjE1' },
+  { test: name => /migul/.test(name), fileUpdateUrl: 'https://t.me/+aFWvR5tU3rM1Yzdl' },
+  { test: name => /pato team/.test(name), fileUpdateUrl: 'https://t.me/+crO0UPtpG0tjNzU1' },
+  { test: name => /prime hook/.test(name), fileUpdateUrl: 'https://t.me/+KHQ2r77mt2kwZmQ1' },
+  { test: name => /rapid core/.test(name), fileUpdateUrl: 'https://t.me/+gl9VOfvlTNI2MjRl' },
+  { test: name => /reaper x/.test(name), fileUpdateUrl: 'https://t.me/+wc8YzxBjI7FlYzY9' },
+  { test: name => /silent cheat ff nonroot/.test(name), fileUpdateUrl: 'https://t.me/+IYUi2DMnyZ43Y2Jl' },
+  { test: name => /silent cheat/.test(name), fileUpdateUrl: 'https://t.me/+rjQ0ou-HB5diZGM9' },
+  { test: name => /\bsnake\b/.test(name), fileUpdateUrl: 'https://t.me/+MvhvrVPr0ts2YjA1' },
+  { test: name => /xyz cheats main id|xyz main id|a xyz main id/.test(name), fileUpdateUrl: 'https://t.me/+5owd4nRLLYgxN2Nl' },
+  { test: name => /xyz cheats|xyz cheater/.test(name), fileUpdateUrl: 'https://t.me/+g33QD2-jTN5hYWRI' },
+];
+
+const normaliseChannelName = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const defaultFileUpdateUrlFor = productName => {
+  const name = normaliseChannelName(productName);
+  return DEFAULT_GROUP_CHANNELS.find(rule => rule.test(name))?.fileUpdateUrl || '';
+};
+
+export async function getProductChannels() {
+  const defaults = DEFAULT_GROUP_CHANNELS.map((rule, index) => ({
+    id: `default_group_${index}`,
+    productName: rule.test.name || `Default group ${index + 1}`,
+    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+    fileUpdateUrl: rule.fileUpdateUrl,
+    isDefault: true,
+  }));
+  if (!firebaseDb) return defaults;
+  try {
+    const snap = await get(ref(firebaseDb, 'productChannels'));
+    return Object.entries(snap.exists() ? snap.val() || {} : {}).map(([id, item]) => ({ id, ...(item || {}) }));
+  } catch {
+    return defaults;
+  }
+}
+
+export function findProductChannel(productName, channels = []) {
+  const name = normaliseChannelName(productName);
+  const custom = channels.find(item => normaliseChannelName(item.productName) === name && !item.deleted);
+  if (custom) return custom;
+  const fileUpdateUrl = defaultFileUpdateUrlFor(productName);
+  return {
+    productName: productName || 'Product',
+    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+    fileUpdateUrl,
+    isDefault: true,
+  };
+}
+
+export async function adminSaveProductChannel({ id, productName, feedbackUrl, fileUpdateUrl }) {
+  if (!firebaseDb || !productName?.trim()) throw new Error('Enter a product name.');
+  const recordId = id || `channel_${normaliseChannelName(productName).replace(/ /g, '_')}`;
+  await set(ref(firebaseDb, `productChannels/${recordId}`), {
+    productName: productName.trim(),
+    feedbackUrl: feedbackUrl?.trim() || DEFAULT_FEEDBACK_CHANNEL_URL,
+    fileUpdateUrl: fileUpdateUrl?.trim() || '',
+    isDefault: false,
+    deleted: false,
+    updatedAt: Date.now(),
+  });
+  return recordId;
+}
+
+export async function adminDeleteProductChannel(channel) {
+  if (!firebaseDb || !channel?.productName) throw new Error('Firebase database is not configured.');
+  const id = channel.id || `channel_${normaliseChannelName(channel.productName).replace(/ /g, '_')}`;
+  await set(ref(firebaseDb, `productChannels/${id}`), { productName: channel.productName, deleted: true, updatedAt: Date.now() });
+}
+
+const cleanSourceText = value => String(value || '').replace(/\s+/g, ' ').trim();
+const sourceUrl = (value, sourceDomain) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^(data:|blob:|https?:\/\/|\/\/)/i.test(raw)) return raw.startsWith('//') ? `https:${raw}` : raw;
+  if (!sourceDomain?.trim()) return raw;
+  try {
+    const base = /^https?:\/\//i.test(sourceDomain.trim()) ? sourceDomain.trim() : `https://${sourceDomain.trim()}`;
+    return new URL(raw, base.endsWith('/') ? base : `${base}/`).href;
+  } catch { return raw; }
+};
+const numberFromText = value => {
+  const match = String(value || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : 0;
+};
+
+export function parseProductSource(html, sourceDomain = '') {
+  if (typeof DOMParser === 'undefined') throw new Error('HTML import is only available in the browser.');
+  const document = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const cards = [...document.querySelectorAll('[id^="product-card-"]')];
+  if (!cards.length) throw new Error('No product cards found. Paste the complete User or Reseller page source.');
+  return cards.map((card, index) => {
+    const pid = card.id.match(/^product-card-(.+)$/i)?.[1] || String(index + 1);
+    const name = cleanSourceText(card.querySelector('.product-title, h5, h4')?.textContent) || `Product ${pid}`;
+    const images = [...card.querySelectorAll('img[src]')].map(item => sourceUrl(item.getAttribute('src'), sourceDomain)).filter(Boolean);
+    const videos = [...card.querySelectorAll('video source[src], video[src]')].map(item => sourceUrl(item.getAttribute('src'), sourceDomain)).filter(Boolean);
+    const links = [...card.querySelectorAll('a[href]')].map(link => ({
+      text: cleanSourceText(link.textContent).toLowerCase(),
+      href: sourceUrl(link.getAttribute('href'), sourceDomain),
+    })).filter(link => link.href);
+    const updateLink = links.find(link => /update|download|file/i.test(link.text));
+    const pricing = [...card.querySelectorAll('.duration-box')].map(box => {
+      const duration = cleanSourceText(box.querySelector('[style*="font-size"], .duration, div > div')?.textContent)
+        || cleanSourceText(box.textContent).split(/₹|\d+(?:\.\d+)?/)[0];
+      const price = numberFromText(box.querySelector('.price-text')?.textContent || box.textContent.match(/₹\s*[\d,.]+/)?.[0]);
+      const quantity = box.querySelector('input[type="number"]');
+      return { label: duration || 'Default', duration: duration || 'Default', price, stock: quantity?.getAttribute('max') ? Number(quantity.getAttribute('max')) : null };
+    }).filter(item => item.duration && item.price >= 0);
+    return {
+      id: pid,
+      pid,
+      purchasePid: pid,
+      name,
+      game: cleanSourceText(card.getAttribute('data-game')) || 'Unknown',
+      platform: cleanSourceText(card.getAttribute('data-device') || ''),
+      image: productIconFor(name) || images[0] || '',
+      videos: [...new Set(videos)],
+      features: [...new Set([...card.querySelectorAll('.desc-line span, .desc-line')].map(item => cleanSourceText(item.textContent)).filter(Boolean))],
+      pricing,
+      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+      fileUpdateUrl: updateLink?.href || '',
+      sourceDomain: sourceDomain.trim(),
+    };
+  }).filter(product => product.name && product.pricing.length);
+}
+
+export async function getProductCatalog(type = 'user') {
+  if (!firebaseDb) return [];
+  const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}`));
+  if (!snap.exists()) return [];
+  const value = snap.val() || {};
+  const sourceLinksEnabled = value.sourceLinksEnabled === true;
+  return Array.isArray(value.products) ? value.products.map(product => ({
+    ...product,
+    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+    fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : defaultFileUpdateUrlFor(product.name),
+  })) : [];
+}
+
+export async function getProductCatalogMeta() {
+  if (!firebaseDb) return {};
+  const snaps = await Promise.all(['user', 'reseller'].map(type => get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type}`))));
+  return Object.fromEntries(snaps.map((snap, index) => {
+    const value = snap.exists() ? snap.val() || {} : {};
+    const type = index === 0 ? 'user' : 'reseller';
+    return [type, {
+      count: Array.isArray(value.products) ? value.products.length : 0,
+      sourceDomain: value.sourceDomain || '',
+      updatedAt: value.updatedAt || 0,
+      sourceLinksEnabled: value.sourceLinksEnabled === true,
+      newProducts: Array.isArray(value.newProducts) ? value.newProducts : [],
+    }];
+  }));
+}
+
+export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  const products = parseProductSource(html, sourceDomain);
+  const previousSnap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
+  const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
+  const previousIds = new Set((Array.isArray(previous.products) ? previous.products : []).map(product => String(product.pid || product.id)));
+  const storedProducts = products.map(product => ({ ...product, feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL }));
+  const newProducts = storedProducts.filter(product => !previousIds.has(String(product.pid || product.id))).map(product => ({
+    pid: String(product.pid || product.id),
+    name: product.name,
+    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+    fileUpdateUrl: defaultFileUpdateUrlFor(product.name) || product.fileUpdateUrl || '',
+  }));
+  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`), {
+    type: catalogType,
+    sourceDomain: sourceDomain.trim(),
+    products: storedProducts,
+    count: storedProducts.length,
+    sourceLinksEnabled: previous.sourceLinksEnabled === true,
+    newProducts,
+    updatedAt: Date.now(),
+  });
+  return { type: catalogType, count: storedProducts.length, newProducts };
+}
+
+export async function adminSetProductCatalogLinkMode(type, enabled) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}/sourceLinksEnabled`), enabled === true);
+  return enabled === true;
+}
+
 export async function sendIndiaOtp(phone) {
   const value = cleanPhone(phone);
   if (value.length !== 10) throw new Error('Enter a valid 10-digit Indian mobile number.');
