@@ -129,6 +129,9 @@ function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
   return {
     ...product,
     pricing: (product.pricing || []).map(item => {
+      if (product.pricingSource === 'imported') {
+        return { ...item, price: Number(item.price || 0), isResellerPrice: role === 'reseller' };
+      }
       const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
       const rule = pricingRules[key] || {};
       const apiPrice = Number(item.price || 0);
@@ -1602,6 +1605,9 @@ function ProductsView({ session, onBuy }) {
     return {
       ...product,
       pricing: product.pricing.map(item => {
+        if (product.pricingSource === 'imported') {
+          return { ...item, price: Number(item.price || 0), isResellerPrice: isReseller };
+        }
         const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
         const rule = pricingRules[key] || {};
         const apiPrice = Number(item.price || 0);

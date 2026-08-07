@@ -213,6 +213,7 @@ export async function getProductCatalog(type = 'user') {
         videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
         features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
         pricing,
+        pricingSource: 'imported',
         feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
         fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : defaultFileUpdateUrlFor(name),
       };
@@ -478,6 +479,7 @@ export async function fetchGameProducts() {
         price: Number(item.price || 0),
         stock: item.stock ?? null,
       })),
+      pricingSource: 'live',
       platform: product.platform || '',
     };
   });
