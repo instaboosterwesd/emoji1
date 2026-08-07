@@ -241,7 +241,8 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   const catalogType = type === 'reseller' ? 'reseller' : 'user';
   const products = parseProductSource(html, sourceDomain);
-  const previousSnap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
+  const catalogRef = ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`);
+  const previousSnap = await get(catalogRef);
   const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
   const previousIds = new Set((Array.isArray(previous.products) ? previous.products : []).map(product => String(product.pid || product.id)));
   const storedProducts = products.map(product => ({ ...product, feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL }));
@@ -251,7 +252,9 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
     feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
     fileUpdateUrl: defaultFileUpdateUrlFor(product.name) || product.fileUpdateUrl || '',
   }));
-  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`), {
+  // This is intentionally a full replacement, not an update/merge. Products
+  // missing from the latest source must disappear from the selected catalog.
+  const replacement = {
     type: catalogType,
     sourceDomain: sourceDomain.trim(),
     products: storedProducts,
@@ -259,8 +262,15 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
     sourceLinksEnabled: previous.sourceLinksEnabled === true,
     newProducts,
     updatedAt: Date.now(),
-  });
-  return { type: catalogType, count: storedProducts.length, newProducts };
+  };
+  await set(catalogRef, replacement);
+  return {
+    type: catalogType,
+    count: storedProducts.length,
+    previousCount: Array.isArray(previous.products) ? previous.products.length : 0,
+    newProducts,
+    replaced: true,
+  };
 }
 
 export async function adminSetProductCatalogLinkMode(type, enabled) {

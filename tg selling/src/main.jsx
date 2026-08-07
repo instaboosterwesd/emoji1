@@ -2498,7 +2498,7 @@ function AdminPage({ session, onSessionChange }) {
       const nextMeta = await getProductCatalogMeta().catch(() => catalogMeta);
       setCatalogMeta(nextMeta);
       await loadAdmin();
-      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog updated: ${result.count} products${result.newProducts?.length ? ` · ${result.newProducts.length} new` : ''}`);
+      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog replaced: ${result.count} products${result.newProducts?.length ? ` · ${result.newProducts.length} new` : ''}`);
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -2706,7 +2706,7 @@ function AdminPage({ session, onSessionChange }) {
             <MatIcon name="cloud_upload" size={22} />
             <div>
               <h3>Product Data Import</h3>
-              <p className="muted">Paste the complete HTML source from your User or Reseller page.</p>
+              <p className="muted">Paste the complete HTML source. Each submit fully replaces the selected catalog.</p>
             </div>
           </div>
         </div>
