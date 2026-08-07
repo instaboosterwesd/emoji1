@@ -34,6 +34,6 @@ Add these in Vercel project settings → Environment Variables:
 - `VITE_RESELLER_ENDPOINT`
 - `VITE_RESELLER_API_KEY`
 - `VITE_RESELLER_MASTER_KEY`
-- `VITE_PRODUCTS_ENDPOINT`
+- `PRODUCTS_SCRAPE_COOKIE` (server-side secret for the live products proxy)
 
 (Values are in Replit secrets — copy them to Vercel)

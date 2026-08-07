@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { getDatabase, get, ref, set, update } from 'firebase/database';
+import { getDatabase, get, ref, set, update, runTransaction, onValue } from 'firebase/database';
+import { PRODUCT_CATALOG, LIVE_PRICING_COUNTS, LIVE_DURATION_LABELS } from './products.js';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,6 +20,7 @@ export const firebaseDb = firebaseApp ? getDatabase(firebaseApp) : null;
 const resellerEndpoint = import.meta.env.VITE_RESELLER_ENDPOINT;
 const resellerApiKey = import.meta.env.VITE_RESELLER_API_KEY;
 const resellerMasterKey = import.meta.env.VITE_RESELLER_MASTER_KEY;
+const productsEndpoint = '/api/products';
 
 const otpHeaders = { accept: '*/*', 'auth-key': 'appxapi', 'client-service': 'Appx', 'device-type': '', source: 'website' };
 const cleanPhone = phone => phone.replace(/\D/g, '').slice(-10);
@@ -44,196 +46,6 @@ const productBrandIconRules = [
   { test: n => /silent cheat|^silent\b/i.test(n), icon: '/icons/brands/silent.png' },
 ];
 export const productIconFor = name => productBrandIconRules.find(b => b.test(name || ''))?.icon || null;
-
-/* ── Product support channels ─────────────────────────────────────
-   These defaults keep the supplied links available immediately. Firebase
-   records override them, so an admin can edit or hide any channel later. */
-const DEFAULT_FEEDBACK_CHANNEL_URL = 'https://t.me/+kaazzM96cLs3ZmJl';
-
-const DEFAULT_PRODUCT_CHANNELS = [
-  ['A,XYZ MAIN ID FF NONROOT', 'https://t.me/+5owd4nRLLYgxN2Nl'],
-  ['REVERSE BYPASS ALL FEEDBACK PROOF', ''],
-  ['BALA MOD FF MAIN ID NONROOT', 'https://t.me/+272Q3no3ie9lZGNl'],
-  ['APK MC PANEL FF ROOT ANDROID', 'https://t.me/+5owd4nRLLYgxN2Nl'],
-  ['BR MOD FF PC VERSION', 'https://t.me/+DTYiBfieU1JhYTY9'],
-  ['BR MOD FF ROOT ANDROID', 'https://t.me/+DTYiBfieU1JhYTY9'],
-  ['DRIPCLIENT 8BP NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
-  ['DRIPCLIENT FF NONROOT APKMOD', 'https://t.me/+dL1cxRra1c43ZWQ9'],
-  ['DRIPCLIENT FF PC AIMKILL', 'https://t.me/+dL1cxRra1c43ZWQ9'],
-  ['DRIPCLIENT FF ROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
-  ['DRIPCLIENT PROXY FF NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
-  ['FLUORITE IOS FF', 'https://t.me/+HFaGDp_8E_9kMzY1'],
-  ['HAXX-CKER PRO FF ROOT ANDROID', 'https://t.me/+wEAjebIfrxZhZTBl'],
-  ['HAXX-CKER PRO FF NONROOT+ROOT', 'https://t.me/+wEAjebIfrxZhZTBl'],
-  ['HG CHEATS ANDROID PROXY FF NONROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
-  ['HG CHEATS FF APKMOD NONROOT+ROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
-  ['IOS CLOUD CODM', 'https://t.me/+HFaGDp_8E_9kMzY1'],
-  ['IOS FLUORITE 8 BALL POOL', 'https://t.me/+HFaGDp_8E_9kMzY1'],
-  ['IOS IPHONE ALL GBOX CERTIFICATE', 'https://t.me/+g2HHYn3X5y1mZmY1'],
-  ['KOS 8 BALL POOL NONROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
-  ['KOS CARROM POOL NONROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
-  ['KOS FF ROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
-  ['MIGUL IPHONE IOS FF', 'https://t.me/+aFWvR5tU3rM1Yzdl'],
-  ['PATO TEAM FF ALL ANDROID', 'https://t.me/+crO0UPtpG0tjNzU1'],
-  ['PRIME HOOK FF NONROOT ANDROID', 'https://t.me/+KHQ2r77mt2kwZmQ1'],
-  ['RAPID CORE FF ROOT ANDROID', 'https://t.me/+gl9VOfvlTNI2MjRl'],
-  ['REAPER X PRO FF ROOT ANDROID', 'https://t.me/+wc8YzxBjI7FlYzY9'],
-  ['SILENT CHEAT FF NONROOT APKMOD', 'https://t.me/+IYUi2DMnyZ43Y2Jl'],
-  ['SILENT CHEAT FF ROOT ANDROID', 'https://t.me/+rjQ0ou-HB5diZGM9'],
-  ['SNAKE 8 BALL POOL NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
-  ['SNAKE CARROM POOL NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
-  ['SNAKE SOCCER STARS NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
-  ['XYZ CHEATS FF ROOT ANDROID', 'https://t.me/+g33QD2-jTN5hYWRI'],
-  ['XYZ CHEATS UNLIMITED CREDIT FOR 1 SEASON', 'https://t.me/+5owd4nRLLYgxN2Nl'],
-].map(([productName, fileUpdateUrl]) => ({
-  id: `default_${productName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
-  productName,
-  // Every default Feedback button intentionally points to the one
-  // official feedback channel. File Update remains a separate field.
-  feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-  fileUpdateUrl,
-  isDefault: true,
-}));
-
-const normaliseChannelName = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-
-const DEFAULT_GROUP_CHANNELS = [
-  { test: name => /\bbala\b/.test(name), fileUpdateUrl: 'https://t.me/+272Q3no3ie9lZGNl' },
-  { test: name => /\bbr\b|br mod|br mode/.test(name), fileUpdateUrl: 'https://t.me/+DTYiBfieU1JhYTY9' },
-  { test: name => /dripclient|drip line/.test(name), fileUpdateUrl: 'https://t.me/+dL1cxRra1c43ZWQ9' },
-  { test: name => /fluorite/.test(name), fileUpdateUrl: 'https://t.me/+HFaGDp_8E_9kMzY1' },
-  { test: name => /haxx cker/.test(name), fileUpdateUrl: 'https://t.me/+wEAjebIfrxZhZTBl' },
-  { test: name => /hg cheats/.test(name), fileUpdateUrl: 'https://t.me/+Un2b-EXVgudmMTc1' },
-  { test: name => /ios all setup|ios setup|gbox|esign|iphone all|ios cloud/.test(name), fileUpdateUrl: 'https://t.me/+g2HHYn3X5y1mZmY1' },
-  { test: name => /\bkos\b/.test(name), fileUpdateUrl: 'https://t.me/+WkGSBvCjVlo5YjE1' },
-  { test: name => /migul/.test(name), fileUpdateUrl: 'https://t.me/+aFWvR5tU3rM1Yzdl' },
-  { test: name => /pato team/.test(name), fileUpdateUrl: 'https://t.me/+crO0UPtpG0tjNzU1' },
-  { test: name => /prime hook/.test(name), fileUpdateUrl: 'https://t.me/+KHQ2r77mt2kwZmQ1' },
-  { test: name => /rapid core/.test(name), fileUpdateUrl: 'https://t.me/+gl9VOfvlTNI2MjRl' },
-  { test: name => /reaper x/.test(name), fileUpdateUrl: 'https://t.me/+wc8YzxBjI7FlYzY9' },
-  { test: name => /silent cheat ff nonroot/.test(name), fileUpdateUrl: 'https://t.me/+IYUi2DMnyZ43Y2Jl' },
-  { test: name => /silent cheat/.test(name), fileUpdateUrl: 'https://t.me/+rjQ0ou-HB5diZGM9' },
-  { test: name => /\bsnake\b/.test(name), fileUpdateUrl: 'https://t.me/+MvhvrVPr0ts2YjA1' },
-  { test: name => /xyz cheats main id|xyz main id|a xyz main id/.test(name), fileUpdateUrl: 'https://t.me/+5owd4nRLLYgxN2Nl' },
-  { test: name => /xyz cheats|xyz cheater/.test(name), fileUpdateUrl: 'https://t.me/+g33QD2-jTN5hYWRI' },
-];
-
-const defaultFileUpdateUrlFor = productName => {
-  const name = normaliseChannelName(productName);
-  return DEFAULT_GROUP_CHANNELS.find(rule => rule.test(name))?.fileUpdateUrl || '';
-};
-
-export async function getProductChannels() {
-  const defaults = DEFAULT_PRODUCT_CHANNELS.map(item => ({ ...item }));
-  if (!firebaseDb) return defaults;
-  let overrides = [];
-  try {
-    const snap = await get(ref(firebaseDb, 'productChannels'));
-    if (snap.exists()) {
-      overrides = Object.entries(snap.val() || {}).map(([id, item]) => ({ id, ...(item || {}) }));
-    }
-  } catch {
-    // The built-in links remain usable while database rules are being updated.
-    return defaults;
-  }
-  const byName = new Map(defaults.map(item => [normaliseChannelName(item.productName), item]));
-  const custom = [];
-  overrides.forEach(item => {
-    const key = normaliseChannelName(item.productName);
-    if (!key) return;
-    if (item.deleted) {
-      // Keep a tombstone so an admin deletion does not get recreated by
-      // the universal official-feedback fallback.
-      const existing = byName.get(key);
-      if (existing) byName.set(key, { ...existing, ...item, deleted: true });
-      return;
-    }
-    const existing = byName.get(key);
-    const merged = {
-      ...(existing || {}),
-      ...item,
-      id: item.id || existing?.id || `channel_${key.replace(/ /g, '_')}`,
-      productName: item.productName,
-    };
-    // Existing database records may contain the old per-product feedback
-    // URLs. All current product Feedback buttons use the official channel.
-    if (existing?.isDefault && !item.feedbackManagedAt) {
-      merged.feedbackUrl = DEFAULT_FEEDBACK_CHANNEL_URL;
-    }
-    if (existing?.isDefault && !item.fileUpdateManagedAt) {
-      merged.fileUpdateUrl = existing.fileUpdateUrl || '';
-    }
-    byName.set(key, merged);
-    if (!existing) custom.push(merged);
-  });
-  return [...byName.values(), ...custom.filter(item => !byName.has(normaliseChannelName(item.productName)))];
-}
-
-export function findProductChannel(productName, channels = []) {
-  const name = normaliseChannelName(productName);
-  if (!name) return { productName: productName || 'Product', feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL, fileUpdateUrl: '' };
-  const exact = channels.find(item => normaliseChannelName(item.productName) === name);
-  // A manually saved Firebase record must win for that exact product. Built-in
-  // examples are only a fallback; the group rules below are the source of
-  // truth for newly imported variants such as Root/Non-Root/PC.
-  if (exact && !exact.isDefault) return exact.deleted ? null : exact;
-  const groupFileUpdateUrl = defaultFileUpdateUrlFor(productName);
-  if (groupFileUpdateUrl) {
-    return {
-      ...(exact || {}),
-      productName: productName || exact?.productName || 'Product',
-      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-      fileUpdateUrl: groupFileUpdateUrl,
-      isDefault: true,
-    };
-  }
-  if (exact) return exact.deleted ? null : { ...exact, feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL };
-  // Product APIs occasionally change suffixes; brand-level matching keeps
-  // the supplied channel useful for newly renamed variants.
-  const matched = channels.find(item => {
-    const candidate = normaliseChannelName(item.productName);
-    const words = candidate.split(' ').filter(word => word.length > 2);
-    return words.length >= 2 && words.every(word => name.includes(word));
-  });
-  return matched || {
-    productName: productName || 'Product',
-    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-    fileUpdateUrl: defaultFileUpdateUrlFor(productName),
-    isDefault: true,
-  };
-}
-
-export async function adminSaveProductChannel({ id, productName, feedbackUrl, fileUpdateUrl }) {
-  if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const cleanName = productName?.trim();
-  if (!cleanName) throw new Error('Enter a product name.');
-  if (feedbackUrl && !/^https?:\/\//i.test(feedbackUrl.trim())) throw new Error('Feedback link must start with http:// or https://.');
-  if (fileUpdateUrl && !/^https?:\/\//i.test(fileUpdateUrl.trim())) throw new Error('File Update link must start with http:// or https://.');
-  const recordId = id || `channel_${normaliseChannelName(cleanName).replace(/ /g, '_')}`;
-  await set(ref(firebaseDb, `productChannels/${recordId}`), {
-    productName: cleanName,
-    feedbackUrl: feedbackUrl?.trim() || '',
-    fileUpdateUrl: fileUpdateUrl?.trim() || '',
-    isDefault: false,
-    feedbackManaged: true,
-    feedbackManagedAt: Date.now(),
-    fileUpdateManagedAt: Date.now(),
-    deleted: false,
-    updatedAt: Date.now(),
-  });
-  return recordId;
-}
-
-export async function adminDeleteProductChannel(channel) {
-  if (!firebaseDb || !channel?.productName) throw new Error('Firebase database is not configured.');
-  const id = channel.id || `channel_${normaliseChannelName(channel.productName).replace(/ /g, '_')}`;
-  await set(ref(firebaseDb, `productChannels/${id}`), {
-    productName: channel.productName,
-    deleted: true,
-    updatedAt: Date.now(),
-  });
-  return true;
-}
 
 export async function sendIndiaOtp(phone) {
   const value = cleanPhone(phone);
@@ -411,179 +223,58 @@ export async function loginWithApiKey(apiKey) {
   return getUserProfile(uid);
 }
 
-const PRODUCT_CATALOG_PATH = 'productCatalogs';
-
-const cleanSourceText = value => String(value || '').replace(/\s+/g, ' ').trim();
-
-const sourceUrl = (value, sourceDomain) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (/^(data:|blob:|https?:\/\/|\/\/)/i.test(raw)) {
-    return raw.startsWith('//') ? `https:${raw}` : raw;
-  }
-  if (!sourceDomain?.trim()) return raw;
-  try {
-    const base = /^https?:\/\//i.test(sourceDomain.trim()) ? sourceDomain.trim() : `https://${sourceDomain.trim()}`;
-    return new URL(raw, base.endsWith('/') ? base : `${base}/`).href;
-  } catch {
-    return raw;
-  }
-};
-
-const numberFromText = value => {
-  const match = String(value || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : 0;
-};
-
-/*
- * The supplied User/Reseller pages are server-rendered HTML snapshots.
- * Keep the importer tolerant of small markup changes: product identity comes
- * from #product-card-PID, while prices/media/links are read from the card.
- */
-export function parseProductSource(html, sourceDomain = '') {
-  if (typeof DOMParser === 'undefined') throw new Error('HTML import is only available in the browser.');
-  const document = new DOMParser().parseFromString(String(html || ''), 'text/html');
-  const cards = [...document.querySelectorAll('[id^="product-card-"]')];
-  if (!cards.length) throw new Error('No product cards found. Paste the complete User or Reseller page source.');
-
-  const products = cards.map((card, index) => {
-    const pid = card.id.match(/^product-card-(.+)$/i)?.[1] || String(index + 1);
-    const name = cleanSourceText(card.querySelector('.product-title, h5, h4')?.textContent) || `Product ${pid}`;
-    const game = cleanSourceText(card.getAttribute('data-game')) || 'Unknown';
-    const device = cleanSourceText(card.getAttribute('data-device'));
-    const images = [...card.querySelectorAll('img[src]')]
-      .map(item => sourceUrl(item.getAttribute('src'), sourceDomain))
-      .filter(Boolean);
-    const videos = [...card.querySelectorAll('video source[src], video[src]')]
-      .map(item => sourceUrl(item.getAttribute('src'), sourceDomain))
-      .filter(Boolean);
-    const features = [...card.querySelectorAll('.desc-line span, .desc-line')]
-      .map(item => cleanSourceText(item.textContent))
-      .filter(value => value && !/^(check|show|more|less)$/i.test(value))
-      .filter((value, featureIndex, list) => list.indexOf(value) === featureIndex);
-    const links = [...card.querySelectorAll('a[href]')].map(link => ({
-      text: cleanSourceText(link.textContent).toLowerCase(),
-      href: sourceUrl(link.getAttribute('href'), sourceDomain),
-    })).filter(link => link.href);
-    const updateLink = links.find(link => /update|download|file/i.test(link.text));
-    const feedbackLink = links.find(link => /feedback|video|youtube|watch/i.test(link.text) && link.href !== updateLink?.href);
-
-    const pricing = [...card.querySelectorAll('.duration-box')].map(box => {
-      const duration = cleanSourceText(
-        box.querySelector('[style*="font-size"], .duration, div > div')?.textContent
-      ) || cleanSourceText(box.textContent).split(/₹|\d+(?:\.\d+)?/)[0];
-      const price = numberFromText(box.querySelector('.price-text')?.textContent || box.textContent.match(/₹\s*[\d,.]+/)?.[0]);
-      const quantity = box.querySelector('input[type="number"]');
-      return {
-        label: duration || 'Default',
-        duration: duration || 'Default',
-        price,
-        stock: quantity?.getAttribute('max') ? Number(quantity.getAttribute('max')) : null,
-      };
-    }).filter(item => item.duration && item.price >= 0);
-
+export async function fetchGameProducts() {
+  const response = await fetch(productsEndpoint);
+  if (!response.ok) throw new Error('Products could not be loaded.');
+  const data = await response.json();
+  const products = Array.isArray(data?.products) ? data.products : [];
+  return products.map(product => {
+    const name = product.name || 'Untitled product';
+    const catalog = findCatalogProduct(name);
+    const expectedCount = LIVE_PRICING_COUNTS[name] || null;
+    const livePricing = Array.isArray(product.pricing) ? product.pricing : [];
+    // The scraper currently appends later products' rows to each product.
+    // Use the known product duration count to keep only this product's block.
+    const pricing = expectedCount ? livePricing.slice(0, expectedCount) : livePricing;
+    // Override broken/missing API images with brand icons
     const brandIcon = productIconFor(name);
     return {
-      id: pid,
-      pid,
+      id: product.id,
+      pid: String(product.product_id || product.pid || product.id),
+      purchasePid: catalog?.pid || product.product_id || product.pid || product.id,
+      sourcePid: product.product_id || product.pid || product.id,
       name,
-      game,
-      platform: device,
-      image: brandIcon || images[0] || '',
-      videos: [...new Set(videos)],
-      features,
-      pricing,
-      feedbackUrl: feedbackLink?.href || '',
-      fileUpdateUrl: updateLink?.href || '',
-      sourceDomain: sourceDomain.trim(),
+      game: product.game || 'Unknown',
+      image: brandIcon || product.image || '',
+      videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
+      features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
+      description: typeof product.description === 'string' ? product.description : '',
+      salesCount: product.salesCount ?? product.purchaseCount ?? product.orders ?? product.sold ?? null,
+      pricing: pricing.map((item, index) => ({
+        label: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
+        duration: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
+        sourceDuration: item.duration || 'Default',
+        price: Number(item.price || 0),
+        stock: item.stock ?? null,
+      })),
+      platform: product.platform || '',
     };
   });
-
-  return products.filter(product => product.name && product.pricing.length);
 }
 
-export async function getProductCatalog(type = 'user') {
-  if (!firebaseDb) return [];
-  const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}`));
-  if (!snap.exists()) return [];
-  const value = snap.val() || {};
-  const sourceLinksEnabled = value.sourceLinksEnabled === true;
-  return Array.isArray(value.products)
-    ? value.products.map(product => ({
-      ...product,
-      // Feedback always uses the official channel. The switch controls only
-      // whether a pasted page's File Update URL can replace the mapped default.
-      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-      fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : '',
-    }))
-    : [];
+function normaliseProductName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/^a,\s*/, '')
+    .replace(/[^a-z0-9]+/g, '');
 }
 
-export async function getProductCatalogMeta() {
-  if (!firebaseDb) return {};
-  const [userSnap, resellerSnap] = await Promise.all([
-    get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/user`)),
-    get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/reseller`)),
-  ]);
-  const meta = {};
-  for (const [type, snap] of [['user', userSnap], ['reseller', resellerSnap]]) {
-    const value = snap.exists() ? snap.val() || {} : {};
-    meta[type] = {
-      count: Array.isArray(value.products) ? value.products.length : 0,
-      sourceDomain: value.sourceDomain || '',
-      updatedAt: value.updatedAt || 0,
-      sourceLinksEnabled: value.sourceLinksEnabled === true,
-      newProducts: Array.isArray(value.newProducts) ? value.newProducts : [],
-    };
-  }
-  return meta;
-}
-
-export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
-  if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const catalogType = type === 'reseller' ? 'reseller' : 'user';
-  const products = parseProductSource(html, sourceDomain);
-  const previousSnap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
-  const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
-  const sourceLinksEnabled = previous.sourceLinksEnabled === true;
-  const storedProducts = products.map(product => ({
-    ...product,
-    // Never import a third-party feedback channel into the user-facing
-    // catalog. Keep the source File Update URL for the optional switch.
-    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-  }));
-  const previousIds = new Set((Array.isArray(previous.products) ? previous.products : []).map(product => String(product.pid || product.id)));
-  const newProducts = storedProducts
-    .filter(product => !previousIds.has(String(product.pid || product.id)))
-    .map(product => ({
-      pid: String(product.pid || product.id),
-      name: product.name,
-      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-      fileUpdateUrl: product.fileUpdateUrl || '',
-    }));
-  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`), {
-    type: catalogType,
-    sourceDomain: sourceDomain.trim(),
-    products: storedProducts,
-    count: storedProducts.length,
-    sourceLinksEnabled,
-    newProducts,
-    updatedAt: Date.now(),
-  });
-  return { type: catalogType, count: storedProducts.length, newProducts };
-}
-
-export async function adminSetProductCatalogLinkMode(type, enabled) {
-  if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const catalogType = type === 'reseller' ? 'reseller' : 'user';
-  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}/sourceLinksEnabled`), enabled === true);
-  return enabled === true;
-}
-
-export async function fetchGameProducts(role = 'user') {
-  // Product display data is intentionally sourced only from the admin-imported
-  // Firebase catalog. The old public products endpoint is no longer used.
-  return getProductCatalog(role === 'reseller' ? 'reseller' : 'user');
+function findCatalogProduct(name) {
+  const wanted = normaliseProductName(name);
+  return PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === wanted)
+    || (wanted === normaliseProductName('A, XYZ CHEATS FF ROOT ANDROID')
+      ? PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === normaliseProductName('XYZ CHEATS FF ROOT ANDROID'))
+      : null);
 }
 
 export async function buyResellerProduct(productId, duration) {
@@ -619,7 +310,7 @@ const toArray = value => Object.entries(value || {}).map(([id, item]) => ({ id, 
 
 export async function getAdminOverview() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, upiSnap, minDepositSnap, resellerPriceSnap, manualKeysSnap] = await Promise.all([
+  const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, paymentSettingsSnap, manualKeysSnap, communitySnap, keyResetSnap] = await Promise.all([
     get(ref(firebaseDb, 'users')),
     get(ref(firebaseDb, 'licenseKeys')),
     get(ref(firebaseDb, 'paymentRequests')),
@@ -627,10 +318,10 @@ export async function getAdminOverview() {
     get(ref(firebaseDb, 'resellers')),
     get(ref(firebaseDb, 'announcements')),
     get(ref(firebaseDb, 'adminProductPricing')),
-    get(ref(firebaseDb, 'settings/payment/upiId')),
-    get(ref(firebaseDb, 'settings/payment/minDeposit')),
-    get(ref(firebaseDb, 'settings/payment/resellerPrice')),
+    get(ref(firebaseDb, 'settings/payment')),
     get(ref(firebaseDb, 'manualLicenseKeys')),
+    get(ref(firebaseDb, 'settings/community')),
+    get(ref(firebaseDb, 'keyResetRequests')),
   ]);
   const users = Object.entries(usersSnap.val() || {}).map(([uid, value]) => publicProfile(uid, value));
   const keys = toArray(keysSnap.val());
@@ -649,9 +340,12 @@ export async function getAdminOverview() {
     announcements,
     pricingRules,
     manualKeys,
-    upiId: upiSnap.exists() ? upiSnap.val() : '',
-    minDeposit: minDepositSnap.exists() ? Number(minDepositSnap.val()) : 50,
-    resellerPrice: resellerPriceSnap.exists() ? Number(resellerPriceSnap.val()) : 0,
+    communityLinks: communitySnap.exists() ? communitySnap.val() : {},
+    keyResetRequests: toArray(keyResetSnap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
+    ...(paymentSettingsSnap.exists() ? paymentSettingsSnap.val() : {}),
+    upiId: paymentSettingsSnap.val()?.upiId || '',
+    minDeposit: Number(paymentSettingsSnap.val()?.minDeposit || 50),
+    resellerPrice: Number(paymentSettingsSnap.val()?.resellerPrice || 0),
     stats: {
       totalRevenue: users.reduce((sum, user) => sum + Number(user.totalPurchase || 0), 0),
       activeUsers: users.filter(user => user.status !== 'banned').length,
@@ -742,7 +436,7 @@ export async function adminSaveReseller({ username, password, fund }) {
   return id;
 }
 
-export async function adminSaveProductRule({ pid, duration, price, percent, resellerPrice }) {
+export async function adminSaveProductRule({ pid, duration, price, resellerPrice }) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   if (!pid?.trim()) throw new Error('Enter product PID.');
   const id = `${pid.trim()}_${(duration || 'default').trim().replace(/[^a-z0-9]+/gi, '_')}`;
@@ -750,24 +444,128 @@ export async function adminSaveProductRule({ pid, duration, price, percent, rese
     pid: pid.trim(),
     duration: duration?.trim() || 'default',
     price: price === '' ? '' : Number(price || 0),
-    percent: percent === '' ? '' : Number(percent || 0),
     resellerPrice: resellerPrice === '' || resellerPrice === undefined ? '' : Number(resellerPrice || 0),
     updatedAt: Date.now(),
   });
   return id;
 }
 
-export async function adminSaveUpi(upiId, minDeposit, resellerPrice) {
+export async function adminSaveUpi(upiId, minDeposit, resellerPrice, paymentOptions = {}) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  if (!upiId?.trim()) throw new Error('Enter UPI ID.');
-  await set(ref(firebaseDb, 'settings/payment/upiId'), upiId.trim());
-  if (minDeposit !== undefined && minDeposit !== '') {
-    await set(ref(firebaseDb, 'settings/payment/minDeposit'), Math.max(1, Number(minDeposit || 50)));
+  if (paymentOptions.upiEnabled !== false && !upiId?.trim()) throw new Error('Enter UPI ID or turn UPI off.');
+  const current = await get(ref(firebaseDb, 'settings/payment'));
+  const existing = current.exists() ? current.val() : {};
+  const next = {
+    ...existing,
+    upiId: upiId?.trim() || '',
+    minDeposit: Math.max(1, Number(minDeposit || 50)),
+    resellerPrice: Math.max(0, Number(resellerPrice || 0)),
+    gatewayEnabled: Boolean(paymentOptions.gatewayEnabled),
+    upiEnabled: paymentOptions.upiEnabled !== false,
+    gatewayFee: Math.max(0, Number(paymentOptions.gatewayFee || 0)),
+    cashfreeAppId: paymentOptions.cashfreeAppId?.trim() || '',
+    updatedAt: Date.now(),
+  };
+  if (!next.gatewayEnabled && !next.upiEnabled) throw new Error('Turn on at least one payment method.');
+  await set(ref(firebaseDb, 'settings/payment'), next);
+  return next;
+}
+
+function cleanCommunityUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let parsed;
+  try { parsed = new URL(raw); } catch { throw new Error('Telegram links must be valid HTTPS URLs.'); }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('Telegram links must use HTTP or HTTPS.');
+  return parsed.toString();
+}
+
+export async function getCommunityLinks() {
+  if (!firebaseDb) return { resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' };
+  const snap = await get(ref(firebaseDb, 'settings/community'));
+  const value = snap.exists() ? snap.val() : {};
+  return {
+    resellerUpdatesUrl: value.resellerUpdatesUrl || '',
+    getFileUrl: value.getFileUrl || '',
+    helpUrl: value.helpUrl || '',
+  };
+}
+
+export async function adminSaveCommunityLinks(links) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const next = {
+    resellerUpdatesUrl: cleanCommunityUrl(links.resellerUpdatesUrl),
+    getFileUrl: cleanCommunityUrl(links.getFileUrl),
+    helpUrl: cleanCommunityUrl(links.helpUrl),
+    updatedAt: Date.now(),
+  };
+  await set(ref(firebaseDb, 'settings/community'), next);
+  return next;
+}
+
+export async function getUserKeyResetRequests(uid) {
+  if (!firebaseDb || !uid) return [];
+  const snap = await get(ref(firebaseDb, 'keyResetRequests'));
+  return toArray(snap.val())
+    .filter(request => request.uid === uid)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export async function createKeyResetRequest(uid, license, reason) {
+  if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
+  if (!license?.id) throw new Error('Order details are missing.');
+  const message = String(reason || '').trim();
+  if (message.length < 5) throw new Error('Please explain the reset reason.');
+  const existing = await getUserKeyResetRequests(uid);
+  if (existing.some(request => request.keyId === license.id && request.status === 'pending')) {
+    throw new Error('A reset request for this order is already pending.');
   }
-  if (resellerPrice !== undefined && resellerPrice !== '') {
-    await set(ref(firebaseDb, 'settings/payment/resellerPrice'), Math.max(0, Number(resellerPrice || 0)));
+  const id = `reset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await set(ref(firebaseDb, `keyResetRequests/${id}`), {
+    uid,
+    keyId: license.id,
+    productName: license.productName || license.product || '',
+    duration: license.duration || '',
+    reason: message,
+    status: 'pending',
+    createdAt: Date.now(),
+  });
+  return id;
+}
+
+export async function adminReviewKeyResetRequest(requestId, status, replacementKey = '') {
+  if (!firebaseDb || !requestId) throw new Error('Reset request is missing.');
+  if (!['approved', 'rejected'].includes(status)) throw new Error('Invalid reset request status.');
+  const requestRef = ref(firebaseDb, `keyResetRequests/${requestId}`);
+  const snap = await get(requestRef);
+  if (!snap.exists()) throw new Error('Reset request not found.');
+  const request = snap.val();
+  const keyValue = String(replacementKey || '').trim();
+  const now = Date.now();
+  await update(requestRef, {
+    status,
+    replacementKey: status === 'approved' && keyValue ? keyValue : '',
+    reviewedAt: now,
+  });
+  if (status === 'approved' && keyValue && request.keyId) {
+    await update(ref(firebaseDb, `licenseKeys/${request.keyId}`), {
+      key: keyValue,
+      keyCode: keyValue,
+      status: 'active',
+      resetAt: now,
+    });
   }
-  return upiId.trim();
+  await set(ref(firebaseDb, `userNotifications/${request.uid}/${requestId}`), {
+    type: 'key_reset',
+    title: status === 'approved' ? 'Key reset approved' : 'Key reset rejected',
+    message: status === 'approved'
+      ? 'Your key reset request is approved.'
+      : 'Your key reset request was rejected by admin.',
+    requestId,
+    createdAt: now,
+    dismissed: false,
+  });
+  return true;
 }
 
 export async function adminDeleteLicenseKey(keyId) {
@@ -778,10 +576,18 @@ export async function adminDeleteLicenseKey(keyId) {
 
 export async function adminUpdatePaymentRequest(requestId, status) {
   if (!firebaseDb || !requestId) throw new Error('Firebase database is not configured.');
+  const existingRequestSnap = await get(ref(firebaseDb, `paymentRequests/${requestId}`));
+  if (existingRequestSnap.exists() && existingRequestSnap.val()?.method === 'Cashfree') {
+    throw new Error('Cashfree payments are auto-approved after gateway verification.');
+  }
+  const request = existingRequestSnap.exists() ? existingRequestSnap.val() : null;
+  const pendingTransactionId = request?.transactionId || `tx_pending_${requestId}`;
+
+  // Keep approval idempotent. A repeated admin action must not credit the wallet twice.
+  if (request?.status === 'approved' && status === 'approved') return true;
+
   if (status === 'approved') {
-    const reqSnap = await get(ref(firebaseDb, `paymentRequests/${requestId}`));
-    if (reqSnap.exists()) {
-      const request = reqSnap.val();
+    if (request) {
       const uid = request.uid;
       const amount = Number(request.amount || 0);
       if (uid && amount > 0) {
@@ -797,10 +603,10 @@ export async function adminUpdatePaymentRequest(requestId, status) {
         }
         await update(ref(firebaseDb, `users/${uid}`), updates);
         const txType = request.type === 'reseller' ? 'reseller_unlock' : 'deposit_approved';
-        const txId = `tx_dep_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        await set(ref(firebaseDb, `transactions/${txId}`), {
+        await update(ref(firebaseDb, `transactions/${pendingTransactionId}`), {
           uid,
           type: txType,
+          status: 'approved',
           amount,
           before: currentBalance,
           after: newBalance,
@@ -808,12 +614,30 @@ export async function adminUpdatePaymentRequest(requestId, status) {
             ? `Reseller panel unlocked (request ${requestId})`
             : `Deposit approved (request ${requestId})`,
           method: request.method || 'UPI',
-          createdAt: Date.now(),
+          paymentRequestId: requestId,
+          createdAt: request.createdAt || Date.now(),
+          approvedAt: Date.now(),
         });
       }
     }
   }
-  await update(ref(firebaseDb, `paymentRequests/${requestId}`), { status, updatedAt: Date.now() });
+  if (status === 'rejected' && request) {
+    await update(ref(firebaseDb, `transactions/${pendingTransactionId}`), {
+      uid: request.uid,
+      type: 'deposit_rejected',
+      status: 'rejected',
+      amount: Number(request.amount || 0),
+      note: `Deposit rejected (request ${requestId})`,
+      method: request.method || 'UPI',
+      paymentRequestId: requestId,
+      updatedAt: Date.now(),
+    });
+  }
+  await update(ref(firebaseDb, `paymentRequests/${requestId}`), {
+    status,
+    transactionId: pendingTransactionId,
+    updatedAt: Date.now(),
+  });
   return true;
 }
 
@@ -821,15 +645,16 @@ export async function adminUpdatePaymentRequest(requestId, status) {
 
 export async function getPaymentSettings() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
-  const [upiSnap, minSnap, resellerSnap] = await Promise.all([
-    get(ref(firebaseDb, 'settings/payment/upiId')),
-    get(ref(firebaseDb, 'settings/payment/minDeposit')),
-    get(ref(firebaseDb, 'settings/payment/resellerPrice')),
-  ]);
+  const snap = await get(ref(firebaseDb, 'settings/payment'));
+  const value = snap.exists() ? snap.val() : {};
   return {
-    upiId: upiSnap.exists() ? upiSnap.val() : '',
-    minDeposit: minSnap.exists() ? Number(minSnap.val()) : 50,
-    resellerPrice: resellerSnap.exists() ? Number(resellerSnap.val()) : 0,
+    upiId: value.upiId || '',
+    minDeposit: Number(value.minDeposit || 50),
+    resellerPrice: Number(value.resellerPrice || 0),
+    gatewayEnabled: Boolean(value.gatewayEnabled),
+    upiEnabled: value.upiEnabled !== false,
+    gatewayFee: Math.max(0, Number(value.gatewayFee || 0)),
+    cashfreeAppId: value.cashfreeAppId || '',
   };
 }
 
@@ -839,17 +664,130 @@ export async function createPaymentRequest(uid, amount, senderUpi, userName, typ
   if (!value) throw new Error('Enter a valid deposit amount.');
   if (!senderUpi?.trim()) throw new Error('Enter your UPI/UTR number.');
   const id = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  await set(ref(firebaseDb, `paymentRequests/${id}`), {
-    uid,
-    user: userName || uid,
-    amount: value,
-    method: 'UPI',
-    senderUpi: senderUpi.trim(),
-    type: type || 'deposit',
-    status: 'pending',
-    createdAt: Date.now(),
+  const transactionId = `tx_pending_${id}`;
+  const now = Date.now();
+  await update(ref(firebaseDb), {
+    [`paymentRequests/${id}`]: {
+      uid,
+      user: userName || uid,
+      amount: value,
+      method: 'UPI',
+      senderUpi: senderUpi.trim(),
+      type: type || 'deposit',
+      status: 'pending',
+      transactionId,
+      createdAt: now,
+    },
+    [`transactions/${transactionId}`]: {
+      uid,
+      type: type === 'reseller' ? 'reseller_unlock_pending' : 'deposit_pending',
+      status: 'pending',
+      amount: value,
+      note: type === 'reseller'
+        ? `Reseller unlock pending approval (request ${id})`
+        : `Deposit pending approval (request ${id})`,
+      method: 'UPI',
+      paymentRequestId: id,
+      createdAt: now,
+    },
   });
   return id;
+}
+
+export async function createGatewayPaymentRequest(uid, amount, paidAmount, orderId, userName, type = 'deposit') {
+  if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
+  const creditAmount = Math.max(0, Number(amount || 0));
+  const totalPaid = Math.max(0, Number(paidAmount || 0));
+  if (!creditAmount || !totalPaid || !orderId) throw new Error('Gateway payment details are incomplete.');
+  const settlementRef = ref(firebaseDb, `gatewaySettlements/${orderId}`);
+  const claimId = `claim_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const settlement = await runTransaction(settlementRef, current => current || {
+    uid,
+    orderId,
+    claimId,
+    status: 'processing',
+    createdAt: Date.now(),
+  });
+  const settlementValue = settlement.snapshot.val() || {};
+  if (settlementValue.status === 'completed') return settlementValue.requestId;
+  if (settlementValue.status !== 'processing' || settlementValue.claimId !== claimId) {
+    throw new Error('This gateway payment is already being processed. Please refresh shortly.');
+  }
+  if (settlementValue.uid !== uid) throw new Error('This gateway order belongs to another account.');
+
+  const id = settlementValue.requestId || `pay_gateway_${orderId}`;
+  const now = Date.now();
+  const userRef = ref(firebaseDb, `users/${uid}`);
+  const userSnap = await get(userRef);
+  const user = userSnap.exists() ? userSnap.val() : {};
+  const currentBalance = Number(user.balance || 0);
+  const newBalance = currentBalance + creditAmount;
+  const fee = Math.max(0, totalPaid - creditAmount);
+  const txId = `tx_gateway_${orderId}`;
+  const request = {
+    uid,
+    user: userName || uid,
+    amount: creditAmount,
+    paidAmount: totalPaid,
+    gatewayFee: fee,
+    method: 'Cashfree',
+    gatewayOrderId: orderId,
+    type: type || 'deposit',
+    status: 'approved',
+    autoCredited: true,
+    createdAt: settlementValue.createdAt || now,
+    approvedAt: now,
+  };
+  await update(ref(firebaseDb), {
+    [`users/${uid}/balance`]: newBalance,
+    [`users/${uid}/updatedAt`]: now,
+    [`paymentRequests/${id}`]: request,
+    [`transactions/${txId}`]: {
+      uid,
+      type: type === 'reseller' ? 'reseller_unlock' : 'gateway_deposit',
+      amount: creditAmount,
+      paidAmount: totalPaid,
+      gatewayFee: fee,
+      before: currentBalance,
+      after: newBalance,
+      method: 'Cashfree',
+      gatewayOrderId: orderId,
+      note: type === 'reseller'
+        ? `Cashfree gateway · Reseller unlock · Order ${orderId}`
+        : `Cashfree gateway · ₹${creditAmount} credited${fee ? ` · ₹${fee} fee` : ''} · Order ${orderId}`,
+      createdAt: now,
+    },
+  });
+  if (type === 'reseller') {
+    await update(userRef, { role: 'reseller', reseller: true, updatedAt: now });
+  }
+  await set(settlementRef, {
+    ...settlementValue,
+    uid,
+    requestId: id,
+    transactionId: txId,
+    status: 'completed',
+    completedAt: now,
+  });
+  return id;
+}
+
+export async function createCashfreeOrder({ amount, customerId, customerName, customerPhone, customerEmail, appId }) {
+  const response = await fetch('/api/cashfree/create-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount: Number(amount), customerId, customerName, customerPhone, customerEmail, appId }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.paymentSessionId) throw new Error(data?.message || 'Cashfree gateway is not configured.');
+  return data;
+}
+
+export async function verifyCashfreeOrder(orderId, appId) {
+  const response = await fetch(`/api/cashfree/verify-order?order_id=${encodeURIComponent(orderId)}&app_id=${encodeURIComponent(appId || '')}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.status !== 'PAID') throw new Error(data?.message || 'Cashfree payment was not completed.');
+  return data;
 }
 
 /* ── User Transactions ──────────────────────────────────────────── */
@@ -861,6 +799,18 @@ export async function getUserTransactions(uid) {
   return toArray(snap.val())
     .filter(tx => tx.uid === uid)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export function subscribeUserTransactions(uid, onChange) {
+  if (!firebaseDb || !uid || typeof onChange !== 'function') return () => {};
+  return onValue(ref(firebaseDb, 'transactions'), snap => {
+    const transactions = snap.exists()
+      ? toArray(snap.val())
+        .filter(tx => tx.uid === uid)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      : [];
+    onChange(transactions);
+  });
 }
 
 export async function getUserLicenseKeys(uid) {
@@ -878,6 +828,16 @@ export async function getAdminPricingRules() {
   if (!firebaseDb) return {};
   const snap = await get(ref(firebaseDb, 'adminProductPricing'));
   return snap.exists() ? snap.val() : {};
+}
+
+export async function getProductPricingSettings() {
+  if (!firebaseDb) return { userAdjustment: -20, resellerAdjustment: 10 };
+  const snap = await get(ref(firebaseDb, 'settings/productPricing'));
+  const value = snap.exists() ? snap.val() : {};
+  return {
+    userAdjustment: Number.isFinite(Number(value.userAdjustment)) ? Number(value.userAdjustment) : -20,
+    resellerAdjustment: Number.isFinite(Number(value.resellerAdjustment)) ? Number(value.resellerAdjustment) : 10,
+  };
 }
 
 /* ── Manual License Keys ────────────────────────────────────────── */
@@ -940,11 +900,23 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
 
   // 3. Try reseller API
   try {
-    const apiResult = await buyResellerProduct(product.pid, duration.duration || duration.label);
-    deliveredKey = apiResult?.key || apiResult?.license_key || apiResult?.data?.key || apiResult?.data?.license_key || JSON.stringify(apiResult);
+    const productIds = [...new Set([product.purchasePid, product.pid].filter(Boolean).map(String))];
+    let lastError;
+    for (const productId of productIds) {
+      try {
+        const apiResult = await buyResellerProduct(productId, duration.duration || duration.label);
+        deliveredKey = apiResult?.key || apiResult?.license_key || apiResult?.data?.key || apiResult?.data?.license_key || JSON.stringify(apiResult);
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!deliveredKey) throw lastError || new Error('No reseller product ID available.');
   } catch (apiError) {
     // 4. API failed — try manual fallback
-    const fallback = await getAvailableManualKey(product.pid, duration.duration || duration.label);
+    const productIds = [...new Set([product.purchasePid, product.pid].filter(Boolean).map(String))];
+    const fallback = (await Promise.all(productIds.map(id => getAvailableManualKey(id, duration.duration || duration.label))))
+      .find(Boolean);
     if (fallback) {
       deliveredKey = fallback.key;
       source = 'manual';
@@ -953,7 +925,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
       // 5. Both failed — refund + alert admin
       await update(ref(firebaseDb, `users/${uid}`), { balance: currentBalance, updatedAt: Date.now() });
       try { await adminSaveAlert('keys_exhausted', {
-        productId: String(product.pid),
+        productId: String(product.purchasePid || product.pid),
         productName: product.name,
         duration: duration.duration || duration.label,
         apiError: apiError.message,
@@ -971,7 +943,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
     uid,
     userId: uid,
     user: userName || uid,
-    productId: String(product.pid),
+    productId: String(product.purchasePid || product.pid),
     product: product.name,
     productName: product.name,
     duration: duration.duration || duration.label,

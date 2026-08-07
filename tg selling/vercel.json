@@ -1,9 +1,7 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "rewrites": [
-    { "source": "/low", "destination": "/low/index.html" },
-    { "source": "/low/(.*)", "destination": "/low/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

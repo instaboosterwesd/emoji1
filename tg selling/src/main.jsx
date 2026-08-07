@@ -4,6 +4,7 @@ import lottie from 'lottie-web';
 import { createRoot } from 'react-dom/client';
 import { FcGoogle } from 'react-icons/fc';
 import { SiGooglepay, SiPhonepe, SiPaytm } from 'react-icons/si';
+import { ChevronRight, LayoutList, MoreVertical, PanelRight, Plus, RefreshCw, Send, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import countryData from 'country-telephone-data';
@@ -33,9 +34,19 @@ import {
   getAdminOverview,
   getPaymentSettings,
   createPaymentRequest,
+  createGatewayPaymentRequest,
+  createCashfreeOrder,
+  verifyCashfreeOrder,
   getUserTransactions,
+  subscribeUserTransactions,
   getUserLicenseKeys,
   getAdminPricingRules,
+  getProductPricingSettings,
+  getCommunityLinks,
+  createKeyResetRequest,
+  getUserKeyResetRequests,
+  adminSaveCommunityLinks,
+  adminReviewKeyResetRequest,
   adminAddManualKey,
   adminDeleteManualKey,
   purchaseProduct,
@@ -54,14 +65,6 @@ import {
   adminCreateGiftCode,
   getGiftCodes,
   productIconFor,
-  getProductChannels,
-  findProductChannel,
-  adminSaveProductChannel,
-  adminDeleteProductChannel,
-  getProductCatalog,
-  getProductCatalogMeta,
-  adminSaveProductCatalog,
-  adminSetProductCatalogLinkMode,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -110,6 +113,54 @@ const MatIcon = ({ name, size = 20, className = '', style: extraStyle, ...rest }
 
 /* ── Brand icon map (defined in services.js, imported here) ────── */
 const productIconForWithFallback = name => productIconFor(name) || '/icons/new/product-box.png';
+const AI_CATALOG_REFRESH_MS = 120000;
+const MAX_AI_CART_CALLS_PER_MINUTE = 6;
+
+function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
+  const isReseller = role === 'reseller';
+  return {
+    ...product,
+    pricing: (product.pricing || []).map(item => {
+      const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
+      const rule = pricingRules[key] || {};
+      const apiPrice = Number(item.price || 0);
+      const fixedUserPrice = Number(rule.price);
+      const fixedResellerPrice = Number(rule.resellerPrice);
+      const userPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+        ? fixedUserPrice
+        : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+      const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+        ? fixedResellerPrice
+        : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+      return { ...item, price: isReseller ? resellerPrice : userPrice, isResellerPrice: isReseller };
+    }),
+  };
+}
+
+function catalogTokens(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9₹]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+}
+
+function rankCatalogMatches(products, query) {
+  const terms = catalogTokens(query);
+  if (!terms.length) return [];
+  return products
+    .map(product => {
+      const name = String(product.name || '').toLowerCase();
+      const searchable = `${name} ${product.game || ''} ${product.platform || ''} ${(product.features || []).join(' ')}`.toLowerCase();
+      const score = terms.reduce((total, term) => total + (name.includes(term) ? 5 : searchable.includes(term) ? 2 : 0), 0);
+      return { product, score };
+    })
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.product);
+}
+
+function safeCatalogDetails(product) {
+  const features = (product.features || []).filter(Boolean);
+  const description = String(product.description || '').replace(/<[^>]*>/g, '').trim();
+  return description || features.join(' · ') || 'Package details are available in the live catalog.';
+}
 
 /* ── Shared micro-components ────────────────────────────────────── */
 const SectionTitle = ({ title, subtitle }) => (
@@ -336,6 +387,268 @@ function Terms() {
   );
 }
 
+function AiShopTrigger({ open, onClick, hasHelpLink }) {
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 150);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <button
+      className={`ai-shop-trigger${compact ? ' compact' : ''}${open ? ' is-open' : ''}`}
+      style={hasHelpLink ? { bottom: 148 } : undefined}
+      type="button"
+      onClick={onClick}
+      aria-label="Shop with AI"
+      aria-expanded={open}
+    >
+      <span className="ai-shop-trigger-icon"><Sparkles size={16} strokeWidth={2.4} /></span>
+      <span className="ai-shop-trigger-label">Shop with AI</span>
+    </button>
+  );
+}
+
+function AiShopPanel({ session, onBuy, onClose }) {
+  const [products, setProducts] = useState([]);
+  const [pricingRules, setPricingRules] = useState({});
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10 });
+  const [loading, setLoading] = useState(true);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([{
+    id: 'welcome',
+    role: 'assistant',
+    text: 'Hi! Ask me about a product, package, price, or what is trending. I use the live catalog only.',
+    suggestions: ['Best sellers', 'Show all packages'],
+  }]);
+  const [cart, setCart] = useState([]);
+  const [cartCalls, setCartCalls] = useState([]);
+  const [lastFetchedAt, setLastFetchedAt] = useState(0);
+  const [compactView, setCompactView] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const threadRef = useRef(null);
+
+  const loadCatalog = useCallback(async (force = false) => {
+    if (!force && products.length && Date.now() - lastFetchedAt < AI_CATALOG_REFRESH_MS) return;
+    setLoading(true);
+    try {
+      const [catalog, rules, settings] = await Promise.all([
+        fetchGameProducts(),
+        getAdminPricingRules().catch(() => ({})),
+        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
+      ]);
+      setProducts(catalog);
+      setPricingRules(rules);
+      setPricingSettings(settings);
+      setLastFetchedAt(Date.now());
+      return catalog;
+    } catch (err) {
+      setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'assistant', text: err.message || 'The live catalog could not be loaded. Please try again.', suggestions: ['Refresh catalog'] }]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [lastFetchedAt, products.length]);
+
+  useEffect(() => { loadCatalog(true); }, []);
+  useEffect(() => {
+    if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [messages, cart]);
+
+  const pricedProducts = useMemo(
+    () => products.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role)),
+    [products, pricingRules, pricingSettings, session?.role],
+  );
+
+  const addToCart = useCallback((product, duration) => {
+    const now = Date.now();
+    const recentCalls = cartCalls.filter(timestamp => now - timestamp < 60000);
+    if (recentCalls.length >= MAX_AI_CART_CALLS_PER_MINUTE) {
+      setMessages(prev => [...prev, { id: `limit-${now}`, role: 'assistant', text: 'You have reached the add-to-cart limit for this minute. Please wait a moment and try again.' }]);
+      return false;
+    }
+    if (!product || !duration || Number(duration.price) <= 0) {
+      setMessages(prev => [...prev, { id: `unavailable-${now}`, role: 'assistant', text: 'That package is currently unavailable. I cannot add it without a live price. Try another package from this product.' }]);
+      return false;
+    }
+    setCartCalls([...recentCalls, now]);
+    setCart([{ product, duration }]);
+    setMessages(prev => [...prev, {
+      id: `cart-${now}`,
+      role: 'assistant',
+      text: `${product.name} · ${duration.duration || duration.label} is ready for confirmation.`,
+      cartItem: { product, duration },
+      suggestions: ['Show other packages', 'Best sellers'],
+    }]);
+    return true;
+  }, [cartCalls]);
+
+  const answer = useCallback(async rawQuery => {
+    const query = String(rawQuery || '').trim();
+    if (!query) return;
+    const now = Date.now();
+    setInput('');
+    setMessages(prev => [...prev, { id: `user-${now}`, role: 'user', text: query }]);
+    const freshProducts = Date.now() - lastFetchedAt > AI_CATALOG_REFRESH_MS || /price|cost|₹|rupee|package|best|trend/i.test(query);
+    const catalog = await loadCatalog(freshProducts) || pricedProducts;
+    const visible = catalog.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role));
+    const lower = query.toLowerCase();
+    const ranked = rankCatalogMatches(visible, query);
+    const isTrending = /best|trend|popular|selling|seller|top/i.test(lower);
+    if (/refresh/i.test(lower)) {
+      await loadCatalog(true);
+      setMessages(prev => [...prev, { id: `refresh-${now}`, role: 'assistant', text: 'The live catalog was refreshed. Ask me for a product or package.', suggestions: ['Best sellers', 'Show all packages'] }]);
+      return;
+    }
+    if (isTrending) {
+      const trending = [...visible].sort((a, b) => {
+        const salesDiff = Number(b.salesCount || 0) - Number(a.salesCount || 0);
+        return salesDiff || a.name.localeCompare(b.name);
+      }).slice(0, 5);
+      setMessages(prev => [...prev, {
+        id: `trending-${now}`,
+        role: 'assistant',
+        text: trending.length ? 'Trending products from the live catalog:' : 'No trending products are available right now.',
+        products: trending,
+        suggestions: ['Show all packages'],
+      }]);
+      return;
+    }
+    if (/all package|show products|catalog|what do you have/i.test(lower)) {
+      setMessages(prev => [...prev, {
+        id: `catalog-${now}`,
+        role: 'assistant',
+        text: visible.length ? 'Here are the available products from the live catalog:' : 'No products are currently available.',
+        products: visible.slice(0, 8),
+        suggestions: ['Best sellers'],
+      }]);
+      return;
+    }
+    if (!ranked.length) {
+      const category = rankCatalogMatches(visible, lower.split(/\s+/).slice(0, 1).join(' '));
+      setMessages(prev => [...prev, {
+        id: `nomatch-${now}`,
+        role: 'assistant',
+        text: category.length
+          ? `I could not find an exact catalog match. The closest available category is ${category[0].game || 'the available catalog'}.`
+          : 'I could not find that in the live catalog. Try a product name, game, or “Best sellers”.',
+        products: category.slice(0, 3),
+        suggestions: ['Best sellers', 'Show all packages'],
+      }]);
+      return;
+    }
+    const product = ranked[0];
+    const wantsDetails = /include|included|feature|detail|what is|package|price|cost|how much/i.test(lower);
+    setMessages(prev => [...prev, {
+      id: `product-${now}`,
+      role: 'assistant',
+      text: wantsDetails
+        ? `${product.name} is available in the live catalog. ${safeCatalogDetails(product)}`
+        : `I found ${product.name} in the live catalog.`,
+      products: [product],
+      suggestions: ['Show other packages', 'Best sellers'],
+    }]);
+  }, [lastFetchedAt, loadCatalog, pricingRules, pricingSettings, pricedProducts, session?.role]);
+
+  const submit = e => {
+    e.preventDefault();
+    answer(input);
+  };
+
+  const chooseSuggestion = suggestion => {
+    if (suggestion === 'Show other packages') {
+      const lastProduct = [...messages].reverse().find(message => message.products?.length)?.products?.[0];
+      if (lastProduct) {
+        setMessages(prev => [...prev, { id: `packages-${Date.now()}`, role: 'assistant', text: `${lastProduct.name} packages currently available:`, products: [lastProduct] }]);
+      } else answer('Show all packages');
+      return;
+    }
+    answer(suggestion);
+  };
+
+  return (
+    <aside className={`ai-shop-panel${compactView ? ' compact' : ''}`} role="dialog" aria-modal="true" aria-label="Shop with AI">
+      <header className="ai-shop-header">
+        <div className="ai-shop-brand">
+          <span className="ai-shop-sparkle"><Sparkles size={17} /></span>
+          <div><strong>reversebypass</strong><small>Live catalog assistant</small></div>
+        </div>
+        <div className="ai-shop-header-actions">
+          {cart.length > 0 && <span className="ai-shop-cart-count"><ShoppingCart size={16} /> {cart.length}</span>}
+          <button type="button" aria-label="Toggle layout" onClick={() => setCompactView(value => !value)}><LayoutList size={17} /></button>
+          <div className="ai-shop-menu-wrap">
+            <button type="button" aria-label="More options" onClick={() => setMenuOpen(value => !value)}><MoreVertical size={17} /></button>
+            {menuOpen && (
+              <div className="ai-shop-menu">
+                <button type="button" onClick={() => { setMessages([]); setCart([]); setMenuOpen(false); }}>Clear chat</button>
+                <button type="button" onClick={() => { loadCatalog(true); setMenuOpen(false); }}>Refresh catalog</button>
+              </div>
+            )}
+          </div>
+          <button type="button" aria-label="Close shop" onClick={onClose}><X size={18} /></button>
+        </div>
+      </header>
+      <div className="ai-shop-thread" ref={threadRef}>
+        {loading && <div className="ai-shop-loading"><RefreshCw size={15} className="ai-spin" /> Loading live products…</div>}
+        {messages.map(message => (
+          <div className={`ai-shop-message ${message.role}`} key={message.id}>
+            <div className="ai-shop-bubble">
+              {message.role === 'assistant' ? <p>{message.text}</p> : <p>{message.text}</p>}
+              {message.products?.map((product, productIndex) => (
+                <div className="ai-shop-product" key={product.pid || product.id || product.name}>
+                  {message.id.startsWith('trending-') && <div className="ai-shop-ranking">#{productIndex + 1} trending</div>}
+                  <div className="ai-shop-product-top">
+                    <img src={productIconForWithFallback(product.name)} alt="" />
+                    <div><strong>{product.name}</strong><small>{product.game} · {product.platform || 'Access key'}</small></div>
+                  </div>
+                  <p className="ai-shop-description">{safeCatalogDetails(product)}</p>
+                  <div className="ai-shop-package-list">
+                    {(product.pricing || []).slice(0, 6).map(duration => (
+                      <div className="ai-shop-package" key={`${product.pid}-${duration.duration || duration.label}`}>
+                        <span>{duration.duration || duration.label}</span>
+                        <strong>{duration.price > 0 ? `₹${money(duration.price)}` : 'Unavailable'}</strong>
+                        <button
+                          type="button"
+                          disabled={duration.price <= 0}
+                          onClick={() => addToCart(product, duration)}
+                          title={duration.price <= 0 ? 'Package unavailable' : 'Add to cart'}
+                        >
+                          <Plus size={14} /> Add
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {product.pricing?.length === 0 && <small className="ai-shop-unavailable">No packages are currently available.</small>}
+                </div>
+              ))}
+              {message.cartItem && (
+                <button className="ai-shop-confirm" type="button" onClick={() => {
+                  onBuy(message.cartItem);
+                  onClose();
+                }}>
+                  Confirm purchase <ChevronRight size={16} />
+                </button>
+              )}
+            </div>
+            {message.suggestions?.length > 0 && (
+              <div className="ai-shop-suggestions">
+                {message.suggestions.map(suggestion => <button type="button" key={suggestion} onClick={() => chooseSuggestion(suggestion)}>{suggestion}</button>)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <form className="ai-shop-input-bar" onSubmit={submit}>
+        <input value={input} onChange={e => setInput(e.target.value)} placeholder="Message areversebypass" aria-label="Message reversebypass" />
+        <button type="submit" aria-label="Send message" disabled={!input.trim()}><Send size={17} /></button>
+      </form>
+    </aside>
+  );
+}
+
 /* ── Dashboard shell ────────────────────────────────────────────── */
 function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, onPerfSelect }) {
   const prevPerf = useRef(perfMode);
@@ -363,6 +676,8 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [showNotifs, setShowNotifs] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [resolvedNotif, setResolvedNotif] = useState(null);
+  const [communityLinks, setCommunityLinks] = useState({ resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' });
+  const [aiShopOpen, setAiShopOpen] = useState(false);
   const [resellerBenefitsOpen, setResellerBenefitsOpen] = useState(() => {
     if (localStorage.getItem('reseller_dont_show') === '1') return false;
     return false; // will check after profile loads
@@ -379,6 +694,10 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
       const seenAt = parseInt(localStorage.getItem('notif_seen_at') || '0');
       if (list.some(n => (n.createdAt || 0) > seenAt)) setHasUnread(true);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getCommunityLinks().then(setCommunityLinks).catch(() => {});
   }, []);
 
   const openNotifs = () => {
@@ -429,11 +748,11 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   ];
 
   const section =
-    tab === 'orders' ? <OrdersView session={session} /> :
+    tab === 'orders' ? <OrdersView session={session} communityLinks={communityLinks} /> :
     tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} openDialog={setDialog} openApi={openApi} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
-    <DashboardHome profile={profile} role={profile.role} setTab={setTab} />;
+    tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
+    <DashboardHome profile={profile} role={profile.role} setTab={setTab} communityLinks={communityLinks} />;
 
   return (
     <main className={`dashboard-page ${theme}`}>
@@ -475,6 +794,13 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
       <div key={`${tab}-${pageLoading}`} className={`dash-content tab-motion${tab === 'dashboard' ? '' : ' no-header'} tab-${tab}`}>
         {pageLoading ? <PageSkeleton tab={tab} /> : section}
       </div>
+      {communityLinks.helpUrl && (
+        <a className="telegram-float-btn" href={communityLinks.helpUrl} target="_blank" rel="noreferrer" aria-label="Get Telegram help">
+          <img src={telegramLogo} alt="" /> <span>Help</span>
+        </a>
+      )}
+      <AiShopTrigger open={aiShopOpen} hasHelpLink={Boolean(communityLinks.helpUrl)} onClick={() => setAiShopOpen(true)} />
+      {aiShopOpen && <AiShopPanel session={profile} onBuy={setPurchase} onClose={() => setAiShopOpen(false)} />}
       <nav className="bottom-nav">
         {navItems.map(({ id, label, icon, lottieIcon }) => (
           <button key={id} className={`${tab === id ? 'active' : ''}${lottieIcon ? ' has-lottie' : ''}`} onClick={() => setTab(id)}>
@@ -541,7 +867,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           </section>
         </div>
       )}
-      <PurchaseDialog purchase={purchase} session={session} close={() => setPurchase(null)} onPurchased={refreshProfile} />
+      <PurchaseDialog purchase={purchase} session={session} communityLinks={communityLinks} close={() => setPurchase(null)} onPurchased={refreshProfile} />
       {resellerBenefitsOpen && (
         <ResellerBenefitsDialog
           resellerPrice={0}
@@ -555,7 +881,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
 }
 
 /* ── DashboardHome ──────────────────────────────────────────────── */
-function DashboardHome({ profile, role, setTab }) {
+function DashboardHome({ profile, role, setTab, communityLinks }) {
   return (
     <>
       <SectionTitle title={<><LottieIcon src="/icons/new/shop-store.json" size={26} /> Dashboard</>} subtitle={<>Here's what is happening today <DeviceIcon emoji="/icons/new/today-emoji.json" icon="today" size={16} /></>} />
@@ -576,6 +902,19 @@ function DashboardHome({ profile, role, setTab }) {
         <button className="admin-wide glass-card" onClick={() => window.location.assign('/admin')}>
           <DeviceIcon emoji="/icons/new/crown.json" icon="workspace_premium" size={20} /> Open admin dashboard
         </button>
+      )}
+      {role === 'reseller' && (
+        <div className="community-action-card glass-card">
+          <div>
+            <strong><DeviceIcon emoji="/icons/new/telegram-lottie.json" icon="campaign" size={20} /> Reseller All Update</strong>
+            <p className="muted">Join the reseller updates channel for files and announcements.</p>
+          </div>
+          {communityLinks.resellerUpdatesUrl && (
+            <a className="community-action-btn" href={communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+              <img src={telegramLogo} alt="" /> Join
+            </a>
+          )}
+        </div>
       )}
       <div className="glass-card">
         <div className="card-heading recent-heading">
@@ -661,7 +1000,7 @@ function PerformanceDialog({ onSelect }) {
 
 /* ── WalletView — wallet home page ──────────────────────────────── */
 function WalletView({ session, profile, refreshProfile }) {
-  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50 });
+  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, gatewayEnabled: false, upiEnabled: true, gatewayFee: 0 });
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
 
@@ -679,16 +1018,22 @@ function WalletView({ session, profile, refreshProfile }) {
   }, [session.uid]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => subscribeUserTransactions(session.uid, setTransactions), [session.uid]);
 
   const txIcon = type => {
+    if (type === 'deposit_pending' || type === 'reseller_unlock_pending') return 'schedule';
+    if (type === 'deposit_rejected') return 'cancel';
     if (type === 'deposit_approved') return 'add_circle';
+    if (type === 'gateway_deposit') return 'payment';
     if (type === 'purchase') return 'shopping_cart';
     if (type?.includes('admin')) return 'admin_panel_settings';
     return 'receipt_long';
   };
 
   const txColor = type => {
-    if (type === 'deposit_approved' || type === 'admin_add') return '#4ade80';
+    if (type === 'deposit_pending' || type === 'reseller_unlock_pending') return '#fbbf24';
+    if (type === 'deposit_rejected') return '#f87171';
+    if (type === 'deposit_approved' || type === 'gateway_deposit' || type === 'admin_add') return '#4ade80';
     if (type === 'purchase' || type === 'admin_subtract') return '#f87171';
     return '#94a3b8';
   };
@@ -726,8 +1071,10 @@ function WalletView({ session, profile, refreshProfile }) {
                     <span className="tx-icon">
                       {tx.type === 'purchase'
                         ? <img src={productIconForWithFallback((tx.note || '').split('·')[0].trim())} style={{width:24,height:24,objectFit:'contain',borderRadius:7}} alt="" />
-                        : tx.type === 'deposit_approved'
+                         : tx.type === 'deposit_approved' || tx.type === 'gateway_deposit'
                           ? <DeviceIcon emoji="/icons/new/add-funds-plus.json" icon="add" size={20} />
+                          : tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending'
+                            ? <MatIcon name="schedule" size={18} style={{ color: '#fbbf24' }} />
                           : tx.type === 'admin_add'
                             ? <DeviceIcon emoji="/icons/new/topup-emoji.json" icon="add_box" size={20} />
                             : <MatIcon name={txIcon(tx.type)} size={18} style={{ filter: 'invert(0.8)' }} />}
@@ -737,7 +1084,11 @@ function WalletView({ session, profile, refreshProfile }) {
                       <span>{fmtDate(tx.createdAt)}</span>
                     </div>
                     <b className="tx-amount" style={{ color: txColor(tx.type) }}>
-                      {(tx.type === 'deposit_approved' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} />
+                       {tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending'
+                         ? 'Pending'
+                         : tx.type === 'deposit_rejected'
+                           ? 'Rejected'
+                           : <>{(tx.type === 'deposit_approved' || tx.type === 'gateway_deposit' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} /></>}
                     </b>
                   </div>
                 ))}
@@ -750,26 +1101,21 @@ function WalletView({ session, profile, refreshProfile }) {
 }
 
 /* ── OrdersView ─────────────────────────────────────────────────── */
-function OrdersView({ session }) {
+function OrdersView({ session, communityLinks }) {
   const [keys, setKeys] = useState([]);
-  const [channels, setChannels] = useState([]);
-  const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);
+  const [resetRequests, setResetRequests] = useState([]);
+  const [resetOrder, setResetOrder] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, productChannels, productCatalog] = await Promise.all([
-        getUserLicenseKeys(session.uid),
-        getProductChannels().catch(() => []),
-        getProductCatalog(session?.role === 'reseller' ? 'reseller' : 'user').catch(() => []),
-      ]);
+      const data = await getUserLicenseKeys(session.uid);
       setKeys(data);
-      setChannels(productChannels);
-      setCatalog(productCatalog);
+      setResetRequests(await getUserKeyResetRequests(session.uid));
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   }, [session.uid]);
@@ -781,14 +1127,6 @@ function OrdersView({ session }) {
   );
 
   if (selected) {
-    const catalogProduct = catalog.find(product =>
-      String(product.name || '').toLowerCase() === String(selected.productName || selected.product || '').toLowerCase()
-    );
-    const channel = {
-      ...findProductChannel(selected.productName || selected.product, channels),
-      feedbackUrl: catalogProduct?.feedbackUrl || findProductChannel(selected.productName || selected.product, channels)?.feedbackUrl || '',
-      fileUpdateUrl: catalogProduct?.fileUpdateUrl || findProductChannel(selected.productName || selected.product, channels)?.fileUpdateUrl || '',
-    };
     return (
       <>
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
@@ -821,26 +1159,31 @@ function OrdersView({ session }) {
               <MatIcon name="description" size={16} /> Download Invoice (PDF)
             </button>
           )}
-          <div className="order-support-actions">
-            {channel?.fileUpdateUrl ? (
-              <a className="order-support-btn file-update" href={channel.fileUpdateUrl} target="_blank" rel="noreferrer">
-                <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={20} />
-                <span><strong>File Update</strong><small>Get the latest product file</small></span>
-              </a>
-            ) : (
-              <button className="order-support-btn file-update is-disabled" type="button" disabled>
-                <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={20} />
-                <span><strong>File Update</strong><small>Update link will be added by admin</small></span>
-              </button>
-            )}
-            {channel?.feedbackUrl && (
-              <a className="order-support-btn feedback" href={channel.feedbackUrl} target="_blank" rel="noreferrer">
-                <DeviceIcon emoji="/icons/new/verified-check.json" icon="campaign" size={20} />
-                <span><strong>Feedback</strong><small>Open the product feedback channel</small></span>
+          <div className="order-action-row">
+            {(communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
+              <a className="community-action-btn" href={communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+                <img src={telegramLogo} alt="" /> Get File
               </a>
             )}
+            <button className="reset-key-btn" type="button" onClick={() => setResetOrder(selected)}>
+              <MatIcon name="restart_alt" size={16} /> Reset Key
+            </button>
           </div>
+          {resetRequests.filter(request => request.keyId === selected.id).map(request => (
+            <div className={`reset-request-status ${request.status}`} key={request.id}>
+              <MatIcon name={request.status === 'approved' ? 'check_circle' : request.status === 'rejected' ? 'cancel' : 'schedule'} size={16} />
+              {request.status === 'pending' ? 'Your key reset request is pending.' :
+                request.status === 'approved' ? 'Your key reset request is approved.' : 'Your key reset request was rejected.'}
+            </div>
+          ))}
         </div>
+        {resetOrder && (
+          <ResetKeyDialog
+            license={resetOrder}
+            onClose={() => setResetOrder(null)}
+            onSubmitted={async () => { setResetOrder(null); setResetRequests(await getUserKeyResetRequests(session.uid)); }}
+          />
+        )}
       </>
     );
   }
@@ -1025,7 +1368,7 @@ function featIcon(pid, f) {
 }
 
 /* ── ProductDetailPage — full-screen overlay (hides bottom-nav) ─── */
-function ProductDetailPage({ product, onBack, onBuy, channel }) {
+function ProductDetailPage({ product, onBack, onBuy }) {
   const [playingVideo, setPlayingVideo] = useState(false);
   const available = product.pricing.length > 0;
 
@@ -1068,26 +1411,6 @@ function ProductDetailPage({ product, onBack, onBuy, channel }) {
           </div>
         </div>
 
-        <div className="pdp-support-actions">
-          {channel?.fileUpdateUrl ? (
-            <a className="pdp-support-btn file-update" href={channel.fileUpdateUrl} target="_blank" rel="noreferrer">
-              <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={21} />
-              <span><strong>File Update</strong><small>Latest file and update details</small></span>
-            </a>
-          ) : (
-            <button className="pdp-support-btn file-update is-disabled" type="button" disabled>
-              <DeviceIcon emoji="/icons/new/download-emoji.json" icon="system_update_alt" size={21} />
-              <span><strong>File Update</strong><small>Update link will be added by admin</small></span>
-            </button>
-          )}
-          {channel?.feedbackUrl && (
-            <a className="pdp-support-btn feedback" href={channel.feedbackUrl} target="_blank" rel="noreferrer">
-              <DeviceIcon emoji="/icons/new/verified-check.json" icon="campaign" size={21} />
-              <span><strong>Feedback</strong><small>Join the product feedback channel</small></span>
-            </a>
-          )}
-        </div>
-
         {/* Duration grid — always visible */}
         <div className="pdp-section-label"><DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} /> Select duration</div>
         {available ? (
@@ -1099,8 +1422,6 @@ function ProductDetailPage({ product, onBack, onBuy, channel }) {
                   <DeviceIcon emoji="/icons/new/timer.json" icon="timer" size={16} />{item.label}
                 </span>
                 <b><MoneyDisplay value={item.price} /></b>
-                {item.originalPrice && item.originalPrice !== item.price &&
-                  <s className="original-price"><MoneyDisplay value={item.originalPrice} /></s>}
               </button>
             ))}
           </div>
@@ -1119,14 +1440,62 @@ function ProductDetailPage({ product, onBack, onBuy, channel }) {
         )}
         {product.features.length > 0 && (
           <div className="feature-list pdp-features">
-            {product.features.map(f => (
-              <div key={`${product.pid}-${f}`}>
+            {product.features.map((f, index) => (
+              <div key={`${product.pid}-${f}-${index}`}>
                 <span><LottieIcon src={featIcon(product.pid, f)} size={15} /></span>{f}
               </div>
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ResetKeyDialog({ license, onClose, onSubmitted }) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await createKeyResetRequest(license.uid, license, reason);
+      toast.success('Key reset request sent to admin.');
+      await onSubmitted();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+      <section className="action-modal liquid-dialog reset-key-dialog">
+        <div className="dialog-title-row">
+          <MatIcon name="restart_alt" size={22} />
+          <h2>Reset key</h2>
+          <button className="icon-button" type="button" onClick={onClose} disabled={busy}><MatIcon name="close" size={18} /></button>
+        </div>
+        <p className="muted dialog-sub">Tell admin why you need a reset for {license.productName || license.product}.</p>
+        <form onSubmit={submit}>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="Explain your situation..."
+            rows={4}
+            minLength={5}
+            required
+          />
+          <div className="modal-btn-row">
+            <button type="button" onClick={onClose} disabled={busy}>Cancel</button>
+            <button className="modal-save" type="submit" disabled={busy}>
+              <MatIcon name="send" size={16} /> {busy ? 'Sending…' : 'Send request'}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }
@@ -1212,13 +1581,13 @@ function ProductsView({ session, onBuy }) {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchActive, setSearchActive] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [channels, setChannels] = useState([]);
 
   const applyPricing = useCallback((product) => {
     const isReseller = session?.role === 'reseller';
@@ -1226,34 +1595,36 @@ function ProductsView({ session, onBuy }) {
       ...product,
       pricing: product.pricing.map(item => {
         const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
-        const rule = pricingRules[key];
-        if (!rule) return item;
-        const basePrice = Number(item.price || 0);
-        let finalPrice = basePrice;
-        // Reseller gets their own price if set
-        if (isReseller && rule.resellerPrice !== '' && rule.resellerPrice !== undefined && rule.resellerPrice !== null) {
-          finalPrice = Number(rule.resellerPrice);
-        } else if (rule.price !== '' && rule.price !== undefined && rule.price !== null) {
-          finalPrice = Number(rule.price);
-        } else if (rule.percent !== '' && rule.percent !== undefined && rule.percent !== null) {
-          finalPrice = Math.round(basePrice * (1 + Number(rule.percent) / 100));
-        }
-        return { ...item, price: finalPrice, originalPrice: basePrice, isResellerPrice: isReseller && rule.resellerPrice !== '' };
+        const rule = pricingRules[key] || {};
+        const apiPrice = Number(item.price || 0);
+        const fixedUserPrice = Number(rule.price);
+        const fixedResellerPrice = Number(rule.resellerPrice);
+        const userPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+          ? fixedUserPrice
+          : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+        const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+          ? fixedResellerPrice
+          : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+        return {
+          ...item,
+          price: isReseller ? resellerPrice : userPrice,
+          isResellerPrice: isReseller,
+        };
       }),
     };
-  }, [pricingRules, session?.role]);
+  }, [pricingRules, pricingSettings, session?.role]);
 
   const load = async () => {
     setLoading(true); setError('');
     try {
-      const [prods, rules, productChannels] = await Promise.all([
-        fetchGameProducts(session?.role),
+      const [prods, rules, pricing] = await Promise.all([
+        fetchGameProducts(),
         getAdminPricingRules().catch(() => ({})),
-        getProductChannels().catch(() => []),
+        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
       ]);
       setPricingRules(rules);
+      setPricingSettings(pricing);
       setProducts(prods);
-      setChannels(productChannels);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -1280,11 +1651,6 @@ function ProductsView({ session, onBuy }) {
     return (
       <ProductDetailPage
         product={applyPricing(selectedProduct)}
-        channel={{
-          ...findProductChannel(selectedProduct.name, channels),
-          feedbackUrl: selectedProduct.feedbackUrl || findProductChannel(selectedProduct.name, channels)?.feedbackUrl || '',
-          fileUpdateUrl: selectedProduct.fileUpdateUrl || findProductChannel(selectedProduct.name, channels)?.fileUpdateUrl || '',
-        }}
         onBack={() => setSelectedProduct(null)}
         onBuy={onBuy}
       />
@@ -1312,7 +1678,7 @@ function ProductsView({ session, onBuy }) {
     <div className="buy-view">
       <SectionTitle
         title={<><DeviceIcon emoji="/icons/new/shopping-cart.json" icon="shopping_cart" size={24} /> Buy Products</>}
-        subtitle="Imported products with live pricing" />
+        subtitle="Live products with pricing" />
       <div className="filter-row product-filter">
         {/* Search — opens full search page on click */}
         <button className="search-box search-box-tap" type="button" onClick={() => setSearchActive(true)}>
@@ -1385,7 +1751,7 @@ function ProductsView({ session, onBuy }) {
 }
 
 /* ── PurchaseDialog — real purchaseProduct() ────────────────────── */
-function PurchaseDialog({ purchase, session, close, onPurchased }) {
+function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // { key, source }
 
@@ -1431,6 +1797,11 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
               </button>
             </div>
             <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
+            {(communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
+              <a className="community-action-btn" href={communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer" style={{ width: '100%', marginTop: 12 }}>
+                <img src={telegramLogo} alt="" /> Get File
+              </a>
+            )}
             <div className="modal-btn-row" style={{ justifyContent: 'center' }}>
               <button className="modal-save" type="button" onClick={handleClose}><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Done</button>
             </div>
@@ -1467,7 +1838,7 @@ function PurchaseDialog({ purchase, session, close, onPurchased }) {
 }
 
 /* ── ProfileView ────────────────────────────────────────────────── */
-function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenefits }) {
+function ProfileView({ profile, communityLinks, openDialog, openApi, onShowPerf, onResellerBenefits }) {
   const [giftOpen, setGiftOpen] = useState(false);
   return (
     <>
@@ -1491,8 +1862,18 @@ function ProfileView({ profile, openDialog, openApi, onShowPerf, onResellerBenef
             <DeviceIcon emoji="/icons/new/verified-badge.json" icon="verified_user" size={20} /> Unlock Reseller
           </button>
         )}
+        {profile.role === 'reseller' && communityLinks.resellerUpdatesUrl && (
+          <a className="has-lottie profile-community-btn" href={communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+            <img src={telegramLogo} alt="" /> Reseller All Update · Join
+          </a>
+        )}
+        {communityLinks.helpUrl && (
+          <a className="has-lottie profile-community-btn" href={communityLinks.helpUrl} target="_blank" rel="noreferrer">
+            <img src={telegramLogo} alt="" /> Get Help on Telegram
+          </a>
+        )}
         <button className="has-lottie" onClick={onShowPerf}><DeviceIcon emoji="/icons/new/crown.json" icon="crown" size={22} />Device Performance</button>
-        <button className="danger has-lottie" onClick={() => openDialog('logout')}><DeviceIcon emoji="/icons/new/logout-flash.json" icon="logout-flash" size={24} />Logout</button>
+        <button className="danger has-lottie logout-btn" onClick={() => openDialog('logout')}><DeviceIcon emoji="/icons/new/logout-flash.json" icon="logout-flash" size={24} />Logout</button>
         <p className="version-tag">V1.1</p>
       </div>
       {giftOpen && <GiftCodeDialog uid={profile.uid} name={profile.name} phone={profile.phone} onClose={() => setGiftOpen(false)} />}
@@ -1757,13 +2138,13 @@ function UserHistoryDialog({ user, onClose }) {
             <div className="history-scroll">
               {transactions.length === 0 ? <p className="muted empty-state">No transactions</p> : transactions.slice(0, 30).map(tx => (
                 <div className="tx-row compact" key={tx.id}>
-                  <MatIcon name={tx.type === 'deposit_approved' ? 'add_circle' : 'shopping_cart'} size={15} style={{ filter: 'invert(0.6)' }} />
+                  <MatIcon name={tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? 'schedule' : tx.type === 'deposit_approved' ? 'add_circle' : tx.type === 'deposit_rejected' ? 'cancel' : 'shopping_cart'} size={15} style={{ filter: 'invert(0.6)' }} />
                   <div className="tx-main">
                     <strong>{tx.note || tx.type}</strong>
                     <span>{fmtDate(tx.createdAt)}</span>
                   </div>
-                  <b style={{ color: tx.type === 'purchase' ? '#f87171' : '#4ade80', fontSize: '0.85rem' }}>
-                    {tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} />
+                  <b style={{ color: tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? '#fbbf24' : tx.type === 'deposit_rejected' || tx.type === 'purchase' ? '#f87171' : '#4ade80', fontSize: '0.85rem' }}>
+                    {tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? 'Pending' : tx.type === 'deposit_rejected' ? 'Rejected' : <>{tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} /></>}
                   </b>
                 </div>
               ))}
@@ -1866,7 +2247,8 @@ function PricingEditDialog({ product, onClose, onSave }) {
 
   const getRule = dur => {
     const k = ruleKey(product.pid, dur);
-    return rules[k] || { price: '', percent: '', resellerPrice: '' };
+    const existing = rules[k];
+    return existing || { price: '', resellerPrice: '' };
   };
 
   const setRule = (dur, field, val) => {
@@ -1880,8 +2262,13 @@ function PricingEditDialog({ product, onClose, onSave }) {
       for (const item of product.pricing) {
         const dur = item.duration || item.label;
         const r = getRule(dur);
-        if (r.price !== '' || r.percent !== '' || r.resellerPrice !== '') {
-          await adminSaveProductRule({ pid: String(product.pid), duration: dur, price: r.price, percent: r.percent, resellerPrice: r.resellerPrice });
+        if (r.price !== '' || r.resellerPrice !== '') {
+          await adminSaveProductRule({
+            pid: String(product.pid),
+            duration: dur,
+            price: r.price,
+            resellerPrice: r.resellerPrice,
+          });
         }
       }
       toast.success('Pricing rules saved');
@@ -1899,20 +2286,20 @@ function PricingEditDialog({ product, onClose, onSave }) {
           <h2>Edit pricing — {product.name}</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
-        <p className="muted dialog-sub">PID {product.pid} · Set user price and reseller price per duration.</p>
+         <p className="muted dialog-sub">PID {product.pid} · Set fixed User and Reseller prices for each duration.</p>
         <div className="pricing-edit-list">
           {product.pricing.map((item, index) => {
             const dur = item.duration || item.label;
             const rule = getRule(dur);
             return (
-              <div className="pricing-edit-row" key={`${product.pid}-${dur}-${index}`}>
+              <div className="pricing-edit-row" key={`${dur}-${index}`}>
                 <div className="pricing-edit-label">
                   <strong>{dur}</strong>
                   <span className="muted">API: <MoneyDisplay value={item.price} /></span>
                 </div>
                 <div className="pricing-edit-fields">
                   <label className="pricing-field-label">
-                    <MatIcon name="person" size={13} /> User price
+                    <span className="pricing-field-caption"><MatIcon name="person" size={13} /> User price (₹)</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
@@ -1923,7 +2310,7 @@ function PricingEditDialog({ product, onClose, onSave }) {
                     />
                   </label>
                   <label className="pricing-field-label">
-                    <MatIcon name="verified_user" size={13} /> Reseller price
+                    <span className="pricing-field-caption"><MatIcon name="verified_user" size={13} /> Reseller price (₹)</span>
                     <input
                       className="pricing-edit-input"
                       type="number"
@@ -1934,13 +2321,6 @@ function PricingEditDialog({ product, onClose, onSave }) {
                     />
                   </label>
                 </div>
-                <input
-                  className="pricing-edit-input short"
-                  type="number"
-                  placeholder="% ±"
-                  value={rule.percent}
-                  onChange={e => setRule(dur, 'percent', e.target.value)}
-                />
               </div>
             );
           })}
@@ -1963,11 +2343,6 @@ function AdminPage({ session, onSessionChange }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [products, setProducts] = useState([]);
-  const [catalogMeta, setCatalogMeta] = useState({});
-  const [catalogImportType, setCatalogImportType] = useState('user');
-  const [catalogImportHtml, setCatalogImportHtml] = useState('');
-  const [catalogSourceDomain, setCatalogSourceDomain] = useState('');
-  const [catalogImporting, setCatalogImporting] = useState(false);
   const [search, setSearch] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [annTitle, setAnnTitle] = useState('');
@@ -1976,10 +2351,13 @@ function AdminPage({ session, onSessionChange }) {
   const [upiId, setUpiId] = useState('');
   const [minDeposit, setMinDeposit] = useState('50');
   const [resellerPrice, setResellerPrice] = useState('');
+  const [gatewayEnabled, setGatewayEnabled] = useState(false);
+  const [upiEnabled, setUpiEnabled] = useState(true);
+  const [gatewayFee, setGatewayFee] = useState('0');
+  const [cashfreeAppId, setCashfreeAppId] = useState('');
+  const [communityLinks, setCommunityLinks] = useState({ resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' });
   const [historyUser, setHistoryUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
-  const [productChannels, setProductChannels] = useState([]);
-  const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
   const [apiStatus, setApiStatus] = useState(null);
   const [apiChecking, setApiChecking] = useState(false);
   // Manual keys
@@ -2004,42 +2382,44 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'users', label: 'Users', icon: 'people' },
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
-    { id: 'product-data', label: 'Product Data', icon: 'cloud_upload' },
-    { id: 'channels', label: 'Feedback & Files', icon: 'link' },
     { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
     { id: 'key-history', label: 'License History', icon: 'history' },
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
     { id: 'reports', label: 'Reports', icon: 'assessment' },
-    { id: 'settings', label: 'UPI Settings', icon: 'settings' },
+    { id: 'settings', label: 'Payment Settings', icon: 'settings' },
   ];
 
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status, gcList, channelList, catalogInfo] = await Promise.all([
+      const [overview, productList, alerts, status, gcList] = await Promise.all([
         getAdminOverview(),
         fetchGameProducts().catch(() => []),
         getAdminAlerts().catch(() => []),
         getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
         getGiftCodes().catch(() => []),
-        getProductChannels().catch(() => []),
-        getProductCatalogMeta().catch(() => ({})),
       ]);
       setData(overview);
       setProducts(productList);
       setUpiId(overview.upiId || '');
       setMinDeposit(String(overview.minDeposit || 50));
       setResellerPrice(String(overview.resellerPrice || ''));
+      setGatewayEnabled(Boolean(overview.gatewayEnabled));
+      setUpiEnabled(overview.upiEnabled !== false);
+      setGatewayFee(String(overview.gatewayFee || 0));
+      setCashfreeAppId(overview.cashfreeAppId || '');
+      setCommunityLinks({
+        resellerUpdatesUrl: overview.communityLinks?.resellerUpdatesUrl || '',
+        getFileUrl: overview.communityLinks?.getFileUrl || '',
+        helpUrl: overview.communityLinks?.helpUrl || '',
+      });
       setManualKeys(overview.manualKeys || []);
       setAdminAlerts(alerts);
       setSiteStatus(status.status || 'operational');
       setSiteStatusMsg(status.message || '');
       setGiftCodes(gcList);
-      setProductChannels(channelList);
-      setCatalogMeta(catalogInfo);
-      setCatalogSourceDomain(catalogInfo[catalogImportType]?.sourceDomain || '');
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2075,50 +2455,6 @@ function AdminPage({ session, onSessionChange }) {
       setApiStatus(result);
     } catch (err) { setApiStatus({ error: true, message: err.message }); }
     finally { setApiChecking(false); }
-  };
-
-  const importCatalog = async e => {
-    e.preventDefault();
-    if (!catalogImportHtml.trim()) {
-      toast.error('Paste the complete User or Reseller page source first.');
-      return;
-    }
-    setCatalogImporting(true);
-    try {
-      const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain);
-      setCatalogImportHtml('');
-      const nextMeta = await getProductCatalogMeta().catch(() => catalogMeta);
-      setCatalogMeta(nextMeta);
-      await loadAdmin();
-      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog updated: ${result.count} products${result.newProducts?.length ? ` · ${result.newProducts.length} new` : ''}`);
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setCatalogImporting(false);
-    }
-  };
-
-  const setSourceLinkMode = async enabled => {
-    try {
-      await adminSetProductCatalogLinkMode(catalogImportType, enabled);
-      setCatalogMeta(current => ({
-        ...current,
-        [catalogImportType]: { ...(current[catalogImportType] || {}), sourceLinksEnabled: enabled },
-      }));
-      toast.success(enabled ? 'Pasted File Update links enabled' : 'Default group File Update links enabled');
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const editCatalogProductLinks = product => {
-    setChannelForm({
-      id: '',
-      productName: product.name || '',
-      feedbackUrl: product.feedbackUrl || '',
-      fileUpdateUrl: product.fileUpdateUrl || '',
-    });
-    setTab('channels');
   };
 
   const section = {
@@ -2277,7 +2613,7 @@ function AdminPage({ session, onSessionChange }) {
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
-            <AdminList items={filteredProducts} empty="No imported products loaded" render={product => (
+        <AdminList items={filteredProducts} empty="No API products loaded" render={product => (
           <AdminRow
             title={product.name}
             meta={`PID ${product.pid} · ${product.game} · ${product.platform || 'Platform'}`}
@@ -2285,214 +2621,6 @@ function AdminPage({ session, onSessionChange }) {
           >
             <button onClick={() => setPricingProduct(product)}>
               <MatIcon name="edit" size={13} /> Edit pricing
-            </button>
-          </AdminRow>
-        )} />
-      </div>
-    ),
-
-    'product-data': (
-      <div className="admin-card product-data-card">
-        <div className="admin-card-header">
-          <div className="heading-title-row">
-            <MatIcon name="cloud_upload" size={22} />
-            <div>
-              <h3>Product Data Import</h3>
-              <p className="muted">Paste the complete HTML source from your User or Reseller page.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="catalog-import-tabs" role="tablist" aria-label="Catalog type">
-          {[
-            { id: 'user', label: 'User Data', icon: 'person' },
-            { id: 'reseller', label: 'Reseller Data', icon: 'verified_user' },
-          ].map(item => (
-            <button
-              key={item.id}
-              type="button"
-              className={catalogImportType === item.id ? 'active' : ''}
-              onClick={() => {
-                setCatalogImportType(item.id);
-                setCatalogSourceDomain(catalogMeta[item.id]?.sourceDomain || '');
-              }}
-            >
-              <MatIcon name={item.icon} size={17} /> {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="catalog-source-link-toggle">
-          <div>
-            <strong>Use File Update links from pasted source</strong>
-            <small className="muted">
-              Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
-            </small>
-          </div>
-          <button
-            type="button"
-            className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
-            role="switch"
-            aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
-            onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
-          >
-            <span />
-            {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
-          </button>
-        </div>
-
-        <form className="admin-form catalog-import-form" onSubmit={importCatalog}>
-          <label>
-            Source domain
-            <input
-              value={catalogSourceDomain}
-              onChange={e => setCatalogSourceDomain(e.target.value)}
-              placeholder="https://your-domain.com/"
-              type="url"
-              required
-            />
-            <small className="muted">Used to turn relative image/video links such as ../uploads/... into full URLs.</small>
-          </label>
-          <label>
-            Complete page source
-            <textarea
-              value={catalogImportHtml}
-              onChange={e => setCatalogImportHtml(e.target.value)}
-              placeholder="Paste the full HTML source here…"
-              rows={12}
-              required
-            />
-          </label>
-          <button className="modal-save" type="submit" disabled={catalogImporting}>
-            <MatIcon name="sync" size={16} />
-            {catalogImporting ? 'Updating catalog…' : `Submit ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`}
-          </button>
-        </form>
-
-        <div className="catalog-status-grid">
-          {['user', 'reseller'].map(type => {
-            const info = catalogMeta[type] || {};
-            return (
-              <div className={`catalog-status-item${catalogImportType === type ? ' selected' : ''}`} key={type}>
-                <strong>{type === 'user' ? 'User Data' : 'Reseller Data'}</strong>
-                <span>{info.count || 0} products</span>
-                <small>{info.updatedAt ? `Updated ${fmtDate(info.updatedAt)}` : 'Not imported yet'}</small>
-              </div>
-            );
-          })}
-        </div>
-
-        {(catalogMeta[catalogImportType]?.newProducts || []).length > 0 && (
-          <div className="catalog-new-products">
-            <div className="admin-card-header">
-              <div>
-                <h4>New products from latest paste</h4>
-                <p className="muted">These products were not in the previous catalog. Add custom links if needed.</p>
-              </div>
-              <span className="catalog-new-count">{catalogMeta[catalogImportType].newProducts.length}</span>
-            </div>
-            <AdminList
-              items={catalogMeta[catalogImportType].newProducts}
-              empty="No new products"
-              render={product => (
-                <AdminRow
-                  title={product.name}
-                  meta={`PID ${product.pid}`}
-                  status="New"
-                >
-                  <button onClick={() => editCatalogProductLinks(product)}>
-                    <MatIcon name="link" size={13} /> Add/Edit links
-                  </button>
-                </AdminRow>
-              )}
-            />
-          </div>
-        )}
-
-        <p className="muted catalog-import-note">
-          Each submit replaces that catalog completely: removed source products disappear, new products are added,
-          prices/features/videos and update links are refreshed. User and reseller prices remain separate.
-        </p>
-      </div>
-    ),
-
-    channels: (
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <div className="heading-title-row">
-            <DeviceIcon emoji="/icons/new/verified-check.json" icon="link" size={22} />
-            <div>
-              <h3>Feedback &amp; File Update links</h3>
-              <p className="muted">Manage the links shown on product and order details.</p>
-            </div>
-          </div>
-        </div>
-        <form className="admin-form channel-form" onSubmit={e => {
-          e.preventDefault();
-          safeAction(async () => {
-            await adminSaveProductChannel(channelForm);
-            setChannelForm({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
-          }, 'Product links saved');
-        }}>
-          <input
-            value={channelForm.productName}
-            onChange={e => setChannelForm(f => ({ ...f, productName: e.target.value }))}
-            placeholder="Product name (must match imported product)"
-            list="product-channel-names"
-            required
-          />
-          <datalist id="product-channel-names">
-            {products.map(product => <option key={product.pid} value={product.name} />)}
-          </datalist>
-          <input
-            value={channelForm.feedbackUrl}
-            onChange={e => setChannelForm(f => ({ ...f, feedbackUrl: e.target.value }))}
-            placeholder="Feedback channel URL (https://t.me/...)"
-            type="url"
-          />
-          <input
-            value={channelForm.fileUpdateUrl}
-            onChange={e => setChannelForm(f => ({ ...f, fileUpdateUrl: e.target.value }))}
-            placeholder="File Update URL (optional)"
-            type="url"
-          />
-          <div className="modal-btn-row">
-            <button className="modal-save" type="submit">
-              <MatIcon name={channelForm.id ? 'save' : 'add_link'} size={16} /> {channelForm.id ? 'Update link' : 'Add link'}
-            </button>
-            {channelForm.id && (
-              <button type="button" onClick={() => setChannelForm({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' })}>
-                <MatIcon name="close" size={16} /> Cancel edit
-              </button>
-            )}
-          </div>
-        </form>
-        <AdminList items={productChannels} empty="No product links configured" render={channel => (
-          <AdminRow
-            title={channel.productName}
-            meta={
-              <span className="channel-meta">
-                {channel.feedbackUrl ? 'Feedback ready' : 'No feedback link'}
-                {' · '}
-                {channel.fileUpdateUrl ? 'File Update ready' : 'File Update not set'}
-              </span>
-            }
-            status={channel.isDefault ? 'Default' : 'Custom'}
-          >
-            <button onClick={() => setChannelForm({
-              id: channel.id,
-              productName: channel.productName || '',
-              feedbackUrl: channel.feedbackUrl || '',
-              fileUpdateUrl: channel.fileUpdateUrl || '',
-            })}>
-              <MatIcon name="edit" size={13} /> Edit
-            </button>
-            <button className="danger-mini" onClick={() => {
-              if (window.confirm(`Hide links for ${channel.productName}?`)) {
-                safeAction(() => adminDeleteProductChannel(channel), 'Product link deleted');
-              }
-            }}>
-              <MatIcon name="delete" size={13} /> Delete
             </button>
           </AdminRow>
         )} />
@@ -2559,7 +2687,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>Add Manual License Keys</h3>
         <p className="muted" style={{ marginBottom: 8 }}>These are fallback keys delivered if the reseller API fails.</p>
-        <form className="admin-form" onSubmit={e => {
+        <form className="admin-form manual-key-form" onSubmit={e => {
           e.preventDefault();
           safeAction(async () => {
             await adminAddManualKey(manualKeyForm.pid, manualKeyForm.productName, manualKeyForm.duration, manualKeyForm.key);
@@ -2678,10 +2806,10 @@ function AdminPage({ session, onSessionChange }) {
         <AdminList items={deposits} empty="No payment requests" render={payment => (
           <AdminRow
             title={<span style={{display:'flex',alignItems:'center',gap:6}}>{payment.user || payment.uid || 'User'} {payment.type === 'reseller' && <span className="reseller-badge-mini">RESELLER</span>}</span>}
-            meta={<><MoneyDisplay value={payment.amount || 0} /> · {payment.method || 'UPI'} · {payment.type === 'reseller' ? 'Reseller unlock' : 'From: ' + (payment.senderUpi || '—')} · {fmtDate(payment.createdAt)}</>}
-            status={payment.status || 'pending'}
+            meta={<><MoneyDisplay value={payment.amount || 0} /> credit · {payment.method || 'UPI'}{payment.method === 'Cashfree' && <> · <MoneyDisplay value={payment.paidAmount || payment.amount || 0} /> paid{payment.gatewayFee ? ` · ₹${payment.gatewayFee} fee` : ''}</>}{payment.method !== 'Cashfree' && <> · {payment.type === 'reseller' ? 'Reseller unlock' : 'From: ' + (payment.senderUpi || '—')}</>} · {fmtDate(payment.createdAt)}</>}
+            status={payment.method === 'Cashfree' && payment.autoCredited ? 'approved · auto credited' : (payment.status || 'pending')}
           >
-            {payment.status === 'pending' && (
+            {payment.status === 'pending' && payment.method !== 'Cashfree' && (
               <>
                 <button onClick={() => safeAction(() => adminUpdatePaymentRequest(payment.id, 'approved'), payment.type === 'reseller' ? 'Reseller unlocked — role upgraded' : 'Payment approved — balance credited')}>
                   <MatIcon name="check_circle" size={13} /> Approve
@@ -2731,8 +2859,92 @@ function AdminPage({ session, onSessionChange }) {
         </form>
       </div>
       <div className="admin-card">
+        <h3><img src={telegramLogo} alt="" style={{ width: 20, height: 20, verticalAlign: 'middle', marginRight: 7 }} /> Telegram community links</h3>
+        <p className="muted">These links control reseller updates, purchased file access, and the floating help button.</p>
+        <form className="admin-form" onSubmit={e => {
+          e.preventDefault();
+          safeAction(() => adminSaveCommunityLinks(communityLinks), 'Telegram links saved');
+        }}>
+          <label>
+            Reseller All Update / Join link
+            <input value={communityLinks.resellerUpdatesUrl} onChange={e => setCommunityLinks(v => ({ ...v, resellerUpdatesUrl: e.target.value }))} placeholder="https://t.me/your_reseller_channel" type="url" />
+          </label>
+          <label>
+            Get File link
+            <input value={communityLinks.getFileUrl} onChange={e => setCommunityLinks(v => ({ ...v, getFileUrl: e.target.value }))} placeholder="https://t.me/your_files_channel" type="url" />
+          </label>
+          <label>
+            Get Help link
+            <input value={communityLinks.helpUrl} onChange={e => setCommunityLinks(v => ({ ...v, helpUrl: e.target.value }))} placeholder="https://t.me/your_support" type="url" />
+          </label>
+          <button className="modal-save" type="submit"><img src={telegramLogo} alt="" style={{ width: 17, height: 17 }} /> Save Telegram links</button>
+        </form>
+      </div>
+      <div className="admin-card">
+        <h3><MatIcon name="restart_alt" size={20} /> Key reset requests</h3>
+        <p className="muted">Review user requests from My Orders.</p>
+        <AdminList items={data?.keyResetRequests || []} empty="No key reset requests" render={request => (
+          <AdminRow
+            title={`${request.productName || 'License'} · ${request.duration || '—'}`}
+            meta={<>{request.uid} · {request.reason} · {fmtDate(request.createdAt)}</>}
+            status={request.status || 'pending'}
+          >
+            {request.status === 'pending' && (
+              <>
+                <button className="modal-save" onClick={() => {
+                  const replacement = window.prompt('Replacement key (optional):', '');
+                  safeAction(() => adminReviewKeyResetRequest(request.id, 'approved', replacement || ''), 'Key reset approved');
+                }}>
+                  <MatIcon name="check_circle" size={13} /> Approve
+                </button>
+                <button className="danger-mini" onClick={() => safeAction(() => adminReviewKeyResetRequest(request.id, 'rejected'), 'Key reset rejected')}>
+                  <MatIcon name="close" size={13} /> Reject
+                </button>
+              </>
+            )}
+          </AdminRow>
+        )} />
+      </div>
+      <div className="admin-card">
         <h3>UPI payment settings</h3>
-        <form className="admin-form" onSubmit={e => { e.preventDefault(); safeAction(() => adminSaveUpi(upiId, minDeposit, resellerPrice), 'UPI settings saved'); }}>
+                <form className="admin-form" onSubmit={e => {
+                  e.preventDefault();
+                  safeAction(
+                    () => adminSaveUpi(upiId, minDeposit, resellerPrice, {
+                      gatewayEnabled,
+                      upiEnabled,
+                      gatewayFee,
+                      cashfreeAppId,
+                    }),
+                    'Payment settings saved',
+                  );
+                }}>
+          <div className="payment-toggle-grid">
+            <label className="payment-toggle-card">
+              <span><MatIcon name="credit_card" size={19} /><strong>Gateway</strong><small>Cashfree production checkout</small></span>
+              <input type="checkbox" checked={gatewayEnabled} onChange={e => setGatewayEnabled(e.target.checked)} />
+            </label>
+            <label className="payment-toggle-card">
+              <span><MatIcon name="account_balance" size={19} /><strong>UPI</strong><small>Manual UPI + admin approval</small></span>
+              <input type="checkbox" checked={upiEnabled} onChange={e => setUpiEnabled(e.target.checked)} />
+            </label>
+          </div>
+          <label>
+            Cashfree App ID
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MatIcon name="vpn_key" size={18} />
+              <input value={cashfreeAppId} onChange={e => setCashfreeAppId(e.target.value)} placeholder="Cashfree production App ID" style={{ flex: 1 }} />
+            </div>
+            <small className="muted">Secret key is kept securely in the deployment environment, never in Firebase/browser.</small>
+          </label>
+          <label>
+            Gateway extra charge
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} />
+              <input value={gatewayFee} onChange={e => setGatewayFee(e.target.value.replace(/[^\d.]/g, ''))} placeholder="5" inputMode="decimal" style={{ flex: 1 }} />
+            </div>
+            <small className="muted">Example: ₹50 wallet credit + ₹5 fee = ₹55 Cashfree payment.</small>
+          </label>
           <label>
             UPI ID
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2754,7 +2966,7 @@ function AdminPage({ session, onSessionChange }) {
               <input value={resellerPrice} onChange={e => setResellerPrice(e.target.value)} placeholder="1000" inputMode="numeric" style={{ flex: 1 }} />
             </div>
           </label>
-          <button className="modal-save" type="submit"><MatIcon name="check" size={15} /> Save settings</button>
+          <button className="modal-save" type="submit"><MatIcon name="check" size={15} /> Save payment settings</button>
         </form>
         <div className="upi-preview">
           {upiId
@@ -2826,14 +3038,16 @@ function AdminLocked({ iconName, title, text, action }) {
 
 /* ── AddFundPage — standalone deposit flow at /add-fund ────────── */
 function AddFundPage({ session, onSessionChange }) {
-  const [step, setStep] = useState('amount'); // amount | qr | confirm | pending
+  const [step, setStep] = useState('amount'); // amount | method | qr | confirm | pending
   const [amount, setAmount] = useState('');
   const [senderUpi, setSenderUpi] = useState('');
-  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, resellerPrice: 0 });
+  const [paySettings, setPaySettings] = useState({ upiId: '', minDeposit: 50, resellerPrice: 0, gatewayEnabled: false, upiEnabled: true, gatewayFee: 0 });
   const [isResellerUnlock, setIsResellerUnlock] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingId, setPendingId] = useState(null);
   const [profile, setProfile] = useState(session);
+  const [gatewayOrder, setGatewayOrder] = useState(null);
+  const [gatewayAutoCredited, setGatewayAutoCredited] = useState(false);
 
   useEffect(() => {
     if (!session?.uid) return;
@@ -2881,16 +3095,82 @@ function AddFundPage({ session, onSessionChange }) {
 
   const handleAmountNext = e => {
     e.preventDefault();
+    openPaymentMethod();
+  };
+
+  const openPaymentMethod = () => {
     const val = Number(amount);
     if (!val || val < paySettings.minDeposit) {
       toast.error(`Minimum deposit is ${money(paySettings.minDeposit)}`);
       return;
     }
-    if (!paySettings.upiId) {
-      toast.error('Payment not configured yet. Contact admin.');
+    if (!paySettings.gatewayEnabled && !paySettings.upiEnabled) {
+      toast.error('Payment methods are not available right now. Contact admin.');
       return;
     }
-    setStep('qr');
+    if (paySettings.gatewayEnabled && paySettings.upiEnabled) {
+      setStep('method');
+    } else if (paySettings.gatewayEnabled) {
+      startGatewayPayment();
+    } else {
+      if (!paySettings.upiId) {
+        toast.error('UPI payment is not configured yet. Contact admin.');
+        return;
+      }
+      setStep('qr');
+    }
+  };
+
+  const loadCashfreeSdk = () => new Promise((resolve, reject) => {
+    if (window.Cashfree) return resolve(window.Cashfree);
+    const existing = document.querySelector('script[data-cashfree-sdk]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.Cashfree), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Cashfree checkout could not load.')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    script.async = true;
+    script.dataset.cashfreeSdk = 'true';
+    script.onload = () => window.Cashfree ? resolve(window.Cashfree) : reject(new Error('Cashfree checkout is unavailable.'));
+    script.onerror = () => reject(new Error('Cashfree checkout could not load.'));
+    document.head.appendChild(script);
+  });
+
+  const startGatewayPayment = async () => {
+    const creditAmount = Number(amount);
+    const totalAmount = creditAmount + Math.max(0, Number(paySettings.gatewayFee || 0));
+    setBusy(true);
+    try {
+      const order = await createCashfreeOrder({
+        amount: totalAmount,
+        customerId: session.uid,
+        customerName: profile.name || 'Customer',
+        customerPhone: profile.phone || '9999999999',
+        customerEmail: profile.email || `${session.uid}@customer.local`,
+        appId: paySettings.cashfreeAppId,
+      });
+      setGatewayOrder({ ...order, creditAmount, totalAmount });
+      const Cashfree = await loadCashfreeSdk();
+      const checkout = Cashfree({ mode: 'production' });
+      await checkout.checkout({ paymentSessionId: order.paymentSessionId, redirectTarget: '_modal' });
+      const verified = await verifyCashfreeOrder(order.orderId, paySettings.cashfreeAppId);
+      if (verified.status !== 'PAID') throw new Error('Payment was not completed.');
+      if (Math.abs(Number(verified.orderAmount || 0) - totalAmount) > 0.01) {
+        throw new Error('Payment amount could not be verified. Please contact admin.');
+      }
+      const payType = isResellerUnlock ? 'reseller' : 'deposit';
+      const id = await createGatewayPaymentRequest(session.uid, creditAmount, totalAmount, order.orderId, profile.name || profile.phone, payType);
+      setPendingId(id);
+      setGatewayAutoCredited(true);
+      setStep('pending');
+      toast.success(`${money(creditAmount)} added to your wallet.`);
+    } catch (err) {
+      toast.error(err.message || 'Gateway payment failed.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const submitDeposit = async e => {
@@ -2943,7 +3223,7 @@ function AddFundPage({ session, onSessionChange }) {
                     <p>Pay <strong><MoneyDisplay value={paySettings.resellerPrice} /></strong> to upgrade your account to <strong>Reseller</strong>.</p>
                     <p className="muted" style={{fontSize:12}}>Admin will verify your payment and activate reseller privileges.</p>
                   </div>
-                  <button className="deposit-proceed-btn" type="button" onClick={() => { setStep('qr'); }}>
+                  <button className="deposit-proceed-btn" type="button" onClick={openPaymentMethod}>
                     <DeviceIcon emoji="/icons/new/proceed-emoji.json" icon="arrow_forward" size={18} /> Proceed to pay <MatIcon name="arrow_forward" size={17} />
                   </button>
                 </>
@@ -2969,6 +3249,36 @@ function AddFundPage({ session, onSessionChange }) {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {step === 'method' && (
+          <div className="payment-method-backdrop">
+            <section className="payment-method-dialog liquid-dialog">
+              <div className="dialog-title-row">
+                <DeviceIcon emoji="/icons/new/confirm-payment.json" icon="payment" size={26} />
+                <h2>How do you want to pay?</h2>
+              </div>
+              <p className="muted">Choose a payment method for your wallet top-up.</p>
+              <div className="payment-summary">
+                <span>Wallet credit</span><strong><MoneyDisplay value={amount} /></strong>
+              </div>
+              <div className="payment-method-options">
+                <button type="button" className="payment-method-option" onClick={() => setStep('qr')}>
+                  <DeviceIcon emoji="/icons/new/bank-emoji.json" icon="account_balance" size={26} />
+                  <span><strong>UPI</strong><small>Pay by QR, GPay, PhonePe or Paytm</small></span>
+                  <MatIcon name="arrow_forward" size={18} />
+                </button>
+                <button type="button" className="payment-method-option gateway" onClick={startGatewayPayment} disabled={busy}>
+                  <DeviceIcon emoji="/icons/new/verified-badge.json" icon="credit_card" size={26} />
+                  <span><strong>Cashfree Gateway</strong><small>Pay securely online · Total <b><MoneyDisplay value={Number(amount) + Number(paySettings.gatewayFee || 0)} /></b></small></span>
+                  <MatIcon name="arrow_forward" size={18} />
+                </button>
+              </div>
+              <button type="button" className="back-link" onClick={() => setStep('amount')} disabled={busy}>
+                <MatIcon name="arrow_back" size={16} /> Change amount
+              </button>
+            </section>
           </div>
         )}
 
@@ -3038,7 +3348,9 @@ function AddFundPage({ session, onSessionChange }) {
               <h2>Request submitted</h2>
             </div>
             <div className="deposit-page-card pending">
-              <p className="muted">Your deposit of <strong><MoneyDisplay value={amount} /></strong> is pending admin approval.</p>
+              <p className="muted">{gatewayAutoCredited
+                ? <><strong><MoneyDisplay value={amount} /></strong> has been added to your wallet instantly via Cashfree.</>
+                : <>Your deposit of <strong><MoneyDisplay value={amount} /></strong> is pending admin approval.</>}</p>
               <p className="muted">Request ID: <strong className="pending-id">{pendingId}</strong></p>
               <button className="deposit-proceed-btn" type="button" onClick={goBack}>
                 <MatIcon name="close" size={17} /> Close
