@@ -1,0 +1,305 @@
+WE
+wemawij833
+DO
+dovepa1271
+
+
+
+read mind.md
+
+WE
+wemawij833
+wemawij833
+1 hour ago
+Inspecting read requirements
+
+Inspecting read requirements
+I’ll locate mind.md and read its contents.
+
+
+3 actions
+Read tg selling/mind.md. It documents the project architecture, Firebase auth/data model, dashboard and admin functionality, styling/icon conventions, Lottie usage, performance notes, security requirements, and the list of planned next tasks.
+
+
+Worked for 17 seconds
+
+Checkpoint made
+1 hour ago
+ye batao jo prouct ah ksi api se aa rahe ha ye batao
+
+WE
+wemawij833
+wemawij833
+46 minutes ago
+Main code mein product API ka exact setup verify karke bata raha hoon.
+
+
+4 actions
+Products is API se aa rahe hain:
+
+https://game-cheats-api.vercel.app/products
+
+App mein ye URL VITE_PRODUCTS_ENDPOINT environment variable se liya ja raha hai, aur code mein src/services.js ke fetchGameProducts() function se request hoti hai.
+
+API response se mainly ye data use hota hai:
+
+Product name
+Product ID / PID
+Game
+Image
+Videos
+Features
+Pricing
+Stock
+Platform
+Note: Product list isi API se aati hai, lekin purchase karne ke liye alag reseller API configured hai:
+
+https://xyzcheats.com/api/reseller_v1.php
+
+
+Worked for 10 seconds
+
+user_1786110028037.txt
+
+reseller_1786110028040.txt
+आप एक काम करो कि अभी जो pricing दिख रही है, product वगैरह दिख रहे हैं, तो ऐसे जहां से भी आ रहे हैं, वहां से न आकर मैं ऐसा करूंगा जैसे कि मेरे पास एक page है। ठीक है। तो आप admin panel में दो button add करो - एक user and एक admin। ठीक है। उसमें user पर जाऊंगा। मतलब user data and reseller data। ठीक है। इस नाम से दो button add करो। user data पर जाऊंगा तो वहां पर एक box दिखेगा, paste करके send पर click कर दूंगा। ठीक है। Submit. तो उसमें जो भी updates होंगे, आप एक काम करो, मैं आपको source देता हूं। वो source पर जाकर उस page का code आप देख लो अपने according कि किस तरीके से लगाना है। जैसे कि next time जब भी कुछ भी updates वगैरह होंगे तो मैं वही पूरा paste कर दूंगा। तो उसमें से filter करके अगर कोई नया product होगा तो वो add हो जाएगा। अगर कोई product नहीं होगा तो वो अपने आप ही remove हो जाएगा and pricing update हो जाएगा वहीं से। और अगर मान के चलते हैं अगर हमें pricing update तो वहीं से हो जाएगा। ठीक है। And वहां पर भी दिखने लगेगा जैसे कि जो files वगैरह हमें हैं। ऐसे मान लो कोई नया feature या कोई नया product है। ठीक है। तो वो update files में जाकर मैं files वगैरह की link भी add कर सकूं वहां पर। ठीक है। अगर कोई अच्छी update भी हुई है तो ऊपर भी दिख जाया करेगी कि इसके field नहीं है तो आप इसका डाल सकते हो। ठीक है। ये सारी चीजें आप add कर दो and मैं जो आपको source दे रहा हूं तो इस तरीके से रहने वाला है। And admin and user दोनों का देने वाला हूं। Sorry, reseller and user दोनों का देने वाला हूं। तो आप उसी के according लगा दो and जो भी अभी page fetch करा रहे हो वहां से fetch मत कराओ product को। ठीक है। आप इसमें देख लो कि वो सारी चीजें आ रही है कि नहीं। Price हो गया, name हो गया। Name and price and जो भी है, इसमें सारा कुछ आता है, पता है? Video तक आती है, इसमें सारा कुछ आता है। आप एक बार देख लो and इसका domain link भी दे दूंगा जिससे कि तुम अगर कुछ slash, dot, etc. जो भी होंगे तो domain से slash वो लगा के तुम पूरा full ऐसे fetch करा सकते हो। ठीक है। Videos वगैरह भी यहीं से fetch करा सकते हो तुम videos के अंदर का। बस product की image तो अपने पास है ही, simple है। ठीक है।
+
+WE
+wemawij833
+wemawij833
+32 minutes ago
+Inspecting files for integration
+
+Inspecting files for integration
+मैं दोनों uploaded source files और मौजूदा admin/product flow को साथ में पढ़कर data structure समझ रहा हूँ, फिर उसी format के हिसाब से paste/import UI जोड़ूँगा।
+
+
+6 actions
+पहले दोनों source dumps का format और उसमें मौजूद product/user/reseller fields निकाल रहा हूँ, ताकि importer अनुमान से नहीं बल्कि उसी वास्तविक structure पर बने।
+
+
+4 actions
+Source pages HTML snapshots हैं, JSON नहीं—इसलिए importer HTML से product cards, name, PID, image, video, durations और prices निकालेगा। अब मैं दोनों files के actual card markup और मौजूदा Buy/pricing flow के integration points देख रहा हूँ।
+
+
+14 actions
+मैं अब importer का flow बना रहा हूँ: अलग-अलग User Data और Reseller Data tabs, पूरा HTML paste/submit, relative media links के लिए source domain, और Firebase में full catalog replacement ताकि पुराने products हटें और नए/prices/videos/features अपने-आप update हों।
+
+
+12 actions
+Parser में User HTML से user rates और Reseller HTML से reseller rates अलग रखे जाएंगे। Purchase endpoint वही reseller purchase API रहेगा, लेकिन product catalog/prices अब Firebase के imported catalog से आएंगे—external products endpoint से नहीं।
+
+
+3 actions
+Catalog storage और parser तैयार है। अब UI में import tabs जोड़कर user/reseller role के हिसाब से सही imported catalog दिखा रहा हूँ, और product detail में imported update/feedback links भी जोड़ रहा हूँ।
+
+एक patch context mismatch हुआ है, इसलिए मैं exact import और product sections देखकर छोटे, सुरक्षित patches लगा रहा हूँ।
+
+
+10 actions
+अब exact locations पर integration patch लगा रहा हूँ, और साथ में Orders detail में भी imported File Update/Feedback links का fallback जोड़ रहा हूँ।
+
+
+3 actions
+मैं importer screen पूरा कर रहा हूँ: Admin में नया “Product Data” section, उसके अंदर “User Data” और “Reseller Data” buttons, source domain field, paste box और submit/update status। साथ ही Buy page role के अनुसार सही catalog उठाएगा।
+
+Continuing with implementation
+
+Continuing with implementation
+मैं बाकी exact बदलाव पूरा कर रहा हूँ और फिर build/preview से verify करूँगा कि importer और catalog flow बिना पुराने API के चल रहा है।
+
+
+5 actions
+अब exact UI patches लगा रहा हूँ: catalog role mapping, import state, दोनों source buttons और Firebase status।
+
+
+2 actions
+मैं अब बचे हुए integration changes और syntax/build verification पूरा कर रहा हूँ।
+
+
+5 actions
+अब अंतिम UI integration लगा रहा हूँ: Admin में “Product Data” के अंदर अलग “User Data” और “Reseller Data” import buttons, source domain, paste/submit और last update/count status। इसके बाद build और preview logs check करूँगा।
+
+
+Edited main.jsx
+Importer का core तैयार है; अब Admin में UI जोड़ रहा हूँ और role-based catalog wiring पूरा कर रहा हूँ। इसके बाद source parser का build और running preview दोनों verify करूँगा।
+
+
+Edited main.jsx
+Importer UI और catalog logic लग चुके हैं। अब मैं build चलाकर syntax/runtime issues पकड़ूँगा, फिर preview/logs देखकर जो भी टूटेगा उसे ठीक करूँगा।
+
+
+4 actions
+Build सफल है, लेकिन verification में state placement का एक issue दिखा है: import-related state गलती से Buy page में चली गई है। मैं उसे Admin page में move करके browser logs और preview फिर से जांच रहा हूँ।
+
+
+5 actions
+एक छोटी code placement गलती मिली है: Product Data import की state Buy page में चली गई थी, जबकि उसे Admin page में होना चाहिए। इसे ठीक करके फिर build/restart verify कर रहा हूँ।
+
+
+Edited main.jsx
+State placement ठीक कर दिया है। अब मैं final build, workflow restart और fresh logs से confirm कर रहा हूँ कि Admin का Product Data importer और role-based catalog बिना पुराने product API के cleanly चल रहा है।
+
+
+2 actions
+Build सफल है। अब workflow restart करके fresh runtime logs देख रहा हूँ, साथ ही importer के tabs/status को existing admin styling के साथ visually align कर रहा हूँ और reseller orders के links को सही reseller catalog से जोड़ रहा हूँ।
+
+
+4 actions
+एक आख़िरी consistency fix कर रहा हूँ: reseller account के order details भी reseller-imported catalog से links लें, और नए Product Data tabs/status को existing glass admin styling में align कर रहा हूँ।
+
+
+3 actions
+Feature wiring complete है। अब मैं workflow restart, build और fresh preview/logs से अंतिम verification कर रहा हूँ, खासकर नए Firebase catalog paths और admin Product Data screen के लिए।
+
+
+5 actions
+Implementation complete है। मैं अब पुराने external product endpoint का leftover reference हटाकर workflow restart और final runtime verification कर रहा हूँ, ताकि catalog केवल admin-imported Firebase data से ही आए।
+
+
+Edited services.js
+External product API का आख़िरी reference भी हटा दिया है। अब app workflow restart करके final runtime check कर रहा हूँ, फिर आपको exact इस्तेमाल करने का तरीका बताऊँगा।
+
+
+2 actions
+Workflow restart हो गया है। अब मैं fresh logs और production build दोनों check कर रहा हूँ, ताकि अंतिम बदलाव के बाद कोई runtime या compile error न हो।
+
+
+5 actions
+एक अंतिम cleanup कर रहा हूँ: पुराने product endpoint को environment/CSP से भी हटाऊँगा, ताकि भविष्य में कोई भ्रम न रहे कि app external catalog से fetch कर रही है।
+
+
+2 actions
+.env को सीधे edit करना सुरक्षित नहीं है, इसलिए उसे नहीं छेड़ा; app code अब उस variable को पढ़ता ही नहीं। CSP से भी पुराना endpoint हट चुका है। अब final restart/build verification कर रहा हूँ।
+
+Restarted workflow TG Selling App
+Final restart हो गया है। अब अंतिम build और fresh logs verify करके सुनिश्चित कर रहा हूँ कि security cleanup के बाद भी app cleanly चल रही है।
+
+
+3 actions
+काम पूरा कर दिया है।
+
+अब products पुराने external API से fetch नहीं होंगे। नया flow:
+
+Admin panel में नया section
+Product Data नाम का tab add किया गया है। इसमें दो buttons हैं:
+
+User Data
+Reseller Data
+हर section में:
+
+Source domain field
+पूरा HTML paste करने का box
+Submit button
+Imported product count
+Last update time
+Import के बाद क्या होगा
+Source HTML से automatically ये data निकलेगा:
+
+Product ID / PID
+Product name
+Game
+Platform/device
+User pricing
+Reseller pricing
+Product image
+Product videos
+Features/description
+Feedback/video link
+File Update link
+Stock quantity
+हर बार submit करने पर उस catalog का पूरा replacement होगा:
+
+नया product automatically add
+हटाया गया product automatically remove
+Pricing update
+Features/video/image update
+File Update और Feedback links update
+User और reseller catalog अलग-अलग Firebase paths में save होंगे:
+
+productCatalogs/user
+productCatalogs/reseller
+
+User को User catalog और reseller को Reseller catalog दिखेगा।
+
+इस्तेमाल कैसे करना है
+Admin panel खोलें।
+Product Data पर जाएं।
+User Data या Reseller Data select करें।
+Source domain डालें, जैसे:
+https://your-domain.com/
+
+पूरा page source paste करें।
+Submit करें।
+Domain इसलिए जरूरी है क्योंकि source में links इस तरह हैं:
+
+../uploads/products/image.png
+../uploads/videos/video.mp4
+
+App इन्हें full URL में बदल देगी।
+
+Existing Feedback & Files tab भी रखा गया है, इसलिए जरूरत पड़ने पर manually links override भी कर सकते हैं।
+
+Build और workflow दोनों successfully verify किए गए हैं। Purchase के समय reseller purchase API अभी भी इस्तेमाल होगी; केवल product catalog और pricing अब admin-imported Firebase data से आएंगे।
+
+
+Worked for 6 minutes
+
+Checkpoint made
+26 minutes ago
+आप एक काम करो, जैसे कि अगर हम जो हमने paste किया है, तो अगर कोई भी नया product है तो हमें वहीं पर दिख जाया करें। ठीक है ना? And मैं एक और चीज आपको बता देता हूँ कि जैसे कि मैं आपको किसी channels की link दे रहा हूँ। तो मैं आपको एक चीज बताना चाहता हूँ। ये जितने भी channels हैं, ये मेरे हैं। तो आप एक चीज देख पा रहे होंगे जैसे कि BR Mode All Update. BR Mode के अपने सभी product जैसे BR Mode से start हो रहे हैं, उन सब में इस file का link यही रहेगा। And एक और बात, feedback link तो सब में एक ही रहेगा। अगर feedback वाले का link नहीं हुआ, तो मैं feedback वाले का link दे दूंगा। feedback channel का link मैं आपको दे दूंगा। And जैसे कि आप देख पा रहे हो, BR नाम से अपने जितने product होंगे, सबका file link में वही channel link रहेगा। And Drip Line नाम से होंगे तो Drip Line का। तो अपने according आप थोड़ा बहुत दिमाग से कर लो। आप वो add करो। आप ऐसा कर देना कि admin panel में देख सकूँ कि कोई नया product है, तो मैं वहाँ से भी link edit कर सकूँ। database में add कर दूँ। आप अपने according देखो, जैसे XYZ Cheater. तो आप अपने according देख के अभी कितने product हैं, कैसा-क्या है सारा कुछ। अगर मान लो, मैंने कल को और भी कुछ product add किए, तो यह file link and feedback channel link update नहीं होनी चाहिए। अगर मैं चाहूँ update होनी चाहिए, तो switch button आप add कर देना। अगर switch button on कर दिया, तो जो हमने source code page पर paste करते हैं, उसमें जो भी links वगैरह रहती हैं, वो वही दिखेंगी। नहीं तो फिर मेरी by default जो हैं, वो ही रहेंगी। अगर मान लो in future कोई नया add हो जाता है, तो मैं नई भी link add कर पाऊँगा। जैसे file link and feedback link तो वही रहेगी। ठीक है ना सर?1. BALA XYZ CHEATS → https://t.me/+272Q3no3ie9lZGNl 2. BR MOD ALL UPDATE → https://t.me/+DTYiBfieU1JhYTY9 3. DRIPCLIENT → https://t.me/+dL1cxRra1c43ZWQ9 4. FLUORITE IOS FF → https://t.me/+HFaGDp_8E_9kMzY1 5. HAXX-CKER PRO → https://t.me/+wEAjebIfrxZhZTBl 6. HG CHEATS → https://t.me/+Un2b-EXVgudmMTc1 7. Ios All Setup video → https://t.me/+g2HHYn3X5y1mZmY1 8. KOS STORE → https://t.me/+WkGSBvCjVlo5YjE1 9. MIGUL IOS → https://t.me/+aFWvR5tU3rM1Yzdl 10. PATO TEAM FF → https://t.me/+crO0UPtpG0tjNzU1 11. PRIME HOOK → https://t.me/+KHQ2r77mt2kwZmQ1 12. RAPID CORE FF → https://t.me/+gl9VOfvlTNI2MjRl 13. REAPER X PRO → https://t.me/+wc8YzxBjI7FlYzY9 14. REVERSE BYPASS ALL FEEDBACK PROOF → https://t.me/+kaazzM96cLs3ZmJl 15. SILENT CHEAT FF → https://t.me/+rjQ0ou-HB5diZGM9 16. SILENT CHEAT FF NONROOT → https://t.me/+IYUi2DMnyZ43Y2Jl 17. SILENT CHEAT FF ROOT → https://t.me/+rjQ0ou-HB5diZGM9 18. SNAKE STORE → https://t.me/+MvhvrVPr0ts2YjA1 19. XYZ CHEATS FF → https://t.me/+g33QD2-jTN5hYWRI 20. XYZ CHEATS MAIN ID → https://t.me/+5owd4nRLLYgxN2Nl
+
+WE
+wemawij833
+wemawij833
+8 minutes ago
+
+2 actions
+मैं इस बदलाव को तीन हिस्सों में लगा रहा हूँ: नए imported products की admin सूची, नाम/group के हिसाब से default File Update links, और User/Reseller catalog के लिए source-links toggle ताकि pasted HTML के links तभी लागू हों जब switch on हो।
+
+
+5 actions
+मैं अब link rules को स्थायी और स्पष्ट बना रहा हूँ: brand/group defaults database में रहेंगे, pasted source links optional switch से नियंत्रित होंगे, और imported catalog में नए products अलग “New products” सूची में admin को तुरंत दिखेंगे।
+
+
+6 actions
+मैं इसे इस तरह लागू कर रहा हूँ: default links brand/group rules से आएंगे, source HTML links का toggle catalog-level होगा, और latest import के नए products को Product Data screen पर अलग list में दिखाकर सीधे link editor में भेजा जाएगा।
+
+
+Edited services.js
+अब UI वाला हिस्सा जोड़ रहा हूँ: toggle की स्थिति, import के बाद “New products” सूची, और हर नए product के सामने “Add/Edit links” action। इससे नए product तुरंत वहीं दिखेंगे और सीधे channel editor में खुलेंगे।
+
+
+Edited main.jsx
+Defaults और importer logic लगभग तैयार हैं। अब मैं दिए गए 20 channel mappings को exact बना रहा हूँ, ताकि पुराने product names पर भी सही group link लगे और नए उसी नाम-prefix वाले products को automatic default मिले। साथ में नए-product rows में source links भी रखूँगा, ताकि editor खोलते समय वे prefilled हों।
+
+
+3 actions
+अब अंतिम polish कर रहा हूँ: “new product” list को visually clear बनाऊँगा, पुराने “API products” labels हटाऊँगा, और Drip Line/XYZ जैसे future name variants के लिए group matching broad करूँगा।
+
+
+4 actions
+Link rules और new-product tracking लागू हो चुके हैं। मैं अब एक छोटा consistency fix कर रहा हूँ ताकि Admin refresh के बाद selected catalog का source domain भी सही दिखे, फिर build और runtime logs verify करूँगा।
+
+
+2 actions
+मुख्य feature complete है। अब मैं parser, link fallback, new-product detection और toggle behavior का build/runtime verification कर रहा हूँ, फिर अगर कोई छोटा issue मिला तो उसे ठीक करूँगा।
+
+
+4 actions
+Feature verification में सब clean है। मैं एक छोटा सुधार कर रहा हूँ ताकि नए product पर “Add/Edit links” खोलने पर pasted source के links भी prefill हो जाएँ, फिर final restart/build check करूँगा।
+
+
+2 actions
+नए product editor में source से मिले links भी prefilled रहेंगे। अब इस आखिरी बदलाव के बाद build, workflow restart और logs की final जाँच कर रहा हूँ।
+
+
+3 actions
+यह बदलाव पूरा है। आखिरी code change के बाद workflow restart और fresh logs से final check कर रहा हूँ, फिर implementation का उपयोग करने का तरीका संक्षेप में बताऊँगा।
+
+Restarted workflow TG Selling App
+Workflow restart सफल है। मैं final runtime log एक बार देखकर confirm कर रहा हूँ कि app बिना error के serve हो रही है।
+
+
+2 actions
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

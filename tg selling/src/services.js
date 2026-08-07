@@ -62,14 +62,14 @@ const DEFAULT_PRODUCT_CHANNELS = [
   ['DRIPCLIENT FF PC AIMKILL', 'https://t.me/+dL1cxRra1c43ZWQ9'],
   ['DRIPCLIENT FF ROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
   ['DRIPCLIENT PROXY FF NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
-  ['FLUORITE IOS FF', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
+  ['FLUORITE IOS FF', 'https://t.me/+HFaGDp_8E_9kMzY1'],
   ['HAXX-CKER PRO FF ROOT ANDROID', 'https://t.me/+wEAjebIfrxZhZTBl'],
   ['HAXX-CKER PRO FF NONROOT+ROOT', 'https://t.me/+wEAjebIfrxZhZTBl'],
   ['HG CHEATS ANDROID PROXY FF NONROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
   ['HG CHEATS FF APKMOD NONROOT+ROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
-  ['IOS CLOUD CODM', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
-  ['IOS FLUORITE 8 BALL POOL', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
-  ['IOS IPHONE ALL GBOX CERTIFICATE', 'https://t.me/+g2HHYnpoFmBlMjA1'],
+  ['IOS CLOUD CODM', 'https://t.me/+HFaGDp_8E_9kMzY1'],
+  ['IOS FLUORITE 8 BALL POOL', 'https://t.me/+HFaGDp_8E_9kMzY1'],
+  ['IOS IPHONE ALL GBOX CERTIFICATE', 'https://t.me/+g2HHYn3X5y1mZmY1'],
   ['KOS 8 BALL POOL NONROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
   ['KOS CARROM POOL NONROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
   ['KOS FF ROOT ANDROID', 'https://t.me/+WkGSBvCjVlo5YjE1'],
@@ -78,12 +78,12 @@ const DEFAULT_PRODUCT_CHANNELS = [
   ['PRIME HOOK FF NONROOT ANDROID', 'https://t.me/+KHQ2r77mt2kwZmQ1'],
   ['RAPID CORE FF ROOT ANDROID', 'https://t.me/+gl9VOfvlTNI2MjRl'],
   ['REAPER X PRO FF ROOT ANDROID', 'https://t.me/+wc8YzxBjI7FlYzY9'],
-  ['SILENT CHEAT FF NONROOT APKMOD', 'https://t.me/+G0znUI3Bhq4xYTY1'],
-  ['SILENT CHEAT FF ROOT ANDROID', 'https://t.me/+G0znUI3Bhq4xYTY1'],
+  ['SILENT CHEAT FF NONROOT APKMOD', 'https://t.me/+IYUi2DMnyZ43Y2Jl'],
+  ['SILENT CHEAT FF ROOT ANDROID', 'https://t.me/+rjQ0ou-HB5diZGM9'],
   ['SNAKE 8 BALL POOL NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
   ['SNAKE CARROM POOL NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
   ['SNAKE SOCCER STARS NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
-  ['XYZ CHEATS FF ROOT ANDROID', 'https://t.me/+g33QD2-jTN5hYWRl'],
+  ['XYZ CHEATS FF ROOT ANDROID', 'https://t.me/+g33QD2-jTN5hYWRI'],
   ['XYZ CHEATS UNLIMITED CREDIT FOR 1 SEASON', 'https://t.me/+5owd4nRLLYgxN2Nl'],
 ].map(([productName, fileUpdateUrl]) => ({
   id: `default_${productName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
@@ -96,6 +96,32 @@ const DEFAULT_PRODUCT_CHANNELS = [
 }));
 
 const normaliseChannelName = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+const DEFAULT_GROUP_CHANNELS = [
+  { test: name => /\bbala\b/.test(name), fileUpdateUrl: 'https://t.me/+272Q3no3ie9lZGNl' },
+  { test: name => /\bbr\b|br mod/.test(name), fileUpdateUrl: 'https://t.me/+DTYiBfieU1JhYTY9' },
+  { test: name => /dripclient|drip line/.test(name), fileUpdateUrl: 'https://t.me/+dL1cxRra1c43ZWQ9' },
+  { test: name => /fluorite/.test(name), fileUpdateUrl: 'https://t.me/+HFaGDp_8E_9kMzY1' },
+  { test: name => /haxx cker/.test(name), fileUpdateUrl: 'https://t.me/+wEAjebIfrxZhZTBl' },
+  { test: name => /hg cheats/.test(name), fileUpdateUrl: 'https://t.me/+Un2b-EXVgudmMTc1' },
+  { test: name => /ios all setup|gbox|esign|iphone all/.test(name), fileUpdateUrl: 'https://t.me/+g2HHYn3X5y1mZmY1' },
+  { test: name => /\bkos\b/.test(name), fileUpdateUrl: 'https://t.me/+WkGSBvCjVlo5YjE1' },
+  { test: name => /migul/.test(name), fileUpdateUrl: 'https://t.me/+aFWvR5tU3rM1Yzdl' },
+  { test: name => /pato team/.test(name), fileUpdateUrl: 'https://t.me/+crO0UPtpG0tjNzU1' },
+  { test: name => /prime hook/.test(name), fileUpdateUrl: 'https://t.me/+KHQ2r77mt2kwZmQ1' },
+  { test: name => /rapid core/.test(name), fileUpdateUrl: 'https://t.me/+gl9VOfvlTNI2MjRl' },
+  { test: name => /reaper x/.test(name), fileUpdateUrl: 'https://t.me/+wc8YzxBjI7FlYzY9' },
+  { test: name => /silent cheat ff nonroot/.test(name), fileUpdateUrl: 'https://t.me/+IYUi2DMnyZ43Y2Jl' },
+  { test: name => /silent cheat/.test(name), fileUpdateUrl: 'https://t.me/+rjQ0ou-HB5diZGM9' },
+  { test: name => /\bsnake\b/.test(name), fileUpdateUrl: 'https://t.me/+MvhvrVPr0ts2YjA1' },
+  { test: name => /xyz cheats main id|a xyz main id/.test(name), fileUpdateUrl: 'https://t.me/+5owd4nRLLYgxN2Nl' },
+  { test: name => /xyz cheats|xyz cheater/.test(name), fileUpdateUrl: 'https://t.me/+g33QD2-jTN5hYWRI' },
+];
+
+const defaultFileUpdateUrlFor = productName => {
+  const name = normaliseChannelName(productName);
+  return DEFAULT_GROUP_CHANNELS.find(rule => rule.test(name))?.fileUpdateUrl || '';
+};
 
 export async function getProductChannels() {
   const defaults = DEFAULT_PRODUCT_CHANNELS.map(item => ({ ...item }));
@@ -158,7 +184,7 @@ export function findProductChannel(productName, channels = []) {
   return matched || {
     productName: productName || 'Product',
     feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-    fileUpdateUrl: '',
+    fileUpdateUrl: defaultFileUpdateUrlFor(productName),
     isDefault: true,
   };
 }
@@ -466,7 +492,16 @@ export async function getProductCatalog(type = 'user') {
   const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}`));
   if (!snap.exists()) return [];
   const value = snap.val() || {};
-  return Array.isArray(value.products) ? value.products : [];
+  const sourceLinksEnabled = value.sourceLinksEnabled === true;
+  return Array.isArray(value.products)
+    ? value.products.map(product => ({
+      ...product,
+      // Raw source links are retained in Firebase, but only become user-facing
+      // when the catalog switch is enabled.
+      feedbackUrl: sourceLinksEnabled ? product.feedbackUrl || '' : '',
+      fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : '',
+    }))
+    : [];
 }
 
 export async function getProductCatalogMeta() {
@@ -482,6 +517,8 @@ export async function getProductCatalogMeta() {
       count: Array.isArray(value.products) ? value.products.length : 0,
       sourceDomain: value.sourceDomain || '',
       updatedAt: value.updatedAt || 0,
+      sourceLinksEnabled: value.sourceLinksEnabled === true,
+      newProducts: Array.isArray(value.newProducts) ? value.newProducts : [],
     };
   }
   return meta;
@@ -491,14 +528,34 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   const catalogType = type === 'reseller' ? 'reseller' : 'user';
   const products = parseProductSource(html, sourceDomain);
+  const previousSnap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
+  const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
+  const previousIds = new Set((Array.isArray(previous.products) ? previous.products : []).map(product => String(product.pid || product.id)));
+  const newProducts = products
+    .filter(product => !previousIds.has(String(product.pid || product.id)))
+    .map(product => ({
+      pid: String(product.pid || product.id),
+      name: product.name,
+      feedbackUrl: product.feedbackUrl || '',
+      fileUpdateUrl: product.fileUpdateUrl || '',
+    }));
   await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`), {
     type: catalogType,
     sourceDomain: sourceDomain.trim(),
     products,
     count: products.length,
+    sourceLinksEnabled: previous.sourceLinksEnabled === true,
+    newProducts,
     updatedAt: Date.now(),
   });
-  return { type: catalogType, count: products.length };
+  return { type: catalogType, count: products.length, newProducts };
+}
+
+export async function adminSetProductCatalogLinkMode(type, enabled) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}/sourceLinksEnabled`), enabled === true);
+  return enabled === true;
 }
 
 export async function fetchGameProducts(role = 'user') {

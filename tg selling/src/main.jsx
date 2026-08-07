@@ -61,6 +61,7 @@ import {
   getProductCatalog,
   getProductCatalogMeta,
   adminSaveProductCatalog,
+  adminSetProductCatalogLinkMode,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -2038,6 +2039,7 @@ function AdminPage({ session, onSessionChange }) {
       setGiftCodes(gcList);
       setProductChannels(channelList);
       setCatalogMeta(catalogInfo);
+      setCatalogSourceDomain(catalogInfo[catalogImportType]?.sourceDomain || '');
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2085,14 +2087,38 @@ function AdminPage({ session, onSessionChange }) {
     try {
       const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain);
       setCatalogImportHtml('');
-      setCatalogMeta(await getProductCatalogMeta().catch(() => catalogMeta));
+      const nextMeta = await getProductCatalogMeta().catch(() => catalogMeta);
+      setCatalogMeta(nextMeta);
       await loadAdmin();
-      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog updated: ${result.count} products`);
+      toast.success(`${result.type === 'reseller' ? 'Reseller' : 'User'} catalog updated: ${result.count} products${result.newProducts?.length ? ` · ${result.newProducts.length} new` : ''}`);
     } catch (err) {
       toast.error(err.message);
     } finally {
       setCatalogImporting(false);
     }
+  };
+
+  const setSourceLinkMode = async enabled => {
+    try {
+      await adminSetProductCatalogLinkMode(catalogImportType, enabled);
+      setCatalogMeta(current => ({
+        ...current,
+        [catalogImportType]: { ...(current[catalogImportType] || {}), sourceLinksEnabled: enabled },
+      }));
+      toast.success(enabled ? 'Pasted source links enabled' : 'Default group links enabled');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const editCatalogProductLinks = product => {
+    setChannelForm({
+      id: '',
+      productName: product.name || '',
+      feedbackUrl: product.feedbackUrl || '',
+      fileUpdateUrl: product.fileUpdateUrl || '',
+    });
+    setTab('channels');
   };
 
   const section = {
@@ -2251,7 +2277,7 @@ function AdminPage({ session, onSessionChange }) {
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
-        <AdminList items={filteredProducts} empty="No API products loaded" render={product => (
+            <AdminList items={filteredProducts} empty="No imported products loaded" render={product => (
           <AdminRow
             title={product.name}
             meta={`PID ${product.pid} · ${product.game} · ${product.platform || 'Platform'}`}
@@ -2286,11 +2312,33 @@ function AdminPage({ session, onSessionChange }) {
               key={item.id}
               type="button"
               className={catalogImportType === item.id ? 'active' : ''}
-              onClick={() => setCatalogImportType(item.id)}
+              onClick={() => {
+                setCatalogImportType(item.id);
+                setCatalogSourceDomain(catalogMeta[item.id]?.sourceDomain || '');
+              }}
             >
               <MatIcon name={item.icon} size={17} /> {item.label}
             </button>
           ))}
+        </div>
+
+        <div className="catalog-source-link-toggle">
+          <div>
+            <strong>Use links from pasted source</strong>
+            <small className="muted">
+              Off keeps your default group links. Turn on only when this HTML's File Update/Feedback links should be used.
+            </small>
+          </div>
+          <button
+            type="button"
+            className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
+            role="switch"
+            aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
+            onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
+          >
+            <span />
+            {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
+          </button>
         </div>
 
         <form className="admin-form catalog-import-form" onSubmit={importCatalog}>
@@ -2333,6 +2381,33 @@ function AdminPage({ session, onSessionChange }) {
             );
           })}
         </div>
+
+        {(catalogMeta[catalogImportType]?.newProducts || []).length > 0 && (
+          <div className="catalog-new-products">
+            <div className="admin-card-header">
+              <div>
+                <h4>New products from latest paste</h4>
+                <p className="muted">These products were not in the previous catalog. Add custom links if needed.</p>
+              </div>
+              <span className="catalog-new-count">{catalogMeta[catalogImportType].newProducts.length}</span>
+            </div>
+            <AdminList
+              items={catalogMeta[catalogImportType].newProducts}
+              empty="No new products"
+              render={product => (
+                <AdminRow
+                  title={product.name}
+                  meta={`PID ${product.pid}`}
+                  status="New"
+                >
+                  <button onClick={() => editCatalogProductLinks(product)}>
+                    <MatIcon name="link" size={13} /> Add/Edit links
+                  </button>
+                </AdminRow>
+              )}
+            />
+          </div>
+        )}
 
         <p className="muted catalog-import-note">
           Each submit replaces that catalog completely: removed source products disappear, new products are added,
