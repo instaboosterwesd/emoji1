@@ -65,6 +65,7 @@ const DEFAULT_PRODUCT_CHANNELS = [
   ['DRIPCLIENT PROXY FF NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
   ['FLUORITE IOS FF', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
   ['HAXX-CKER PRO FF ROOT ANDROID', 'https://t.me/+wEAjebIfrxZhZTBl'],
+  ['HAXX-CKER PRO FF NONROOT+ROOT', 'https://t.me/+wEAjebIfrxZhZTBl'],
   ['HG CHEATS ANDROID PROXY FF NONROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
   ['HG CHEATS FF APKMOD NONROOT+ROOT', 'https://t.me/+Un2b-EXVgudmMTc1'],
   ['IOS CLOUD CODM', 'https://t.me/+HFaGDpQyCTU2ZTM1'],
@@ -85,13 +86,13 @@ const DEFAULT_PRODUCT_CHANNELS = [
   ['SNAKE SOCCER STARS NONROOT ANDROID', 'https://t.me/+MvhvrVPr0ts2YjA1'],
   ['XYZ CHEATS FF ROOT ANDROID', 'https://t.me/+g33QD2-jTN5hYWRl'],
   ['XYZ CHEATS UNLIMITED CREDIT FOR 1 SEASON', 'https://t.me/+5owd4nRLLYgxN2Nl'],
-].map(([productName]) => ({
+].map(([productName, fileUpdateUrl]) => ({
   id: `default_${productName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
   productName,
   // Every default Feedback button intentionally points to the one
   // official feedback channel. File Update remains a separate field.
   feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
-  fileUpdateUrl: '',
+  fileUpdateUrl,
   isDefault: true,
 }));
 
@@ -123,10 +124,20 @@ export async function getProductChannels() {
       return;
     }
     const existing = byName.get(key);
-    const merged = { ...(existing || {}), ...item, id: item.id || existing?.id || id, productName: item.productName };
+    const merged = {
+      ...(existing || {}),
+      ...item,
+      id: item.id || existing?.id || `channel_${key.replace(/ /g, '_')}`,
+      productName: item.productName,
+    };
     // Existing database records may contain the old per-product feedback
     // URLs. All current product Feedback buttons use the official channel.
-    if (existing?.isDefault && !item.feedbackManaged) merged.feedbackUrl = DEFAULT_FEEDBACK_CHANNEL_URL;
+    if (existing?.isDefault && !item.feedbackManagedAt) {
+      merged.feedbackUrl = DEFAULT_FEEDBACK_CHANNEL_URL;
+    }
+    if (existing?.isDefault && !item.fileUpdateManagedAt) {
+      merged.fileUpdateUrl = existing.fileUpdateUrl || '';
+    }
     byName.set(key, merged);
     if (!existing) custom.push(merged);
   });
@@ -165,6 +176,8 @@ export async function adminSaveProductChannel({ id, productName, feedbackUrl, fi
     feedbackUrl: feedbackUrl?.trim() || '',
     fileUpdateUrl: fileUpdateUrl?.trim() || '',
     feedbackManaged: true,
+    feedbackManagedAt: Date.now(),
+    fileUpdateManagedAt: Date.now(),
     deleted: false,
     updatedAt: Date.now(),
   });
