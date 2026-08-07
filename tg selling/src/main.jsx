@@ -2105,7 +2105,7 @@ function AdminPage({ session, onSessionChange }) {
         ...current,
         [catalogImportType]: { ...(current[catalogImportType] || {}), sourceLinksEnabled: enabled },
       }));
-      toast.success(enabled ? 'Pasted source links enabled' : 'Default group links enabled');
+      toast.success(enabled ? 'Pasted File Update links enabled' : 'Default group File Update links enabled');
     } catch (err) {
       toast.error(err.message);
     }
@@ -2324,9 +2324,9 @@ function AdminPage({ session, onSessionChange }) {
 
         <div className="catalog-source-link-toggle">
           <div>
-            <strong>Use links from pasted source</strong>
+            <strong>Use File Update links from pasted source</strong>
             <small className="muted">
-              Off keeps your default group links. Turn on only when this HTML's File Update/Feedback links should be used.
+              Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
             </small>
           </div>
           <button
@@ -2437,7 +2437,7 @@ function AdminPage({ session, onSessionChange }) {
           <input
             value={channelForm.productName}
             onChange={e => setChannelForm(f => ({ ...f, productName: e.target.value }))}
-            placeholder="Product name (must match API product)"
+            placeholder="Product name (must match imported product)"
             list="product-channel-names"
             required
           />

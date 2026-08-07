@@ -52,11 +52,11 @@ const DEFAULT_FEEDBACK_CHANNEL_URL = 'https://t.me/+kaazzM96cLs3ZmJl';
 
 const DEFAULT_PRODUCT_CHANNELS = [
   ['A,XYZ MAIN ID FF NONROOT', 'https://t.me/+5owd4nRLLYgxN2Nl'],
-  ['REVERSE BYPASS ALL FEEDBACK PROOF', 'https://t.me/+kaazzM96cLs3ZmJl'],
+  ['REVERSE BYPASS ALL FEEDBACK PROOF', ''],
   ['BALA MOD FF MAIN ID NONROOT', 'https://t.me/+272Q3no3ie9lZGNl'],
   ['APK MC PANEL FF ROOT ANDROID', 'https://t.me/+5owd4nRLLYgxN2Nl'],
   ['BR MOD FF PC VERSION', 'https://t.me/+DTYiBfieU1JhYTY9'],
-  ['BR MOD FF ROOT ANDROID', 'https://t.me/+272Q3no3ie9lZGNl'],
+  ['BR MOD FF ROOT ANDROID', 'https://t.me/+DTYiBfieU1JhYTY9'],
   ['DRIPCLIENT 8BP NONROOT ANDROID', 'https://t.me/+dL1cxRra1c43ZWQ9'],
   ['DRIPCLIENT FF NONROOT APKMOD', 'https://t.me/+dL1cxRra1c43ZWQ9'],
   ['DRIPCLIENT FF PC AIMKILL', 'https://t.me/+dL1cxRra1c43ZWQ9'],
@@ -99,12 +99,12 @@ const normaliseChannelName = value => String(value || '').toLowerCase().replace(
 
 const DEFAULT_GROUP_CHANNELS = [
   { test: name => /\bbala\b/.test(name), fileUpdateUrl: 'https://t.me/+272Q3no3ie9lZGNl' },
-  { test: name => /\bbr\b|br mod/.test(name), fileUpdateUrl: 'https://t.me/+DTYiBfieU1JhYTY9' },
+  { test: name => /\bbr\b|br mod|br mode/.test(name), fileUpdateUrl: 'https://t.me/+DTYiBfieU1JhYTY9' },
   { test: name => /dripclient|drip line/.test(name), fileUpdateUrl: 'https://t.me/+dL1cxRra1c43ZWQ9' },
   { test: name => /fluorite/.test(name), fileUpdateUrl: 'https://t.me/+HFaGDp_8E_9kMzY1' },
   { test: name => /haxx cker/.test(name), fileUpdateUrl: 'https://t.me/+wEAjebIfrxZhZTBl' },
   { test: name => /hg cheats/.test(name), fileUpdateUrl: 'https://t.me/+Un2b-EXVgudmMTc1' },
-  { test: name => /ios all setup|gbox|esign|iphone all/.test(name), fileUpdateUrl: 'https://t.me/+g2HHYn3X5y1mZmY1' },
+  { test: name => /ios all setup|ios setup|gbox|esign|iphone all|ios cloud/.test(name), fileUpdateUrl: 'https://t.me/+g2HHYn3X5y1mZmY1' },
   { test: name => /\bkos\b/.test(name), fileUpdateUrl: 'https://t.me/+WkGSBvCjVlo5YjE1' },
   { test: name => /migul/.test(name), fileUpdateUrl: 'https://t.me/+aFWvR5tU3rM1Yzdl' },
   { test: name => /pato team/.test(name), fileUpdateUrl: 'https://t.me/+crO0UPtpG0tjNzU1' },
@@ -114,7 +114,7 @@ const DEFAULT_GROUP_CHANNELS = [
   { test: name => /silent cheat ff nonroot/.test(name), fileUpdateUrl: 'https://t.me/+IYUi2DMnyZ43Y2Jl' },
   { test: name => /silent cheat/.test(name), fileUpdateUrl: 'https://t.me/+rjQ0ou-HB5diZGM9' },
   { test: name => /\bsnake\b/.test(name), fileUpdateUrl: 'https://t.me/+MvhvrVPr0ts2YjA1' },
-  { test: name => /xyz cheats main id|a xyz main id/.test(name), fileUpdateUrl: 'https://t.me/+5owd4nRLLYgxN2Nl' },
+  { test: name => /xyz cheats main id|xyz main id|a xyz main id/.test(name), fileUpdateUrl: 'https://t.me/+5owd4nRLLYgxN2Nl' },
   { test: name => /xyz cheats|xyz cheater/.test(name), fileUpdateUrl: 'https://t.me/+g33QD2-jTN5hYWRI' },
 ];
 
@@ -173,7 +173,21 @@ export function findProductChannel(productName, channels = []) {
   const name = normaliseChannelName(productName);
   if (!name) return { productName: productName || 'Product', feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL, fileUpdateUrl: '' };
   const exact = channels.find(item => normaliseChannelName(item.productName) === name);
-  if (exact) return exact.deleted ? null : exact;
+  // A manually saved Firebase record must win for that exact product. Built-in
+  // examples are only a fallback; the group rules below are the source of
+  // truth for newly imported variants such as Root/Non-Root/PC.
+  if (exact && !exact.isDefault) return exact.deleted ? null : exact;
+  const groupFileUpdateUrl = defaultFileUpdateUrlFor(productName);
+  if (groupFileUpdateUrl) {
+    return {
+      ...(exact || {}),
+      productName: productName || exact?.productName || 'Product',
+      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+      fileUpdateUrl: groupFileUpdateUrl,
+      isDefault: true,
+    };
+  }
+  if (exact) return exact.deleted ? null : { ...exact, feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL };
   // Product APIs occasionally change suffixes; brand-level matching keeps
   // the supplied channel useful for newly renamed variants.
   const matched = channels.find(item => {
@@ -200,6 +214,7 @@ export async function adminSaveProductChannel({ id, productName, feedbackUrl, fi
     productName: cleanName,
     feedbackUrl: feedbackUrl?.trim() || '',
     fileUpdateUrl: fileUpdateUrl?.trim() || '',
+    isDefault: false,
     feedbackManaged: true,
     feedbackManagedAt: Date.now(),
     fileUpdateManagedAt: Date.now(),
@@ -496,9 +511,9 @@ export async function getProductCatalog(type = 'user') {
   return Array.isArray(value.products)
     ? value.products.map(product => ({
       ...product,
-      // Raw source links are retained in Firebase, but only become user-facing
-      // when the catalog switch is enabled.
-      feedbackUrl: sourceLinksEnabled ? product.feedbackUrl || '' : '',
+      // Feedback always uses the official channel. The switch controls only
+      // whether a pasted page's File Update URL can replace the mapped default.
+      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
       fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : '',
     }))
     : [];
@@ -530,25 +545,32 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
   const products = parseProductSource(html, sourceDomain);
   const previousSnap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
   const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
+  const sourceLinksEnabled = previous.sourceLinksEnabled === true;
+  const storedProducts = products.map(product => ({
+    ...product,
+    // Never import a third-party feedback channel into the user-facing
+    // catalog. Keep the source File Update URL for the optional switch.
+    feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+  }));
   const previousIds = new Set((Array.isArray(previous.products) ? previous.products : []).map(product => String(product.pid || product.id)));
-  const newProducts = products
+  const newProducts = storedProducts
     .filter(product => !previousIds.has(String(product.pid || product.id)))
     .map(product => ({
       pid: String(product.pid || product.id),
       name: product.name,
-      feedbackUrl: product.feedbackUrl || '',
+      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
       fileUpdateUrl: product.fileUpdateUrl || '',
     }));
   await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`), {
     type: catalogType,
     sourceDomain: sourceDomain.trim(),
-    products,
-    count: products.length,
-    sourceLinksEnabled: previous.sourceLinksEnabled === true,
+    products: storedProducts,
+    count: storedProducts.length,
+    sourceLinksEnabled,
     newProducts,
     updatedAt: Date.now(),
   });
-  return { type: catalogType, count: products.length, newProducts };
+  return { type: catalogType, count: storedProducts.length, newProducts };
 }
 
 export async function adminSetProductCatalogLinkMode(type, enabled) {
