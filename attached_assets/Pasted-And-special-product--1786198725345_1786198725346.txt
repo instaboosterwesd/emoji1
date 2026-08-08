@@ -1,0 +1,56 @@
+And देखो एक और चीज है। जैसे कि अगर मान लो मेरा कुछ special product है, तो मैंने वहां पर लगा रखा है। अगर मैंने वहां पर एक feature on कर रखा है, Only Contact. उसको अगर मैंने on कर दिया तो जैसे ही बंदा purchase करेगा तो उसका balance कट जाएगा and wallet के transaction में भी दिख जाएगा। And जो मेरा Telegram का जो मैंने username set कर रखा है help and support में, उस पर वह message आएगा, "Hey bro, I have paid successfully this product and so please give me key" ऐसा कुछ already message आएगा। वह send कर देगा and फिर मैं automatically ही उसको set up करा दूंगा। करने के बाद उसका तो वैसे भी approve हो जाएगा। जैसे कि मैंने key अगर दे दिया तो सही है। उसका My Order में भी दिखेगा and जब get key पर जाएगा तो मेरे Telegram पर आएगा। My Order में ऐसा scene जाएगा। और अगर मान लो मेरा कोई special किसी product को personal में ही देना है तो वह भी चीज मैं कर सकूंगा, वह on करके। And by default वो सारा कुछ API है। ठीक है।
+
+RE
+repan91141
+repan91141
+12 minutes ago
+Clarifying integration needs
+
+Clarifying integration needs
+मैं पहले मौजूदा purchase flow, product flags, wallet transactions, Telegram help setting और admin manual-key flow को trace करूँगा। फिर जहाँ संभव है उसे existing structure में जोड़ूँगा; अगर Telegram पर user की तरफ से automatic message भेजने के लिए bot/API की जरूरत हुई तो उसे सुरक्षित तरीके से अलग रखूँगा।
+
+
+6 actions
+आपके बताए flow को मैं “Only Contact” purchase mode के रूप में जोड़ रहा हूँ: admin किसी product पर इसे ON करेगा, purchase पर balance कटेगा और transaction बनेगा, लेकिन API key नहीं खरीदी जाएगी। Order pending/contact state में बनेगा और My Orders का Get Key Telegram support link पर pre-filled message के साथ ले जाएगा; admin key डालने के बाद वही order active दिखेगा। पहले मैं मौजूदा purchase और admin pricing structures की exact जगह देख रहा हूँ।
+
+
+5 actions
+आपका flow clear है। मैं इसे product-level Only Contact mode के रूप में implement कर रहा हूँ: default सभी products API से key देंगे; ON किए गए product में payment सफल होने के बाद order pending बनेगा, wallet transaction दिखेगा, और Get Key button आपकी Help Telegram link पर pre-filled message खोलेगा। Admin उसी pending order में key डालकर approve करेगा, जिसके बाद key My Orders में दिखेगी।
+
+
+8 actions
+अब implementation शुरू कर रहा हूँ। इसमें तीन हिस्से होंगे: product pricing dialog में Only Contact toggle, contact purchase को balance/transaction/order record के साथ save करना, और admin में pending contact order पर key डालकर approve करने का action।
+
+
+2 actions
+Toggle और contact-result UI का पहला हिस्सा लग गया है। अब backend purchase record, admin approval action और result dialog की बाकी wiring पूरी करूँगा, ताकि Only Contact सच में API को bypass करे और key देने के बाद order active हो जाए।
+
+
+8 actions
+अभी code में UI toggle का हिस्सा जुड़ गया है, लेकिन backend approval function अभी बाकी है। मैं अब contact order को सही तरह save करूँगा, wallet transaction से जोड़ूँगा, और admin के License History में pending order पर “Give Key” action जोड़ूँगा।
+
+
+Edited services.js
+Backend contact-order flow अब जुड़ गया है। अब बाकी दो जरूरी wiring कर रहा हूँ: pricing rules से Only Contact flag को Buy flow तक पहुँचाना, और Admin के License History में pending contact order के लिए key डालने का action जोड़ना।
+
+
+3 actions
+मुख्य flow जुड़ गया है। अब मैं build करके errors पकड़ रहा हूँ, खासकर contact purchase result में empty key UI और admin key-delivery path को verify करूँगा। उसके बाद workflow restart और runtime check करूँगा।
+
+
+4 actions
+Build सफल है, लेकिन पुराने HMR log में import error दिखा था क्योंकि उस समय backend export अभी जुड़ा नहीं था। मैं अब fresh restart के बाद उसे साफ़ verify करूँगा और contact order UI में empty key दिखने वाली छोटी समस्या भी ठीक करूँगा, ताकि user को pending order में misleading blank “license key” न दिखे।
+
+
+4 actions
+Flow का compile check ठीक है। अब contact purchase के success dialog को साफ़ कर रहा हूँ: pending order में खाली license key/Copy button नहीं दिखेगा, बल्कि “Key pending” और support action दिखेगा। फिर fresh restart से पुराने import error के बाद clean runtime verify करूँगा।
+
+
+Edited main.jsx
+Backend और UI wiring अब पूरी है। मैं अंतिम build और workflow restart कर रहा हूँ, फिर logs देखकर confirm करूँगा कि import/runtime error नहीं है और Only Contact flow production preview में टूट नहीं रहा।
+
+
+Built the project
+$ cd 'tg selling' && npm run build && git diff --check
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

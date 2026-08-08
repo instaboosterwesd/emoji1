@@ -2635,6 +2635,37 @@
 .reset-request-status.pending { color: #fbbf24; background: rgba(251,191,36,.1); }
 .reset-request-status.approved { color: #74e0a5; background: rgba(116,224,165,.1); }
 .reset-request-status.rejected { color: #ff9bae; background: rgba(255,112,137,.1); }
+.only-contact-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid rgba(199,149,255,.24);
+  border-radius: 12px;
+  background: rgba(199,149,255,.08);
+  cursor: pointer;
+}
+.only-contact-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: #c795ff;
+  flex: none;
+}
+.only-contact-toggle span {
+  display: grid;
+  gap: 3px;
+}
+.only-contact-toggle strong {
+  color: #f1ddff;
+  font-size: 13px;
+}
+.only-contact-toggle small {
+  color: rgba(255,255,255,.58);
+  font-size: 11px;
+  line-height: 1.4;
+}
 @media (max-width: 520px) {
   .telegram-float-btn { right: 12px; bottom: 82px; }
   .community-action-card { align-items: flex-start; }

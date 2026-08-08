@@ -682,7 +682,7 @@ export async function adminSaveReseller({ username, password, fund }) {
   return id;
 }
 
-export async function adminSaveProductRule({ pid, duration, price, resellerPrice }) {
+export async function adminSaveProductRule({ pid, duration, price, resellerPrice, onlyContact = false }) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   if (!pid?.trim()) throw new Error('Enter product PID.');
   const id = `${pid.trim()}_${(duration || 'default').trim().replace(/[^a-z0-9]+/gi, '_')}`;
@@ -691,6 +691,7 @@ export async function adminSaveProductRule({ pid, duration, price, resellerPrice
     duration: duration?.trim() || 'default',
     price: price === '' ? '' : Number(price || 0),
     resellerPrice: resellerPrice === '' || resellerPrice === undefined ? '' : Number(resellerPrice || 0),
+    onlyContact: onlyContact === true,
     updatedAt: Date.now(),
   });
   return id;
@@ -1139,7 +1140,55 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
 
   // 2. Deduct balance
   const newBalance = currentBalance - value;
-  await update(ref(firebaseDb, `users/${uid}`), { balance: newBalance, updatedAt: Date.now() });
+  const now = Date.now();
+  await update(ref(firebaseDb, `users/${uid}`), { balance: newBalance, updatedAt: now });
+
+  if (product?.onlyContact === true) {
+    const keyId = `lk_${now}_${Math.random().toString(36).slice(2, 8)}`;
+    const txId = `tx_buy_${now}_${Math.random().toString(36).slice(2, 8)}`;
+    const durationLabel = duration.duration || duration.label;
+    const productId = String(product.purchasePid || product.pid);
+
+    await set(ref(firebaseDb, `licenseKeys/${keyId}`), {
+      uid,
+      userId: uid,
+      user: userName || uid,
+      userPhone: user.phone || '',
+      productId,
+      product: product.name,
+      productName: product.name,
+      duration: durationLabel,
+      key: '',
+      keyCode: '',
+      status: 'contact_pending',
+      source: 'contact',
+      price: value,
+      transactionId: txId,
+      purchasedAt: now,
+      contactRequestedAt: now,
+    });
+
+    await set(ref(firebaseDb, `transactions/${txId}`), {
+      uid,
+      type: 'purchase',
+      amount: value,
+      before: currentBalance,
+      after: newBalance,
+      status: 'contact_pending',
+      note: `${product.name} · ${durationLabel} · Contact`,
+      productId,
+      licenseKeyId: keyId,
+      createdAt: now,
+    });
+
+    await update(ref(firebaseDb, `users/${uid}`), {
+      totalPurchase: Number(user.totalPurchase || 0) + value,
+      myPurchases: Number(user.myPurchases || 0) + value,
+      updatedAt: now,
+    });
+
+    return { success: true, contact: true, key: null, source: 'contact', keyId };
+  }
 
   let deliveredKey = null;
   let source = 'api';
@@ -1222,6 +1271,44 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   });
 
   return { success: true, key: deliveredKey, source, keyId };
+}
+
+export async function adminDeliverContactKey(keyId, replacementKey) {
+  if (!firebaseDb || !keyId) throw new Error('Contact order is missing.');
+  const keyValue = String(replacementKey || '').trim();
+  if (!keyValue) throw new Error('Enter the key to deliver.');
+
+  const keyRef = ref(firebaseDb, `licenseKeys/${keyId}`);
+  const snap = await get(keyRef);
+  if (!snap.exists()) throw new Error('Contact order not found.');
+  const order = snap.val() || {};
+  if (order.status !== 'contact_pending') throw new Error('This order is already completed.');
+
+  const now = Date.now();
+  await update(keyRef, {
+    key: keyValue,
+    keyCode: keyValue,
+    status: 'active',
+    source: 'contact',
+    deliveredAt: now,
+  });
+
+  if (order.transactionId) {
+    await update(ref(firebaseDb, `transactions/${order.transactionId}`), {
+      status: 'completed',
+      keyDeliveredAt: now,
+    });
+  }
+
+  await set(ref(firebaseDb, `userNotifications/${order.uid}/contact_${keyId}`), {
+    type: 'contact_key_delivered',
+    title: 'Your key is ready',
+    message: `${order.productName || order.product || 'Your product'} key has been added to My Orders.`,
+    keyId,
+    createdAt: now,
+    dismissed: false,
+  });
+  return true;
 }
 
 /* ── Admin Alerts (keys exhaustion) ─────────────────────────────── */

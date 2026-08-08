@@ -49,6 +49,7 @@ import {
   adminReviewKeyResetRequest,
   adminAddManualKey,
   adminDeleteManualKey,
+  adminDeliverContactKey,
   purchaseProduct,
   adminDeleteReseller,
   checkResellerBalance,
@@ -126,8 +127,10 @@ const MAX_AI_CART_CALLS_PER_MINUTE = 6;
 
 function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
   const isReseller = role === 'reseller';
+  const onlyContact = isOnlyContactProduct(product, pricingRules);
   return {
     ...product,
+    onlyContact,
     pricing: (product.pricing || []).map(item => {
       if (product.pricingSource === 'imported') {
         return { ...item, price: Number(item.price || 0), isResellerPrice: role === 'reseller' };
@@ -171,6 +174,32 @@ function safeCatalogDetails(product) {
   const features = (product.features || []).filter(Boolean);
   const description = String(product.description || '').replace(/<[^>]*>/g, '').trim();
   return description || features.join(' · ') || 'Package details are available in the live catalog.';
+}
+
+function isOnlyContactProduct(product, pricingRules = {}) {
+  const pid = String(product?.pid || product?.productId || '');
+  return Object.values(pricingRules || {}).some(rule =>
+    String(rule?.pid || '') === pid && rule?.onlyContact === true
+  );
+}
+
+function supportChatUrl(helpUrl, productName, duration, userName) {
+  const raw = String(helpUrl || '').trim();
+  if (!raw) return '';
+  const normalized = raw.startsWith('@')
+    ? `https://t.me/${raw.slice(1)}`
+    : /^[a-zA-Z0-9_]{3,}$/.test(raw)
+      ? `https://t.me/${raw}`
+      : raw;
+  try {
+    const url = new URL(normalized);
+    const buyer = userName ? ` I am ${userName}.` : '';
+    const message = `Hey bro, I have paid successfully for ${productName || 'this product'} (${duration || 'selected duration'}).${buyer} Please give me my key.`;
+    url.searchParams.set('text', message);
+    return url.toString();
+  } catch {
+    return normalized;
+  }
 }
 
 function resolveProductSupportLinks(product, channels = [], fallbackGetFileUrl = '') {
@@ -1173,6 +1202,9 @@ function OrdersView({ session, communityLinks }) {
       productChannels,
       communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl || '',
     );
+    const getKeyUrl = selected.status === 'contact_pending'
+      ? supportChatUrl(communityLinks.helpUrl, selected.productName || selected.product, selected.duration, selected.user || session.name)
+      : '';
 
     return (
       <>
@@ -1207,6 +1239,11 @@ function OrdersView({ session, communityLinks }) {
             </button>
           )}
           <div className="order-action-row">
+            {getKeyUrl && (
+              <a className="community-action-btn" href={getKeyUrl} target="_blank" rel="noreferrer">
+                <img src={telegramLogo} alt="" /> Get Key
+              </a>
+            )}
             {fileUpdateUrl && (
               <a className="community-action-btn" href={fileUpdateUrl} target="_blank" rel="noreferrer">
                 <img src={telegramLogo} alt="" /> Get File
@@ -1661,8 +1698,10 @@ function ProductsView({ session, onBuy }) {
 
   const applyPricing = useCallback((product) => {
     const isReseller = session?.role === 'reseller';
+    const onlyContact = isOnlyContactProduct(product, pricingRules);
     return {
       ...product,
+      onlyContact,
       pricing: product.pricing.map(item => {
         if (product.pricingSource === 'imported') {
           return { ...item, price: Number(item.price || 0), isResellerPrice: isReseller };
@@ -1849,7 +1888,7 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
         session.name || session.phone || session.uid,
       );
       setResult(res);
-      toast.success('Purchase successful!', { description: `${product.name} · ${duration.duration || duration.label}` });
+      toast.success(res.contact ? 'Payment successful — contact support for your key.' : 'Purchase successful!', { description: `${product.name} · ${duration.duration || duration.label}` });
       if (onPurchased) onPurchased();
     } catch (err) {
       toast.error(err.message);
@@ -1869,15 +1908,28 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
               <h2>Order placed!</h2>
             </div>
             <p className="muted dialog-sub">{product.name} · {duration.duration || duration.label}</p>
-            <div className="key-reveal-box">
-              <label>Your license key</label>
-              <code>{result.key}</code>
-              <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
-                <DeviceIcon emoji="/icons/new/download-emoji.json" icon="download" size={16} /> Copy key
-              </button>
-            </div>
-            <p className="muted" style={{ fontSize: '0.75rem' }}>Source: {result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}</p>
-            {(communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
+            {result.contact ? (
+              <div className="key-reveal-box contact-pending-box">
+                <label>Key pending</label>
+                <p className="muted">Payment received. Contact support and your key will be added to My Orders after admin approval.</p>
+              </div>
+            ) : (
+              <div className="key-reveal-box">
+                <label>Your license key</label>
+                <code>{result.key}</code>
+                <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
+                  <DeviceIcon emoji="/icons/new/download-emoji.json" icon="download" size={16} /> Copy key
+                </button>
+              </div>
+            )}
+            <p className="muted" style={{ fontSize: '0.75rem' }}>
+              Source: {result.contact ? 'Contact delivery' : result.source === 'manual' ? 'Manual key (admin-provided)' : 'Reseller API'}
+            </p>
+            {result.contact ? (
+              <a className="community-action-btn" href={supportChatUrl(communityLinks.helpUrl, product.name, duration.duration || duration.label, session.name || session.phone)} target="_blank" rel="noreferrer" style={{ width: '100%', marginTop: 12 }}>
+                <img src={telegramLogo} alt="" /> Get Key from Support
+              </a>
+            ) : (communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
               <a className="community-action-btn" href={communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer" style={{ width: '100%', marginTop: 12 }}>
                 <img src={telegramLogo} alt="" /> Get File
               </a>
@@ -2314,11 +2366,15 @@ function UserViewDialog({ user, onClose }) {
 /* ── PricingEditDialog ──────────────────────────────────────────── */
 function PricingEditDialog({ product, onClose, onSave }) {
   const [rules, setRules] = useState({});
+  const [onlyContact, setOnlyContact] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!product) return;
-    getAdminPricingRules().then(r => setRules(r)).catch(() => {});
+    getAdminPricingRules().then(r => {
+      setRules(r);
+      setOnlyContact(isOnlyContactProduct(product, r));
+    }).catch(() => {});
   }, [product?.pid]);
 
   if (!product) return null;
@@ -2342,12 +2398,13 @@ function PricingEditDialog({ product, onClose, onSave }) {
       for (const item of product.pricing) {
         const dur = item.duration || item.label;
         const r = getRule(dur);
-        if (r.price !== '' || r.resellerPrice !== '') {
+        if (r.price !== '' || r.resellerPrice !== '' || onlyContact || isOnlyContactProduct(product, rules)) {
           await adminSaveProductRule({
             pid: String(product.pid),
             duration: dur,
             price: r.price,
             resellerPrice: r.resellerPrice,
+            onlyContact,
           });
         }
       }
@@ -2367,6 +2424,13 @@ function PricingEditDialog({ product, onClose, onSave }) {
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
          <p className="muted dialog-sub">PID {product.pid} · Set fixed User and Reseller prices for each duration.</p>
+        <label className="only-contact-toggle">
+          <input type="checkbox" checked={onlyContact} onChange={e => setOnlyContact(e.target.checked)} />
+          <span>
+            <strong>Only Contact</strong>
+            <small>Deduct balance, create the order, and ask the buyer to contact support for the key instead of using the API.</small>
+          </span>
+        </label>
         <div className="pricing-edit-list">
           {product.pricing.map((item, index) => {
             const dur = item.duration || item.label;
@@ -3005,13 +3069,23 @@ function AdminPage({ session, onSessionChange }) {
     'key-history': (
       <div className="admin-card">
         <h3>License History</h3>
-        <p className="muted" style={{ marginBottom: 8 }}>All issued keys to users</p>
+        <p className="muted" style={{ marginBottom: 8 }}>All issued keys and pending contact orders</p>
         <AdminList items={keys} empty="No license keys sold yet" render={key => (
           <AdminRow
             title={key.productName || key.product || key.name || 'License key'}
             meta={`${key.user || key.uid || 'User'} · ${key.duration || '—'} · ${fmtDate(key.purchasedAt || key.createdAt)}`}
             status={key.status || 'active'}
           >
+            {key.status === 'contact_pending' && (
+              <button className="modal-save" onClick={() => {
+                const replacement = window.prompt(`Give key to ${key.user || key.uid || 'this user'}:`, '');
+                if (replacement?.trim()) {
+                  safeAction(() => adminDeliverContactKey(key.id, replacement), 'Key delivered — order approved');
+                }
+              }}>
+                <MatIcon name="vpn_key" size={13} /> Give key
+              </button>
+            )}
             <button className="danger-mini" onClick={() => { if (window.confirm('Delete this key record?')) safeAction(() => adminDeleteLicenseKey(key.id), 'Key deleted'); }}>
               <MatIcon name="delete" size={13} /> Delete
             </button>
