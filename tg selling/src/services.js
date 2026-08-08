@@ -1311,6 +1311,88 @@ export async function adminDeliverContactKey(keyId, replacementKey) {
   return true;
 }
 
+export async function adminRejectContactKey(keyId, reason = 'DM key request rejected') {
+  if (!firebaseDb || !keyId) throw new Error('Contact order is missing.');
+
+  const keyRef = ref(firebaseDb, `licenseKeys/${keyId}`);
+  const snap = await get(keyRef);
+  if (!snap.exists()) throw new Error('Contact order not found.');
+  const order = snap.val() || {};
+  if (order.status !== 'contact_pending') throw new Error('This order is already processed.');
+
+  const refundAmount = Number(order.price || 0);
+  if (refundAmount <= 0) throw new Error('This order has no refundable amount.');
+  const now = Date.now();
+  const refundTxId = `tx_refund_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  const userRef = ref(firebaseDb, `users/${order.uid}`);
+
+  // Mark the order first so a second admin click cannot issue another refund.
+  const claim = await runTransaction(keyRef, current => {
+    if (!current || current.status !== 'contact_pending') return;
+    return { ...current, status: 'refund_processing', refundStartedAt: now };
+  });
+  if (!claim.committed) throw new Error('This order is already processed.');
+
+  try {
+    const userResult = await runTransaction(userRef, current => {
+      const user = current || {};
+      const balance = Number(user.balance || 0);
+      const refundMarkers = user.contactRefunds || {};
+      if (refundMarkers[keyId]) return user;
+      return {
+        ...user,
+        balance: balance + refundAmount,
+        totalPurchase: Math.max(0, Number(user.totalPurchase || 0) - refundAmount),
+        myPurchases: Math.max(0, Number(user.myPurchases || 0) - refundAmount),
+        contactRefunds: { ...refundMarkers, [keyId]: { amount: refundAmount, refundedAt: now } },
+        updatedAt: now,
+      };
+    });
+    const updatedUser = userResult.snapshot.val() || {};
+    const balanceAfter = Number(updatedUser.balance || 0);
+
+    const updates = {
+      [`licenseKeys/${keyId}/status`]: 'contact_rejected',
+      [`licenseKeys/${keyId}/refundAmount`]: refundAmount,
+      [`licenseKeys/${keyId}/refundTransactionId`]: refundTxId,
+      [`licenseKeys/${keyId}/refundReason`]: String(reason || 'DM key request rejected').trim(),
+      [`licenseKeys/${keyId}/refundedAt`]: now,
+      [`transactions/${refundTxId}`]: {
+        uid: order.uid,
+        type: 'contact_refund',
+        amount: refundAmount,
+        before: balanceAfter - refundAmount,
+        after: balanceAfter,
+        status: 'completed',
+        note: `Refund · ${order.productName || order.product || 'DM key request'} · ${order.duration || ''}`.replace(/\s+·\s+$/, ''),
+        productId: order.productId || '',
+        licenseKeyId: keyId,
+        relatedTransactionId: order.transactionId || '',
+        createdAt: now,
+      },
+      ...(order.transactionId ? {
+        [`transactions/${order.transactionId}/status`]: 'refunded',
+        [`transactions/${order.transactionId}/refundedAt`]: now,
+        [`transactions/${order.transactionId}/refundTransactionId`]: refundTxId,
+      } : {}),
+      [`userNotifications/${order.uid}/contact_${keyId}`]: {
+        type: 'contact_key_refunded',
+        title: 'DM key request refunded',
+        message: `${order.productName || order.product || 'Your product'} request was rejected and ₹${refundAmount.toLocaleString('en-IN')} was added back to your wallet.`,
+        keyId,
+        createdAt: now,
+        dismissed: false,
+      },
+    };
+    await update(ref(firebaseDb), updates);
+    return true;
+  } catch (error) {
+    // Leave a recoverable state instead of making the order appear pending again.
+    await update(keyRef, { status: 'contact_pending', refundStartedAt: null });
+    throw error;
+  }
+}
+
 /* ── Admin Alerts (keys exhaustion) ─────────────────────────────── */
 
 export async function adminSaveAlert(type, data = {}) {

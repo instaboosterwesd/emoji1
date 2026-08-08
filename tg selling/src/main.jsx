@@ -50,6 +50,7 @@ import {
   adminAddManualKey,
   adminDeleteManualKey,
   adminDeliverContactKey,
+  adminRejectContactKey,
   purchaseProduct,
   adminDeleteReseller,
   checkResellerBalance,
@@ -1078,12 +1079,14 @@ function WalletView({ session, profile, refreshProfile }) {
     if (type === 'deposit_approved') return 'add_circle';
     if (type === 'gateway_deposit') return 'payment';
     if (type === 'purchase') return 'shopping_cart';
+    if (type === 'contact_refund') return 'add_circle';
     if (type?.includes('admin')) return 'admin_panel_settings';
     return 'receipt_long';
   };
 
   const txColor = (type, status) => {
     if (status === 'contact_pending') return '#fbbf24';
+    if (type === 'contact_refund') return '#4ade80';
     if (type === 'deposit_pending' || type === 'reseller_unlock_pending') return '#fbbf24';
     if (type === 'deposit_rejected') return '#f87171';
     if (type === 'deposit_approved' || type === 'gateway_deposit' || type === 'admin_add') return '#4ade80';
@@ -1137,7 +1140,8 @@ function WalletView({ session, profile, refreshProfile }) {
                      <span>
                        {fmtDate(tx.createdAt)}
                        {tx.status === 'contact_pending' && <em style={{ color: '#fbbf24', fontStyle: 'normal' }}> · Key pending</em>}
-                       {tx.status === 'completed' && tx.note?.endsWith('· Contact') && <em style={{ color: '#74e0a5', fontStyle: 'normal' }}> · Approved</em>}
+                        {tx.status === 'completed' && tx.note?.endsWith('· Contact') && <em style={{ color: '#74e0a5', fontStyle: 'normal' }}> · Approved</em>}
+                        {tx.type === 'contact_refund' && <em style={{ color: '#74e0a5', fontStyle: 'normal' }}> · Refunded</em>}
                      </span>
                     </div>
                     <b className="tx-amount" style={{ color: txColor(tx.type, tx.status) }}>
@@ -1145,7 +1149,7 @@ function WalletView({ session, profile, refreshProfile }) {
                          ? 'Pending'
                          : tx.type === 'deposit_rejected'
                            ? 'Rejected'
-                           : <>{(tx.type === 'deposit_approved' || tx.type === 'gateway_deposit' || tx.type === 'admin_add') ? '+' : '-'}<MoneyDisplay value={tx.amount} /></>}
+                        : <>{(tx.type === 'deposit_approved' || tx.type === 'gateway_deposit' || tx.type === 'admin_add' || tx.type === 'contact_refund') ? '+' : '-'}<MoneyDisplay value={tx.amount} /></>}
                     </b>
                   </div>
                 ))}
@@ -1243,6 +1247,12 @@ function OrdersView({ session, communityLinks }) {
               <MatIcon name="description" size={16} /> Download Invoice (PDF)
             </button>
           )}
+          {selected.status === 'contact_rejected' && (
+            <div className="reset-request-status rejected">
+              <MatIcon name="add_circle" size={16} />
+              Request rejected. <MoneyDisplay value={selected.refundAmount || selected.price || 0} /> has been refunded to your wallet.
+            </div>
+          )}
           <div className="order-action-row">
             {getKeyUrl && (
               <a className="community-action-btn" href={getKeyUrl} target="_blank" rel="noreferrer">
@@ -1259,9 +1269,11 @@ function OrdersView({ session, communityLinks }) {
                 <img src={telegramLogo} alt="" /> Feedback
               </a>
             )}
-            <button className="reset-key-btn" type="button" onClick={() => setResetOrder(selected)}>
-              <MatIcon name="restart_alt" size={16} /> Reset Key
-            </button>
+            {selected.status !== 'contact_pending' && selected.status !== 'contact_rejected' && (
+              <button className="reset-key-btn" type="button" onClick={() => setResetOrder(selected)}>
+                <MatIcon name="restart_alt" size={16} /> Reset Key
+              </button>
+            )}
           </div>
           {resetRequests.filter(request => request.keyId === selected.id).map(request => (
             <div className={`reset-request-status ${request.status}`} key={request.id}>
@@ -3079,7 +3091,7 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3>License History</h3>
         <p className="muted" style={{ marginBottom: 8 }}>All issued keys and completed DM orders</p>
-        <AdminList items={keys.filter(key => key.status !== 'contact_pending')} empty="No completed license keys yet" render={key => (
+        <AdminList items={keys.filter(key => key.status !== 'contact_pending' && key.status !== 'contact_rejected')} empty="No completed license keys yet" render={key => (
           <AdminRow
             title={key.productName || key.product || key.name || 'License key'}
             meta={`${key.user || key.uid || 'User'} · ${key.duration || '—'} · ${fmtDate(key.purchasedAt || key.createdAt)}`}
@@ -3122,6 +3134,14 @@ function AdminPage({ session, onSessionChange }) {
               }
             }}>
               <MatIcon name="vpn_key" size={13} /> Approve & give key
+            </button>
+            <button className="danger-mini" onClick={() => {
+              const confirmed = window.confirm(`Reject this request and refund ₹${Number(key.price || 0).toLocaleString('en-IN')} to ${key.user || key.uid || 'the user'}?`);
+              if (confirmed) {
+                safeAction(() => adminRejectContactKey(key.id), 'Request rejected — amount refunded');
+              }
+            }}>
+              <MatIcon name="close" size={13} /> Reject & refund
             </button>
           </AdminRow>
         )} />
