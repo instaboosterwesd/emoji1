@@ -2567,7 +2567,7 @@ function AdminPage({ session, onSessionChange }) {
     try {
       const [overview, productList, alerts, status, gcList, channelList, catalogInfo] = await Promise.all([
         getAdminOverview(),
-        fetchGameProducts().catch(() => []),
+        fetchStorefrontProducts('user').catch(() => []),
         getAdminAlerts().catch(() => []),
         getSiteStatus().catch(() => ({ status: 'operational', message: '' })),
         getGiftCodes().catch(() => []),
@@ -2832,18 +2832,24 @@ function AdminPage({ session, onSessionChange }) {
     products: (
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
+        <p className="muted" style={{ marginBottom: 8 }}>Select any product to set User/Reseller pricing and enable its DM / Only Contact purchase mode.</p>
         <div className="search-box admin-search">
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
-        <AdminList items={filteredProducts} empty="No API products loaded" render={product => (
+        <AdminList items={filteredProducts} empty="No products loaded" render={product => (
           <AdminRow
             title={product.name}
             meta={`PID ${product.pid} · ${product.game} · ${product.platform || 'Platform'}`}
-            status={`${product.pricing?.length || 0} durations`}
+            status={
+              <>
+                {product.pricing?.length || 0} durations
+                {isOnlyContactProduct(product, data?.pricingRules || {}) && <span className="reseller-badge-mini" style={{ marginLeft: 6 }}>DM ON</span>}
+              </>
+            }
           >
             <button onClick={() => setPricingProduct(product)}>
-              <MatIcon name="edit" size={13} /> Edit pricing
+              <MatIcon name="edit" size={13} /> Pricing &amp; DM switch
             </button>
           </AdminRow>
         )} />
