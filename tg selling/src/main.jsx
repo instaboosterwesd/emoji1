@@ -173,6 +173,18 @@ function safeCatalogDetails(product) {
   return description || features.join(' · ') || 'Package details are available in the live catalog.';
 }
 
+function resolveProductSupportLinks(product, channels = [], fallbackGetFileUrl = '') {
+  const channel = findProductChannel(product?.name || product?.productName || product?.product || '', channels);
+  const feedbackUrl = channel?.feedbackUrl || product?.feedbackUrl || '';
+  const sourceFileUpdateUrl = product?.sourceLinksEnabled === true
+    ? (product?.sourceFileUpdateUrl || product?.fileUpdateUrl || '')
+    : '';
+  const configuredFileUpdateUrl = channel?.isDefault
+    ? (product?.fileUpdateUrl || channel.fileUpdateUrl || fallbackGetFileUrl || '')
+    : (channel?.fileUpdateUrl || product?.fileUpdateUrl || fallbackGetFileUrl || '');
+  return { feedbackUrl, fileUpdateUrl: sourceFileUpdateUrl || configuredFileUpdateUrl };
+}
+
 /* ── Shared micro-components ────────────────────────────────────── */
 const SectionTitle = ({ title, subtitle }) => (
   <div className="section-title"><h1>{title}</h1><p>{subtitle}</p></div>
@@ -1120,16 +1132,25 @@ function OrdersView({ session, communityLinks }) {
   const [keyVisible, setKeyVisible] = useState(false);
   const [resetRequests, setResetRequests] = useState([]);
   const [resetOrder, setResetOrder] = useState(null);
+  const [productChannels, setProductChannels] = useState([]);
+  const [catalogProducts, setCatalogProducts] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getUserLicenseKeys(session.uid);
+      const [data, requests, channels, storefrontProducts] = await Promise.all([
+        getUserLicenseKeys(session.uid),
+        getUserKeyResetRequests(session.uid),
+        getProductChannels().catch(() => []),
+        fetchStorefrontProducts(session?.role).catch(() => []),
+      ]);
       setKeys(data);
-      setResetRequests(await getUserKeyResetRequests(session.uid));
+      setResetRequests(requests);
+      setProductChannels(channels);
+      setCatalogProducts(storefrontProducts);
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
-  }, [session.uid]);
+  }, [session.uid, session?.role]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1138,6 +1159,21 @@ function OrdersView({ session, communityLinks }) {
   );
 
   if (selected) {
+    const selectedProduct = catalogProducts.find(product =>
+      (selected.pid && String(product.pid) === String(selected.pid))
+      || (selected.productId && String(product.pid) === String(selected.productId))
+      || String(product.name || '').trim().toLowerCase() === String(selected.productName || selected.product || '').trim().toLowerCase()
+    ) || {
+      name: selected.productName || selected.product || '',
+      feedbackUrl: selected.feedbackUrl || '',
+      fileUpdateUrl: selected.fileUpdateUrl || '',
+    };
+    const { feedbackUrl, fileUpdateUrl } = resolveProductSupportLinks(
+      selectedProduct,
+      productChannels,
+      communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl || '',
+    );
+
     return (
       <>
         <button className="back-link" onClick={() => setSelected(null)}><MatIcon name="arrow_back" size={16} /> Back to orders</button>
@@ -1171,9 +1207,14 @@ function OrdersView({ session, communityLinks }) {
             </button>
           )}
           <div className="order-action-row">
-            {(communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl) && (
-              <a className="community-action-btn" href={communityLinks.getFileUrl || communityLinks.resellerUpdatesUrl} target="_blank" rel="noreferrer">
+            {fileUpdateUrl && (
+              <a className="community-action-btn" href={fileUpdateUrl} target="_blank" rel="noreferrer">
                 <img src={telegramLogo} alt="" /> Get File
+              </a>
+            )}
+            {feedbackUrl && (
+              <a className="community-action-btn pdp-feedback-btn" href={feedbackUrl} target="_blank" rel="noreferrer">
+                <img src={telegramLogo} alt="" /> Feedback
               </a>
             )}
             <button className="reset-key-btn" type="button" onClick={() => setResetOrder(selected)}>
@@ -1382,10 +1423,7 @@ function featIcon(pid, f) {
 function ProductDetailPage({ product, channel, fallbackGetFileUrl = '', onBack, onBuy }) {
   const [playingVideo, setPlayingVideo] = useState(false);
   const available = product.pricing.length > 0;
-  const feedbackUrl = channel?.isDefault ? (product.feedbackUrl || channel.feedbackUrl || '') : (channel?.feedbackUrl || product.feedbackUrl || '');
-  const fileUpdateUrl = channel?.isDefault
-    ? (product.fileUpdateUrl || channel.fileUpdateUrl || fallbackGetFileUrl || '')
-    : (channel?.fileUpdateUrl || product.fileUpdateUrl || fallbackGetFileUrl || '');
+  const { feedbackUrl, fileUpdateUrl } = resolveProductSupportLinks(product, channel ? [channel] : [], fallbackGetFileUrl);
 
   return (
     <div className="product-detail-page">

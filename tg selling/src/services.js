@@ -214,7 +214,9 @@ export async function getProductCatalog(type = 'user') {
         features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
         pricing,
         pricingSource: 'imported',
+        sourceLinksEnabled,
         feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+        sourceFileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : '',
         fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : defaultFileUpdateUrlFor(name),
       };
     })
