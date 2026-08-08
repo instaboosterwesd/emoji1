@@ -1082,7 +1082,8 @@ function WalletView({ session, profile, refreshProfile }) {
     return 'receipt_long';
   };
 
-  const txColor = type => {
+  const txColor = (type, status) => {
+    if (status === 'contact_pending') return '#fbbf24';
     if (type === 'deposit_pending' || type === 'reseller_unlock_pending') return '#fbbf24';
     if (type === 'deposit_rejected') return '#f87171';
     if (type === 'deposit_approved' || type === 'gateway_deposit' || type === 'admin_add') return '#4ade80';
@@ -1133,9 +1134,13 @@ function WalletView({ session, profile, refreshProfile }) {
                     </span>
                     <div className="tx-main">
                       <strong>{tx.note || tx.type || 'Transaction'}</strong>
-                      <span>{fmtDate(tx.createdAt)}</span>
+                     <span>
+                       {fmtDate(tx.createdAt)}
+                       {tx.status === 'contact_pending' && <em style={{ color: '#fbbf24', fontStyle: 'normal' }}> · Key pending</em>}
+                       {tx.status === 'completed' && tx.note?.endsWith('· Contact') && <em style={{ color: '#74e0a5', fontStyle: 'normal' }}> · Approved</em>}
+                     </span>
                     </div>
-                    <b className="tx-amount" style={{ color: txColor(tx.type) }}>
+                    <b className="tx-amount" style={{ color: txColor(tx.type, tx.status) }}>
                        {tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending'
                          ? 'Pending'
                          : tx.type === 'deposit_rejected'
@@ -2537,6 +2542,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'channels', label: 'Feedback & Files', icon: 'link' },
     { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
+    { id: 'dm-keys', label: 'DM Keys', icon: 'vpn_key' },
     { id: 'key-history', label: 'License History', icon: 'history' },
     { id: 'add-keys', label: 'License Keys', icon: 'vpn_key' },
     { id: 'payments', label: 'Payments', icon: 'payment' },
@@ -2597,6 +2603,9 @@ function AdminPage({ session, onSessionChange }) {
   const transactions = data?.transactions || [];
   const resellers = data?.resellers || [];
   const announcements = data?.announcements || [];
+  const pendingContactKeys = keys
+    .filter(key => key.status === 'contact_pending')
+    .sort((a, b) => (b.contactRequestedAt || b.purchasedAt || 0) - (a.contactRequestedAt || a.purchasedAt || 0));
 
   const filteredUsers = users.filter(u => `${u.name} ${u.phone} ${u.email} ${u.uid}`.toLowerCase().includes(search.toLowerCase()));
   const filteredProducts = products.filter(p => `${p.name} ${p.pid} ${p.game}`.toLowerCase().includes(search.toLowerCase())).slice(0, 20);
@@ -3069,25 +3078,50 @@ function AdminPage({ session, onSessionChange }) {
     'key-history': (
       <div className="admin-card">
         <h3>License History</h3>
-        <p className="muted" style={{ marginBottom: 8 }}>All issued keys and pending contact orders</p>
-        <AdminList items={keys} empty="No license keys sold yet" render={key => (
+        <p className="muted" style={{ marginBottom: 8 }}>All issued keys and completed DM orders</p>
+        <AdminList items={keys.filter(key => key.status !== 'contact_pending')} empty="No completed license keys yet" render={key => (
           <AdminRow
             title={key.productName || key.product || key.name || 'License key'}
             meta={`${key.user || key.uid || 'User'} · ${key.duration || '—'} · ${fmtDate(key.purchasedAt || key.createdAt)}`}
             status={key.status || 'active'}
           >
-            {key.status === 'contact_pending' && (
-              <button className="modal-save" onClick={() => {
-                const replacement = window.prompt(`Give key to ${key.user || key.uid || 'this user'}:`, '');
-                if (replacement?.trim()) {
-                  safeAction(() => adminDeliverContactKey(key.id, replacement), 'Key delivered — order approved');
-                }
-              }}>
-                <MatIcon name="vpn_key" size={13} /> Give key
-              </button>
-            )}
             <button className="danger-mini" onClick={() => { if (window.confirm('Delete this key record?')) safeAction(() => adminDeleteLicenseKey(key.id), 'Key deleted'); }}>
               <MatIcon name="delete" size={13} /> Delete
+            </button>
+          </AdminRow>
+        )} />
+      </div>
+    ),
+
+    'dm-keys': (
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <MatIcon name="vpn_key" size={21} />
+            <div>
+              <h3>DM Key Requests</h3>
+              <p className="muted">Paid Only Contact orders waiting for a key</p>
+            </div>
+          </div>
+          <strong className="admin-count-badge">{pendingContactKeys.length} pending</strong>
+        </div>
+        <AdminList items={pendingContactKeys} empty="No pending DM key requests" render={key => (
+          <AdminRow
+            title={key.productName || key.product || 'Product'}
+            meta={
+              <>
+                {key.user || key.uid || 'User'} · {key.duration || '—'} · <MoneyDisplay value={key.price || 0} /> · {fmtDate(key.contactRequestedAt || key.purchasedAt || key.createdAt)}
+              </>
+            }
+            status="Pending"
+          >
+            <button className="modal-save" onClick={() => {
+              const replacement = window.prompt(`Give key to ${key.user || key.uid || 'this user'}:`, '');
+              if (replacement?.trim()) {
+                safeAction(() => adminDeliverContactKey(key.id, replacement), 'Key delivered — order approved');
+              }
+            }}>
+              <MatIcon name="vpn_key" size={13} /> Approve & give key
             </button>
           </AdminRow>
         )} />
