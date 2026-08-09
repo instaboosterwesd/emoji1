@@ -1079,13 +1079,31 @@ export async function getAdminPricingRules() {
 }
 
 export async function getProductPricingSettings() {
-  if (!firebaseDb) return { userAdjustment: -20, resellerAdjustment: 10 };
+  if (!firebaseDb) return { userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 };
   const snap = await get(ref(firebaseDb, 'settings/productPricing'));
   const value = snap.exists() ? snap.val() : {};
   return {
     userAdjustment: Number.isFinite(Number(value.userAdjustment)) ? Number(value.userAdjustment) : -20,
     resellerAdjustment: Number.isFinite(Number(value.resellerAdjustment)) ? Number(value.resellerAdjustment) : 10,
+    userIncreasePercent: Math.max(0, Math.min(1000, Number.isFinite(Number(value.userIncreasePercent)) ? Number(value.userIncreasePercent) : 0)),
   };
+}
+
+export async function adminSaveProductPricingSettings({ userIncreasePercent }) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const current = await get(ref(firebaseDb, 'settings/productPricing'));
+  const existing = current.exists() ? current.val() : {};
+  const value = Number(userIncreasePercent);
+  if (!Number.isFinite(value) || value < 0 || value > 1000) {
+    throw new Error('User price increase must be between 0% and 1000%.');
+  }
+  const next = {
+    ...existing,
+    userIncreasePercent: Math.round(value * 100) / 100,
+    updatedAt: Date.now(),
+  };
+  await set(ref(firebaseDb, 'settings/productPricing'), next);
+  return next;
 }
 
 /* ── Manual License Keys ────────────────────────────────────────── */

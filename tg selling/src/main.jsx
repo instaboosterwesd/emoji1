@@ -25,6 +25,7 @@ import {
   adminAdjustUserFund,
   adminSaveAnnouncement,
   adminSaveProductRule,
+  adminSaveProductPricingSettings,
   adminSaveReseller,
   adminSaveUpi,
   adminUpdateUser,
@@ -137,20 +138,24 @@ function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
     ...product,
     onlyContact,
     pricing: (product.pricing || []).map(item => {
-      if (product.pricingSource === 'imported') {
-        return { ...item, price: Number(item.price || 0), isResellerPrice: role === 'reseller' };
-      }
       const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
       const rule = pricingRules[key] || {};
       const apiPrice = Number(item.price || 0);
       const fixedUserPrice = Number(rule.price);
       const fixedResellerPrice = Number(rule.resellerPrice);
-      const userPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+      const baseUserPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
         ? fixedUserPrice
-        : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+        : product.pricingSource === 'imported'
+          ? apiPrice
+          : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+      const userPrice = pricingSettings.userIncreasePercent > 0
+        ? Math.round(baseUserPrice * (1 + pricingSettings.userIncreasePercent / 100) * 100) / 100
+        : baseUserPrice;
       const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
         ? fixedResellerPrice
-        : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+        : product.pricingSource === 'imported'
+          ? apiPrice
+          : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
       return { ...item, price: isReseller ? resellerPrice : userPrice, isResellerPrice: isReseller };
     }),
   };
@@ -472,7 +477,7 @@ function AiShopTrigger({ open, onClick, hasHelpLink }) {
 function AiShopPanel({ session, onBuy, onClose }) {
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
-  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10 });
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 });
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([{
@@ -495,7 +500,7 @@ function AiShopPanel({ session, onBuy, onClose }) {
       const [catalog, rules, settings] = await Promise.all([
         fetchStorefrontProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
-        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
+        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 })),
       ]);
       setProducts(catalog);
       setPricingRules(rules);
@@ -1707,7 +1712,7 @@ function ProductsView({ session, onBuy }) {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
-  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10 });
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
@@ -1724,20 +1729,24 @@ function ProductsView({ session, onBuy }) {
       ...product,
       onlyContact,
       pricing: product.pricing.map(item => {
-        if (product.pricingSource === 'imported') {
-          return { ...item, price: Number(item.price || 0), isResellerPrice: isReseller };
-        }
         const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
         const rule = pricingRules[key] || {};
         const apiPrice = Number(item.price || 0);
         const fixedUserPrice = Number(rule.price);
         const fixedResellerPrice = Number(rule.resellerPrice);
-        const userPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+        const baseUserPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
           ? fixedUserPrice
-          : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+          : product.pricingSource === 'imported'
+            ? apiPrice
+            : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+        const userPrice = pricingSettings.userIncreasePercent > 0
+          ? Math.round(baseUserPrice * (1 + pricingSettings.userIncreasePercent / 100) * 100) / 100
+          : baseUserPrice;
         const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
           ? fixedResellerPrice
-          : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+          : product.pricingSource === 'imported'
+            ? apiPrice
+            : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
         return {
           ...item,
           price: isReseller ? resellerPrice : userPrice,
@@ -1753,7 +1762,7 @@ function ProductsView({ session, onBuy }) {
       const [prods, rules, pricing] = await Promise.all([
         fetchStorefrontProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
-        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10 })),
+         getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 })),
       ]);
       setPricingRules(rules);
       setPricingSettings(pricing);
@@ -2520,6 +2529,7 @@ function AdminPage({ session, onSessionChange }) {
   const [annTitle, setAnnTitle] = useState('');
   const [fundForm, setFundForm] = useState({ uid: '', amount: '', mode: 'add' });
   const [resellerForm, setResellerForm] = useState({ username: '', password: '', fund: '' });
+  const [userIncreasePercent, setUserIncreasePercent] = useState('0');
   const [upiId, setUpiId] = useState('');
   const [minDeposit, setMinDeposit] = useState('50');
   const [resellerPrice, setResellerPrice] = useState('');
@@ -2569,7 +2579,7 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status, gcList, channelList, catalogInfo] = await Promise.all([
+      const [overview, productList, alerts, status, gcList, channelList, catalogInfo, pricingSettings] = await Promise.all([
         getAdminOverview(),
         fetchStorefrontProducts('user').catch(() => []),
         getAdminAlerts().catch(() => []),
@@ -2577,6 +2587,7 @@ function AdminPage({ session, onSessionChange }) {
         getGiftCodes().catch(() => []),
         getProductChannels().catch(() => []),
         getProductCatalogMeta().catch(() => ({})),
+        getProductPricingSettings().catch(() => ({ userIncreasePercent: 0 })),
       ]);
       setData(overview);
       setProducts(productList);
@@ -2600,6 +2611,7 @@ function AdminPage({ session, onSessionChange }) {
       setProductChannels(channelList);
       setCatalogMeta(catalogInfo);
       setCatalogSourceDomain(catalogInfo[catalogImportType]?.sourceDomain || '');
+      setUserIncreasePercent(String(pricingSettings.userIncreasePercent || 0));
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2836,7 +2848,38 @@ function AdminPage({ session, onSessionChange }) {
     products: (
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
-        <p className="muted" style={{ marginBottom: 8 }}>Select any product to set User/Reseller pricing and enable its DM / Only Contact purchase mode.</p>
+        <p className="muted" style={{ marginBottom: 8 }}>Set a global User price increase, or select any product for fixed User/Reseller pricing and the DM / Only Contact switch.</p>
+        <form
+          className="admin-form global-pricing-form"
+          onSubmit={e => {
+            e.preventDefault();
+            safeAction(
+              () => adminSaveProductPricingSettings({ userIncreasePercent }),
+              'Global User pricing saved',
+            );
+          }}
+        >
+          <label>
+            Global User price increase (%)
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span aria-hidden="true" style={{ width: 18, textAlign: 'center', fontWeight: 700 }}>%</span>
+              <input
+                value={userIncreasePercent}
+                onChange={e => setUserIncreasePercent(e.target.value.replace(/[^\d.]/g, ''))}
+                placeholder="0"
+                inputMode="decimal"
+                min="0"
+                max="1000"
+                step="0.01"
+                style={{ flex: 1 }}
+              />
+              <button className="modal-save" type="submit">
+                <MatIcon name="check" size={15} /> Save
+              </button>
+            </div>
+            <small className="muted">Applies to every User price. Example: ₹5 with 2% becomes ₹5.10. Enter 0 to disable.</small>
+          </label>
+        </form>
         <div className="search-box admin-search">
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />

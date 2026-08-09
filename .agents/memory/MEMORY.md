@@ -2,3 +2,4 @@
 - [Product support links](product-support-links.md) — built-in Telegram defaults stay usable while Firebase provides admin overrides.
 - [Catalog import replacement](catalog-import-replacement.md) — User/Reseller source imports are authoritative full snapshots, not merges.
 - [Gateway fee and wallet credit](gateway-fee-credit-rule.md) — gateway fees are percentage-based and added to payment; requested wallet credit stays unchanged.
+- [Global user price increase](global-user-price-increase.md) — Admin can apply one percentage to every User price without changing Reseller prices.
