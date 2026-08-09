@@ -2743,7 +2743,7 @@ function AdminPage({ session, onSessionChange }) {
           <div className="admin-card-header">
             <div className="heading-title-row">
               <MatIcon name="api" size={20} />
-              <div><h3>Reseller API Status</h3><p className="muted">Check live API balance and connectivity</p></div>
+               <div><h3>Reseller API Status</h3><p className="muted">Safe validation request — no product is purchased</p></div>
             </div>
             <button className="modal-save" onClick={checkApiStatus} disabled={apiChecking}>
               {apiChecking ? 'Checking…' : <><MatIcon name="refresh" size={16} /> Check now</>}
@@ -2753,11 +2753,20 @@ function AdminPage({ session, onSessionChange }) {
             <div className="api-status-result">
               {apiStatus.error
                 ? <p className="muted" style={{ color: '#f87171' }}>❌ {apiStatus.message}</p>
-                : <pre className="api-status-pre">{JSON.stringify(apiStatus, null, 2)}</pre>
+                : (
+                  <>
+                    <p className="muted" style={{ marginBottom: 8 }}>
+                      {apiStatus.__test === 'safe_validation'
+                        ? `Safe validation response · HTTP ${apiStatus.__httpStatus ?? '—'}`
+                        : 'Provider response'}
+                    </p>
+                    <pre className="api-status-pre">{JSON.stringify(apiStatus, null, 2)}</pre>
+                  </>
+                )
               }
             </div>
           )}
-          {!apiStatus && !apiChecking && <p className="muted empty-state">Press "Check now" to query the reseller API.</p>}
+          {!apiStatus && !apiChecking && <p className="muted empty-state">Press "Check now" to send a non-purchasing validation request.</p>}
         </div>
 
         <div className="admin-two-col">

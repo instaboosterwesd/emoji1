@@ -460,7 +460,7 @@ export async function fetchGameProducts() {
   if (!response.ok) throw new Error('Products could not be loaded.');
   const data = await response.json();
   const products = Array.isArray(data?.products) ? data.products : [];
-  return products.map(product => {
+  const mappedProducts = products.map(product => {
     const name = product.name || 'Untitled product';
     const catalog = findCatalogProduct(name);
     const expectedCount = LIVE_PRICING_COUNTS[name] || null;
@@ -493,13 +493,44 @@ export async function fetchGameProducts() {
       platform: product.platform || '',
     };
   });
+
+  // Keep device-bound products editable and purchasable from the app even
+  // when the upstream live catalog temporarily omits them.
+  const knownNames = new Set(mappedProducts.map(product => normaliseProductName(product.name)));
+  const canonicalFallbacks = PRODUCT_CATALOG
+    .filter(product => product.pid === '133')
+    .filter(product => !knownNames.has(normaliseProductName(product.name)))
+    .map(product => ({
+      id: product.pid,
+      pid: product.pid,
+      purchasePid: product.pid,
+      sourcePid: product.pid,
+      name: product.name,
+      game: 'FREEFIRE',
+      image: productIconFor(product.name) || '',
+      videos: [],
+      features: ['Android ID required', 'Device-bound delivery'],
+      description: 'Bala Mod device-bound product',
+      salesCount: null,
+      pricing: product.durations.map(item => ({
+        label: item.label,
+        duration: item.label,
+        sourceDuration: item.label,
+        price: 0,
+        stock: item.stock,
+      })),
+      pricingSource: 'canonical',
+      platform: 'NONROOT ANDROID',
+    }));
+
+  return [...mappedProducts, ...canonicalFallbacks];
 }
 
 export async function fetchStorefrontProducts(role = 'user') {
   const catalogType = role === 'reseller' ? 'reseller' : 'user';
   try {
     const importedProducts = await getProductCatalog(catalogType);
-    if (importedProducts.length) return importedProducts;
+    if (importedProducts.length) return [...importedProducts, ...canonicalDeviceBoundFallbacks(importedProducts)];
   } catch {
     // A missing/permission-limited imported catalog should not hide live products.
   }
@@ -519,6 +550,35 @@ function findCatalogProduct(name) {
     || (wanted === normaliseProductName('A, XYZ CHEATS FF ROOT ANDROID')
       ? PRODUCT_CATALOG.find(item => normaliseProductName(item.name) === normaliseProductName('XYZ CHEATS FF ROOT ANDROID'))
       : null);
+}
+
+function canonicalDeviceBoundFallbacks(products = []) {
+  const knownNames = new Set(products.map(product => normaliseProductName(product.name)));
+  return PRODUCT_CATALOG
+    .filter(product => product.pid === '133')
+    .filter(product => !knownNames.has(normaliseProductName(product.name)))
+    .map(product => ({
+      id: product.pid,
+      pid: product.pid,
+      purchasePid: product.pid,
+      sourcePid: product.pid,
+      name: product.name,
+      game: 'FREEFIRE',
+      image: productIconFor(product.name) || '',
+      videos: [],
+      features: ['Android ID required', 'Device-bound delivery'],
+      description: 'Bala Mod device-bound product',
+      salesCount: null,
+      pricing: product.durations.map(item => ({
+        label: item.label,
+        duration: item.label,
+        sourceDuration: item.label,
+        price: 0,
+        stock: item.stock,
+      })),
+      pricingSource: 'canonical',
+      platform: 'NONROOT ANDROID',
+    }));
 }
 
 export function isDeviceBoundProduct(product) {
@@ -1666,7 +1726,9 @@ export async function adminDeleteReseller(resellerId) {
 
 export async function checkResellerBalance() {
   const body = new URLSearchParams({
-    action: 'balance',
+    action: 'buy',
+    product_id: '__connection_test__',
+    duration: '__connection_test__',
   });
   try {
     const response = await fetch(resellerEndpoint, {
@@ -1681,7 +1743,13 @@ export async function checkResellerBalance() {
     } catch {
       data = { raw };
     }
-    return data;
+    return {
+      ...data,
+      __httpStatus: response.status,
+      __ok: response.ok,
+      __raw: raw,
+      __test: 'safe_validation',
+    };
   } catch (err) {
     return { error: true, message: err.message };
   }
