@@ -3,3 +3,4 @@
 - [Catalog import replacement](catalog-import-replacement.md) — User/Reseller source imports are authoritative full snapshots, not merges.
 - [Gateway fee and wallet credit](gateway-fee-credit-rule.md) — gateway fees are percentage-based and added to payment; requested wallet credit stays unchanged.
 - [Global user price increase](global-user-price-increase.md) — Admin can apply one percentage to every User price without changing Reseller prices.
+- [Device-bound API purchases](device-bound-api-purchases.md) — Bala API buys require an Android ID; missing provider keys must fall back or refund.

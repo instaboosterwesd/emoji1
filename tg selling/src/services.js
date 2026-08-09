@@ -523,22 +523,43 @@ function findCatalogProduct(name) {
       : null);
 }
 
-export async function buyResellerProduct(productId, duration) {
+export function isDeviceBoundProduct(product) {
+  return /\bbala\b/i.test(String(product?.name || ''));
+}
+
+function isLikelyProviderErrorText(value) {
+  return /(?:error|failed|failure|insufficient|funds?|balance|invalid|unavailable|not\s+found|try\s+again|unable|mandatory|required|expired|duplicate|already\s+(?:used|purchased))/i.test(String(value || ''));
+}
+
+export async function buyResellerProduct(productId, duration, androidId = '') {
   if (!resellerEndpoint || !resellerApiKey || !resellerMasterKey) throw new Error('Reseller API is not configured.');
-  const body = new URLSearchParams({
+  const params = {
     api_key: resellerApiKey,
     action: 'buy',
     product_id: String(productId),
     duration,
-  });
-  const response = await fetch(resellerEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'x-master-key': resellerMasterKey,
-    },
-    body,
-  });
+  };
+  if (androidId?.trim()) params.android_id = androidId.trim();
+  const body = new URLSearchParams(params);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  let response;
+  try {
+    response = await fetch(resellerEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'x-master-key': resellerMasterKey,
+      },
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('Reseller API timed out after 15 seconds.');
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   const raw = await response.text();
   let data;
   try {
@@ -546,6 +567,8 @@ export async function buyResellerProduct(productId, duration) {
   } catch {
     data = { message: raw };
   }
+  if (typeof data === 'string') data = { rawKey: data };
+  if (data && typeof data === 'object') data.__raw = raw;
   if (!response.ok || data?.status === false || data?.success === false || String(data?.status).toLowerCase() === 'error') {
     throw new Error(data?.message || 'Purchase request failed.');
   }
@@ -1156,6 +1179,11 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   if (!firebaseDb || !uid) throw new Error('Not authenticated.');
   const value = Number(price || 0);
   if (value <= 0) throw new Error('Invalid price.');
+  const needsAndroidId = isDeviceBoundProduct(product) && product?.onlyContact !== true;
+  const androidId = needsAndroidId ? String(product.androidId || '').trim() : '';
+  if (needsAndroidId && !androidId) {
+    throw new Error('Android device ID is required for Bala products.');
+  }
 
   // 1. Check balance
   const userSnap = await get(ref(firebaseDb, `users/${uid}`));
@@ -1224,8 +1252,42 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
     let lastError;
     for (const productId of productIds) {
       try {
-        const apiResult = await buyResellerProduct(productId, duration.duration || duration.label);
-        deliveredKey = apiResult?.key || apiResult?.license_key || apiResult?.data?.key || apiResult?.data?.license_key || JSON.stringify(apiResult);
+        const apiResult = await buyResellerProduct(productId, duration.duration || duration.label, androidId);
+        const possibleKeys = [
+          apiResult?.key,
+          apiResult?.license_key,
+          apiResult?.licenseKey,
+          apiResult?.key_code,
+          apiResult?.code,
+          apiResult?.license,
+          apiResult?.data?.key,
+          apiResult?.data?.license_key,
+          apiResult?.data?.licenseKey,
+          apiResult?.data?.key_code,
+          apiResult?.data?.code,
+          apiResult?.data?.license,
+          typeof apiResult?.data === 'string' ? apiResult.data : null,
+          apiResult?.result?.key,
+          apiResult?.result?.license_key,
+          apiResult?.result?.licenseKey,
+          apiResult?.result?.key_code,
+          apiResult?.result?.code,
+          apiResult?.result?.license,
+          typeof apiResult?.result === 'string' ? apiResult.result : null,
+          apiResult?.rawKey,
+        ];
+        deliveredKey = possibleKeys
+          .find(key => typeof key === 'string' && key.trim() && !isLikelyProviderErrorText(key))
+          ?.trim() || null;
+        if (!deliveredKey && typeof apiResult?.__raw === 'string') {
+          const raw = apiResult.__raw.trim();
+          const looksLikePlainKey = raw
+            && !/^[\[{]/.test(raw)
+            && !/^(ok|success|true|done)$/i.test(raw)
+            && !isLikelyProviderErrorText(raw);
+          if (looksLikePlainKey) deliveredKey = raw;
+        }
+        if (!deliveredKey) throw new Error(apiResult?.message || 'Provider did not return a license key.');
         break;
       } catch (error) {
         lastError = error;

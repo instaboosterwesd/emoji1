@@ -52,6 +52,7 @@ import {
   adminDeleteManualKey,
   adminDeliverContactKey,
   adminRejectContactKey,
+  isDeviceBoundProduct,
   purchaseProduct,
   adminDeleteReseller,
   checkResellerBalance,
@@ -1909,16 +1910,24 @@ function ProductsView({ session, onBuy }) {
 function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // { key, source }
+  const [androidId, setAndroidId] = useState('');
 
   if (!purchase) return null;
   const { product, duration } = purchase;
+  const needsAndroidId = isDeviceBoundProduct(product) && product?.onlyContact !== true;
 
   const confirm = async () => {
+    const deviceId = androidId.trim();
+    if (needsAndroidId && !deviceId) {
+      toast.error('Enter the Android device ID for this Bala product.');
+      return;
+    }
     setBusy(true);
     try {
+      const purchaseProductData = needsAndroidId ? { ...product, androidId: deviceId } : product;
       const res = await purchaseProduct(
         session.uid,
-        product,
+        purchaseProductData,
         duration,
         duration.price,
         session.name || session.phone || session.uid,
@@ -1991,6 +2000,21 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
               <div><span><DeviceIcon emoji="/icons/new/money-bag.json" icon="account_balance_wallet" size={16} /> Price</span><strong><MoneyDisplay value={duration.price} /></strong></div>
               <div><span><DeviceIcon emoji="/icons/new/platform-emoji.json" icon="devices" size={16} /> Platform</span><strong>{product.platform || 'Access key'}</strong></div>
             </div>
+            {needsAndroidId && (
+              <label className="purchase-device-id-field">
+                <span><DeviceIcon emoji="/icons/new/phone-emoji.json" icon="phone_android" size={16} /> Android device ID <b>*</b></span>
+                <input
+                  value={androidId}
+                  onChange={e => setAndroidId(e.target.value.replace(/\s/g, ''))}
+                  placeholder="Example: 0b9b969bc2e7997b"
+                  autoComplete="off"
+                  spellCheck="false"
+                  inputMode="text"
+                  disabled={busy}
+                />
+                <small className="muted">Required only for Bala Mod / device-bound products. It will be sent as <code>android_id</code>.</small>
+              </label>
+            )}
             <p className="purchase-note"><DeviceIcon emoji="/icons/new/pig-emoji.json" icon="savings" size={16} /> Balance will be deducted. A key will be delivered instantly.</p>
             <div className="modal-btn-row">
               <button type="button" onClick={close} disabled={busy}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Cancel</button>
