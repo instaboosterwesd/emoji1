@@ -7,6 +7,7 @@ const parseDurations = text => {
 };
 
 const rows = [
+  ['BALA MOD XYZ FF MAIN ID NONROOT', '133', '1 Hours [Stock: 0]3 Hours [Stock: 0]6 Hours [Stock: 0]12 Hours [Stock: 0]1 DaYs [Stock: 0]2 DaYs [Stock: 0]3 DaYs [Stock: 0]5 DaYs [Stock: 0]7 DaYs [Stock: 0]'],
   ['APK MC PANEL FF ROOT ANDROID', '124', '1 DaYs [Stock: 13]3 DaYs [Stock: 41]7 DaYs [Stock: 30]'],
   ['BR MOD FF PC VERSION', '49', '1 Day Pc Aim Silent [Stock: 7]1 Day Pc Bypass + Silent [Stock: 6]1 Day Pc Modmenu x86 [Stock: 5]10 Day Pc Modmenu x86 [Stock: 5]10 Days Pc Aim Silent [Stock: 6]10 Days Pc Bypass + Silent [Stock: 4]30 Day Pc Modmenu x86 [Stock: 4]30 Days Pc Aim Silent [Stock: 5]30 Days Pc Bypass + Silent [Stock: 2]'],
   ['BR MOD FF ROOT ANDROID', '67', '1 DaYs [Stock: 32]15 DaYs [Stock: 31]30 DaYs [Stock: 16]7 DaYs [Stock: 31]'],
@@ -53,7 +54,8 @@ export const PRODUCT_CATALOG = rows.map(([name, pid, durations]) => ({
 // upstream response is fixed.
 export const LIVE_PRICING_COUNTS = {
   'A, XYZ CHEATS FF ROOT ANDROID': 5,
-  'BALA XYZ CHEATS FF MAIN ID NONROOT': 3,
+  'BALA XYZ CHEATS FF MAIN ID NONROOT': 9,
+  'BALA MOD XYZ FF MAIN ID NONROOT': 9,
   'BR MOD FF PC VERSION': 6,
   'BR MOD FF ROOT ANDROID': 4,
   'DRIPCLIENT 8BP NONROOT ANDROID': 3,
@@ -86,7 +88,8 @@ export const LIVE_PRICING_COUNTS = {
 
 export const LIVE_DURATION_LABELS = {
   'A, XYZ CHEATS FF ROOT ANDROID': ['1 Days', '3 Days', '7 Days', '15 Days', '30 Days'],
-  'BALA XYZ CHEATS FF MAIN ID NONROOT': ['1 Hours', '3 Hours', '6 Hours'],
+  'BALA XYZ CHEATS FF MAIN ID NONROOT': ['1 Hours', '3 Hours', '6 Hours', '12 Hours', '1 DaYs', '2 DaYs', '3 DaYs', '5 DaYs', '7 DaYs'],
+  'BALA MOD XYZ FF MAIN ID NONROOT': ['1 Hours', '3 Hours', '6 Hours', '12 Hours', '1 DaYs', '2 DaYs', '3 DaYs', '5 DaYs', '7 DaYs'],
   'BR MOD FF PC VERSION': ['1 Day Pc Aim Silent', '10 Days Pc Aim Silent', '30 Days Pc Aim Silent', '1 Day Pc Bypass + Silent', '10 Days Pc Bypass + Silent', '30 Days Pc Bypass + Silent'],
   'BR MOD FF ROOT ANDROID': ['1 DaYs', '7 DaYs', '15 DaYs', '30 DaYs'],
   'DRIPCLIENT 8BP NONROOT ANDROID': ['1 DaYs', '7 DaYs', '30 DaYs'],

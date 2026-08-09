@@ -1,27 +1,98 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: true,
-    port: parseInt(process.env.PORT || '5173'),
-    allowedHosts: true,
-    proxy: {
-      '/api/products': {
-        target: 'https://vercel-api-seven-sepia.vercel.app',
-        changeOrigin: true,
-        rewrite: () => `/scrape?cookie=${encodeURIComponent(process.env.PRODUCTS_SCRAPE_COOKIE || '')}`,
+function resellerDevProxy(env) {
+  return {
+    name: 'reseller-dev-proxy',
+    configureServer(server) {
+      server.middlewares.use('/api/reseller', (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({ message: 'Method not allowed.' }));
+          return;
+        }
+
+        const chunks = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', async () => {
+          const incoming = new URLSearchParams(Buffer.concat(chunks).toString());
+          const apiKey = env.RESELLER_API_KEY || env.VITE_RESELLER_API_KEY;
+          const masterKey = env.RESELLER_MASTER_KEY || env.VITE_RESELLER_MASTER_KEY;
+          const endpoint = env.RESELLER_ENDPOINT || env.VITE_RESELLER_ENDPOINT;
+          if (!apiKey || !masterKey || !endpoint) {
+            res.statusCode = 503;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ message: 'Reseller API is not configured on the server.' }));
+            return;
+          }
+
+          const action = String(incoming.get('action') || '').trim().toLowerCase();
+          if (!['buy', 'balance'].includes(action)) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ message: 'Invalid reseller action.' }));
+            return;
+          }
+          const params = new URLSearchParams({ api_key: apiKey, action });
+          for (const name of ['product_id', 'duration', 'android_id']) {
+            const value = String(incoming.get(name) || '').trim();
+            if (value) params.set(name, value);
+          }
+
+          try {
+            const upstream = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'x-master-key': masterKey,
+              },
+              body: params,
+              signal: AbortSignal.timeout(15000),
+            });
+            const raw = await upstream.text();
+            res.statusCode = upstream.ok ? 200 : upstream.status;
+            res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json; charset=utf-8');
+            res.end(raw);
+          } catch (error) {
+            res.statusCode = 502;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({
+              message: error?.name === 'TimeoutError'
+                ? 'Reseller API timed out after 15 seconds.'
+                : 'Reseller API is unavailable.',
+            }));
+          }
+        });
+      });
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    plugins: [react(), resellerDevProxy(env)],
+    server: {
+      host: true,
+      port: parseInt(process.env.PORT || '5173'),
+      allowedHosts: true,
+      proxy: {
+        '/api/products': {
+          target: 'https://vercel-api-seven-sepia.vercel.app',
+          changeOrigin: true,
+          rewrite: () => `/scrape?cookie=${encodeURIComponent(env.PRODUCTS_SCRAPE_COOKIE || '')}`,
+        },
+      },
+      watch: {
+        ignored: [
+          '**/node_modules/**',
+          '**/dist/**',
+          '**/flaticon-proxy/**',
+          '**/material-design-icons-4.0.0/**',
+          '**/material-design-icons-4.0.0.zip',
+        ],
       },
     },
-    watch: {
-      ignored: [
-        '**/node_modules/**',
-        '**/dist/**',
-        '**/flaticon-proxy/**',
-        '**/material-design-icons-4.0.0/**',
-        '**/material-design-icons-4.0.0.zip',
-      ],
-    },
-  },
+  };
 });

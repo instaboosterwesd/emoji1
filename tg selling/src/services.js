@@ -17,9 +17,7 @@ const firebaseApp = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null
 export const firebaseAuth = firebaseApp ? getAuth(firebaseApp) : null;
 export const firebaseDb = firebaseApp ? getDatabase(firebaseApp) : null;
 
-const resellerEndpoint = import.meta.env.VITE_RESELLER_ENDPOINT;
-const resellerApiKey = import.meta.env.VITE_RESELLER_API_KEY;
-const resellerMasterKey = import.meta.env.VITE_RESELLER_MASTER_KEY;
+const resellerEndpoint = '/api/reseller';
 const productsEndpoint = '/api/products';
 
 const otpHeaders = { accept: '*/*', 'auth-key': 'appxapi', 'client-service': 'Appx', 'device-type': '', source: 'website' };
@@ -532,9 +530,7 @@ function isLikelyProviderErrorText(value) {
 }
 
 export async function buyResellerProduct(productId, duration, androidId = '') {
-  if (!resellerEndpoint || !resellerApiKey || !resellerMasterKey) throw new Error('Reseller API is not configured.');
   const params = {
-    api_key: resellerApiKey,
     action: 'buy',
     product_id: String(productId),
     duration,
@@ -547,10 +543,7 @@ export async function buyResellerProduct(productId, duration, androidId = '') {
   try {
     response = await fetch(resellerEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'x-master-key': resellerMasterKey,
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
       signal: controller.signal,
     });
@@ -570,7 +563,7 @@ export async function buyResellerProduct(productId, duration, androidId = '') {
   if (typeof data === 'string') data = { rawKey: data };
   if (data && typeof data === 'object') data.__raw = raw;
   if (!response.ok || data?.status === false || data?.success === false || String(data?.status).toLowerCase() === 'error') {
-    throw new Error(data?.message || 'Purchase request failed.');
+    throw new Error(data?.message || data?.msg || 'Purchase request failed.');
   }
   return data;
 }
@@ -1184,6 +1177,9 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   if (needsAndroidId && !androidId) {
     throw new Error('Android device ID is required for Bala products.');
   }
+  const durationLabel = String(duration.duration || duration.label || '').trim();
+  const providerDuration = String(duration.sourceDuration || durationLabel).trim();
+  if (!durationLabel || !providerDuration) throw new Error('Invalid product duration.');
 
   // 1. Check balance
   const userSnap = await get(ref(firebaseDb, `users/${uid}`));
@@ -1252,7 +1248,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
     let lastError;
     for (const productId of productIds) {
       try {
-        const apiResult = await buyResellerProduct(productId, duration.duration || duration.label, androidId);
+        const apiResult = await buyResellerProduct(productId, providerDuration, androidId);
         const possibleKeys = [
           apiResult?.key,
           apiResult?.license_key,
@@ -1287,7 +1283,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
             && !isLikelyProviderErrorText(raw);
           if (looksLikePlainKey) deliveredKey = raw;
         }
-        if (!deliveredKey) throw new Error(apiResult?.message || 'Provider did not return a license key.');
+        if (!deliveredKey) throw new Error(apiResult?.message || apiResult?.msg || 'Provider did not return a license key.');
         break;
       } catch (error) {
         lastError = error;
@@ -1669,18 +1665,13 @@ export async function adminDeleteReseller(resellerId) {
 }
 
 export async function checkResellerBalance() {
-  if (!resellerEndpoint || !resellerApiKey || !resellerMasterKey) throw new Error('Reseller API is not configured.');
   const body = new URLSearchParams({
-    api_key: resellerApiKey,
     action: 'balance',
   });
   try {
     const response = await fetch(resellerEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'x-master-key': resellerMasterKey,
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
     });
     const raw = await response.text();
