@@ -709,7 +709,7 @@ export async function adminSaveUpi(upiId, minDeposit, resellerPrice, paymentOpti
     resellerPrice: Math.max(0, Number(resellerPrice || 0)),
     gatewayEnabled: Boolean(paymentOptions.gatewayEnabled),
     upiEnabled: paymentOptions.upiEnabled !== false,
-    gatewayFee: Math.max(0, Number(paymentOptions.gatewayFee || 0)),
+    gatewayFee: Math.min(100, Math.max(0, Number(paymentOptions.gatewayFee || 0))),
     cashfreeAppId: paymentOptions.cashfreeAppId?.trim() || '',
     updatedAt: Date.now(),
   };
@@ -900,7 +900,7 @@ export async function getPaymentSettings() {
     resellerPrice: Number(value.resellerPrice || 0),
     gatewayEnabled: Boolean(value.gatewayEnabled),
     upiEnabled: value.upiEnabled !== false,
-    gatewayFee: Math.max(0, Number(value.gatewayFee || 0)),
+    gatewayFee: Math.min(100, Math.max(0, Number(value.gatewayFee || 0))),
     cashfreeAppId: value.cashfreeAppId || '',
   };
 }
@@ -946,6 +946,7 @@ export async function createGatewayPaymentRequest(uid, amount, paidAmount, order
   const creditAmount = Math.max(0, Number(amount || 0));
   const totalPaid = Math.max(0, Number(paidAmount || 0));
   if (!creditAmount || !totalPaid || !orderId) throw new Error('Gateway payment details are incomplete.');
+  if (totalPaid + 0.01 < creditAmount) throw new Error('Gateway payment amount is less than the wallet credit amount.');
   const settlementRef = ref(firebaseDb, `gatewaySettlements/${orderId}`);
   const claimId = `claim_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const settlement = await runTransaction(settlementRef, current => current || {
@@ -969,7 +970,7 @@ export async function createGatewayPaymentRequest(uid, amount, paidAmount, order
   const user = userSnap.exists() ? userSnap.val() : {};
   const currentBalance = Number(user.balance || 0);
   const newBalance = currentBalance + creditAmount;
-  const fee = Math.max(0, totalPaid - creditAmount);
+  const fee = Math.round((totalPaid - creditAmount + Number.EPSILON) * 100) / 100;
   const txId = `tx_gateway_${orderId}`;
   const request = {
     uid,

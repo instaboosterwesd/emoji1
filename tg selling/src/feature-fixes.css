@@ -846,6 +846,23 @@
   background: rgba(158, 238, 255, .08);
 }
 
+.payment-summary > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.payment-summary-note {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+  color: rgba(222, 236, 247, .68);
+  font-size: 11px;
+}
+
+.payment-summary-note b {
+  color: #fff;
+}
+
 .payment-method-options {
   display: grid;
   gap: 10px;

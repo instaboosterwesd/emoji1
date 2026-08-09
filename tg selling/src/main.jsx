@@ -90,6 +90,10 @@ const usePerf = () => React.useContext(PerfCtx);
 const logo = '/devx-logo.webp';
 const telegramLogo = '/telegram-logo.png';
 const money = v => Number(v || 0).toLocaleString('en-IN');
+const roundMoney = value => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+const gatewayChargeAmount = (amount, percent) => roundMoney(
+  Math.max(0, Number(amount || 0)) * Math.max(0, Number(percent || 0)) / 100,
+);
 const MoneyDisplay = ({ value }) => <strong className="inline-money">₹{money(value)}</strong>;
 const flag = iso2 => iso2.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397));
 const fmtDate = v => {
@@ -3409,12 +3413,12 @@ function AdminPage({ session, onSessionChange }) {
             <small className="muted">Secret key is kept securely in the deployment environment, never in Firebase/browser.</small>
           </label>
           <label>
-            Gateway extra charge
+             Gateway charge (%)
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} />
-              <input value={gatewayFee} onChange={e => setGatewayFee(e.target.value.replace(/[^\d.]/g, ''))} placeholder="5" inputMode="decimal" style={{ flex: 1 }} />
+               <span aria-hidden="true" style={{ width: 18, textAlign: 'center', fontWeight: 700 }}>%</span>
+               <input value={gatewayFee} onChange={e => setGatewayFee(e.target.value.replace(/[^\d.]/g, ''))} placeholder="2" inputMode="decimal" min="0" max="100" style={{ flex: 1 }} />
             </div>
-            <small className="muted">Example: ₹50 wallet credit + ₹5 fee = ₹55 Cashfree payment.</small>
+            <small className="muted">Percentage charged only by Gateway. Example: ₹100 credit + 2% (₹2) fee = ₹102 payment; wallet gets ₹100. UPI has no extra charge.</small>
           </label>
           <label>
             UPI ID
@@ -3531,6 +3535,8 @@ function AddFundPage({ session, onSessionChange }) {
   }, [session?.uid]);
 
   const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
+  const gatewayFeeAmount = gatewayChargeAmount(amount, paySettings.gatewayFee);
+  const gatewayTotalAmount = roundMoney(Number(amount || 0) + gatewayFeeAmount);
 
   const qrUrl = paySettings.upiId
     ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(`upi://pay?pa=${paySettings.upiId}&am=${amount}&cu=INR&tn=WalletDeposit`)}`
@@ -3611,7 +3617,7 @@ function AddFundPage({ session, onSessionChange }) {
 
   const startGatewayPayment = async () => {
     const creditAmount = Number(amount);
-    const totalAmount = creditAmount + Math.max(0, Number(paySettings.gatewayFee || 0));
+    const totalAmount = roundMoney(creditAmount + gatewayChargeAmount(creditAmount, paySettings.gatewayFee));
     setBusy(true);
     try {
       const order = await createCashfreeOrder({
@@ -3709,6 +3715,12 @@ function AddFundPage({ session, onSessionChange }) {
                     ))}
                   </div>
                   <p className="muted deposit-hint"><DeviceIcon emoji="/icons/new/min-deposit-emoji.json" icon="monetization_on" size={16} /> Min. deposit: <MoneyDisplay value={paySettings.minDeposit} /></p>
+                   {paySettings.gatewayEnabled && (
+                     <p className="muted deposit-hint gateway-fee-hint">
+                       Gateway charge: <strong>{paySettings.gatewayFee || 0}%</strong>
+                       {amount && <> · Pay <strong><MoneyDisplay value={gatewayTotalAmount} /></strong> to add <strong><MoneyDisplay value={amount} /></strong> wallet credit</>}
+                     </p>
+                   )}
                   <hr className="deposit-divider" />
                   <form onSubmit={handleAmountNext}>
                     <label htmlFor="dep-amount"><DeviceIcon emoji="/icons/new/custom-amount-emoji.json" icon="edit" size={16} /> <DeviceIcon emoji="/icons/new/rupee-emoji.json" icon="currency_rupee" size={16} /> Custom amount</label>
@@ -3732,17 +3744,24 @@ function AddFundPage({ session, onSessionChange }) {
               </div>
               <p className="muted">Choose a payment method for your wallet top-up.</p>
               <div className="payment-summary">
-                <span>Wallet credit</span><strong><MoneyDisplay value={amount} /></strong>
+                <div>
+                  <span>Wallet credit</span>
+                  <strong><MoneyDisplay value={amount} /></strong>
+                </div>
+                <div className="payment-summary-note">
+                  <span>UPI <b>₹0 fee</b></span>
+                  <span>Gateway <b>{paySettings.gatewayFee || 0}%</b></span>
+                </div>
               </div>
               <div className="payment-method-options">
                 <button type="button" className="payment-method-option" onClick={() => setStep('qr')}>
                   <DeviceIcon emoji="/icons/new/bank-emoji.json" icon="account_balance" size={26} />
-                  <span><strong>UPI</strong><small>Pay by QR, GPay, PhonePe or Paytm</small></span>
+                  <span><strong>UPI</strong><small>No extra charge · Pay <b><MoneyDisplay value={amount} /></b> · QR, GPay, PhonePe or Paytm</small></span>
                   <MatIcon name="arrow_forward" size={18} />
                 </button>
                 <button type="button" className="payment-method-option gateway" onClick={startGatewayPayment} disabled={busy}>
                   <DeviceIcon emoji="/icons/new/verified-badge.json" icon="credit_card" size={26} />
-                  <span><strong>Cashfree Gateway</strong><small>Pay securely online · Total <b><MoneyDisplay value={Number(amount) + Number(paySettings.gatewayFee || 0)} /></b></small></span>
+                  <span><strong>Cashfree Gateway</strong><small>{paySettings.gatewayFee || 0}% charge = <b><MoneyDisplay value={gatewayFeeAmount} /></b> · Pay <b><MoneyDisplay value={gatewayTotalAmount} /></b></small></span>
                   <MatIcon name="arrow_forward" size={18} />
                 </button>
               </div>
