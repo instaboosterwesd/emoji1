@@ -151,11 +151,14 @@ function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
       const userPrice = pricingSettings.userIncreasePercent > 0
         ? Math.round(baseUserPrice * (1 + pricingSettings.userIncreasePercent / 100) * 100) / 100
         : baseUserPrice;
-      const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+      const baseResellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
         ? fixedResellerPrice
         : product.pricingSource === 'imported'
           ? apiPrice
           : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+      const resellerPrice = pricingSettings.resellerIncreasePercent > 0
+        ? Math.round(baseResellerPrice * (1 + pricingSettings.resellerIncreasePercent / 100) * 100) / 100
+        : baseResellerPrice;
       return { ...item, price: isReseller ? resellerPrice : userPrice, isResellerPrice: isReseller };
     }),
   };
@@ -477,7 +480,7 @@ function AiShopTrigger({ open, onClick, hasHelpLink }) {
 function AiShopPanel({ session, onBuy, onClose }) {
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
-  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 });
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0, resellerIncreasePercent: 0 });
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([{
@@ -500,7 +503,7 @@ function AiShopPanel({ session, onBuy, onClose }) {
       const [catalog, rules, settings] = await Promise.all([
         fetchStorefrontProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
-        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 })),
+        getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0, resellerIncreasePercent: 0 })),
       ]);
       setProducts(catalog);
       setPricingRules(rules);
@@ -1712,7 +1715,7 @@ function ProductsView({ session, onBuy }) {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [products, setProducts] = useState([]);
   const [pricingRules, setPricingRules] = useState({});
-  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 });
+  const [pricingSettings, setPricingSettings] = useState({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0, resellerIncreasePercent: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
@@ -1742,11 +1745,14 @@ function ProductsView({ session, onBuy }) {
         const userPrice = pricingSettings.userIncreasePercent > 0
           ? Math.round(baseUserPrice * (1 + pricingSettings.userIncreasePercent / 100) * 100) / 100
           : baseUserPrice;
-        const resellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+        const baseResellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
           ? fixedResellerPrice
           : product.pricingSource === 'imported'
             ? apiPrice
             : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+        const resellerPrice = pricingSettings.resellerIncreasePercent > 0
+          ? Math.round(baseResellerPrice * (1 + pricingSettings.resellerIncreasePercent / 100) * 100) / 100
+          : baseResellerPrice;
         return {
           ...item,
           price: isReseller ? resellerPrice : userPrice,
@@ -1762,7 +1768,7 @@ function ProductsView({ session, onBuy }) {
       const [prods, rules, pricing] = await Promise.all([
         fetchStorefrontProducts(session?.role),
         getAdminPricingRules().catch(() => ({})),
-         getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0 })),
+         getProductPricingSettings().catch(() => ({ userAdjustment: -20, resellerAdjustment: 10, userIncreasePercent: 0, resellerIncreasePercent: 0 })),
       ]);
       setPricingRules(rules);
       setPricingSettings(pricing);
@@ -2530,6 +2536,7 @@ function AdminPage({ session, onSessionChange }) {
   const [fundForm, setFundForm] = useState({ uid: '', amount: '', mode: 'add' });
   const [resellerForm, setResellerForm] = useState({ username: '', password: '', fund: '' });
   const [userIncreasePercent, setUserIncreasePercent] = useState('0');
+  const [resellerIncreasePercent, setResellerIncreasePercent] = useState('0');
   const [upiId, setUpiId] = useState('');
   const [minDeposit, setMinDeposit] = useState('50');
   const [resellerPrice, setResellerPrice] = useState('');
@@ -2587,7 +2594,7 @@ function AdminPage({ session, onSessionChange }) {
         getGiftCodes().catch(() => []),
         getProductChannels().catch(() => []),
         getProductCatalogMeta().catch(() => ({})),
-        getProductPricingSettings().catch(() => ({ userIncreasePercent: 0 })),
+        getProductPricingSettings().catch(() => ({ userIncreasePercent: 0, resellerIncreasePercent: 0 })),
       ]);
       setData(overview);
       setProducts(productList);
@@ -2612,6 +2619,7 @@ function AdminPage({ session, onSessionChange }) {
       setCatalogMeta(catalogInfo);
       setCatalogSourceDomain(catalogInfo[catalogImportType]?.sourceDomain || '');
       setUserIncreasePercent(String(pricingSettings.userIncreasePercent || 0));
+      setResellerIncreasePercent(String(pricingSettings.resellerIncreasePercent || 0));
     } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
@@ -2848,37 +2856,61 @@ function AdminPage({ session, onSessionChange }) {
     products: (
       <div className="admin-card">
         <h3>Manage products &amp; pricing</h3>
-        <p className="muted" style={{ marginBottom: 8 }}>Set a global User price increase, or select any product for fixed User/Reseller pricing and the DM / Only Contact switch.</p>
+        <p className="muted" style={{ marginBottom: 8 }}>Set separate global price increases for User and Reseller accounts, or select any product for fixed User/Reseller pricing and the DM / Only Contact switch.</p>
         <form
           className="admin-form global-pricing-form"
           onSubmit={e => {
             e.preventDefault();
             safeAction(
-              () => adminSaveProductPricingSettings({ userIncreasePercent }),
-              'Global User pricing saved',
+              () => adminSaveProductPricingSettings({ userIncreasePercent, resellerIncreasePercent }),
+              'Global User and Reseller pricing saved',
             );
           }}
         >
-          <label>
-            Global User price increase (%)
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span aria-hidden="true" style={{ width: 18, textAlign: 'center', fontWeight: 700 }}>%</span>
-              <input
-                value={userIncreasePercent}
-                onChange={e => setUserIncreasePercent(e.target.value.replace(/[^\d.]/g, ''))}
-                placeholder="0"
-                inputMode="decimal"
-                min="0"
-                max="1000"
-                step="0.01"
-                style={{ flex: 1 }}
-              />
-              <button className="modal-save" type="submit">
-                <MatIcon name="check" size={15} /> Save
-              </button>
-            </div>
-            <small className="muted">Applies to every User price. Example: ₹5 with 2% becomes ₹5.10. Enter 0 to disable.</small>
-          </label>
+          <div className="global-pricing-fields" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <label>
+              Global User price increase (%)
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span aria-hidden="true" style={{ width: 18, textAlign: 'center', fontWeight: 700 }}>%</span>
+                <input
+                  value={userIncreasePercent}
+                  onChange={e => setUserIncreasePercent(e.target.value.replace(/[^\d.]/g, ''))}
+                  placeholder="0"
+                  inputMode="decimal"
+                  min="0"
+                  max="1000"
+                  step="0.01"
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <small className="muted">Applies only to User prices. Enter 0 to disable.</small>
+            </label>
+            <label>
+              Global Reseller price increase (%)
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span aria-hidden="true" style={{ width: 18, textAlign: 'center', fontWeight: 700 }}>%</span>
+                <input
+                  value={resellerIncreasePercent}
+                  onChange={e => setResellerIncreasePercent(e.target.value.replace(/[^\d.]/g, ''))}
+                  placeholder="0"
+                  inputMode="decimal"
+                  min="0"
+                  max="1000"
+                  step="0.01"
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <small className="muted">Applies only to Reseller prices. Enter 0 to disable.</small>
+            </label>
+          </div>
+          <div>
+            <small className="muted">Example: ₹5 with 2% becomes ₹5.10. Each percentage is applied separately after the matching User/Reseller base price is resolved.</small>
+          </div>
+          <div>
+            <button className="modal-save" type="submit">
+              <MatIcon name="check" size={15} /> Save pricing
+            </button>
+          </div>
         </form>
         <div className="search-box admin-search">
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
