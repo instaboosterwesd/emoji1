@@ -1669,7 +1669,6 @@ export async function adminDeliverContactKey(keyId, replacementKey) {
   return true;
 }
 
-<<<<<<< HEAD
 export async function adminRejectContactKey(keyId, reason = 'DM key request rejected') {
   if (!firebaseDb || !keyId) throw new Error('Contact order is missing.');
 
