@@ -2743,7 +2743,7 @@ function AdminPage({ session, onSessionChange }) {
           <div className="admin-card-header">
             <div className="heading-title-row">
               <MatIcon name="api" size={20} />
-               <div><h3>Reseller API Status</h3><p className="muted">Safe validation request — no product is purchased</p></div>
+               <div><h3>Reseller API Status</h3><p className="muted">Server-side configuration check — no product is purchased</p></div>
             </div>
             <button className="modal-save" onClick={checkApiStatus} disabled={apiChecking}>
               {apiChecking ? 'Checking…' : <><MatIcon name="refresh" size={16} /> Check now</>}
@@ -2756,8 +2756,8 @@ function AdminPage({ session, onSessionChange }) {
                 : (
                   <>
                     <p className="muted" style={{ marginBottom: 8 }}>
-                      {apiStatus.__test === 'safe_validation'
-                        ? `Safe validation response · HTTP ${apiStatus.__httpStatus ?? '—'}`
+                       {apiStatus.__test === 'configuration_status'
+                         ? `Configuration response · HTTP ${apiStatus.__httpStatus ?? '—'}`
                         : 'Provider response'}
                     </p>
                     <pre className="api-status-pre">{JSON.stringify(apiStatus, null, 2)}</pre>
@@ -2766,7 +2766,7 @@ function AdminPage({ session, onSessionChange }) {
               }
             </div>
           )}
-          {!apiStatus && !apiChecking && <p className="muted empty-state">Press "Check now" to send a non-purchasing validation request.</p>}
+           {!apiStatus && !apiChecking && <p className="muted empty-state">Press "Check now" to verify the server-side API configuration.</p>}
         </div>
 
         <div className="admin-two-col">
@@ -3440,6 +3440,22 @@ function AdminPage({ session, onSessionChange }) {
           </label>
           <button className="modal-save" type="submit"><DeviceIcon emoji="/icons/new/verified-check.json" icon="check_circle" size={16} /> Update status</button>
         </form>
+      </div>
+      <div className="admin-card">
+        <h3><MatIcon name="api" size={20} /> Reseller API Settings</h3>
+        <p className="muted">
+          API credentials are intentionally not entered here or stored in Firebase. Set
+          <code>RESELLER_API_KEY</code> and <code>RESELLER_MASTER_KEY</code> in Replit Secrets,
+          and set <code>RESELLER_ENDPOINT</code> as a shared environment variable.
+        </p>
+        <div className="api-setup-hint">
+          <strong>Current setup</strong>
+          <p className="muted">Use the Dashboard → Reseller API Status card to check whether the server can access the provider.</p>
+          <p className="muted">Provider supports purchase requests; its balance action currently returns “Invalid Action”, so wallet balance cannot be displayed automatically.</p>
+        </div>
+        <button className="modal-save" type="button" onClick={() => { setTab('dashboard'); setTimeout(checkApiStatus, 0); }}>
+          <MatIcon name="api" size={16} /> Check server configuration
+        </button>
       </div>
       <div className="admin-card">
         <h3><img src={telegramLogo} alt="" style={{ width: 20, height: 20, verticalAlign: 'middle', marginRight: 7 }} /> Telegram community links</h3>

@@ -19,6 +19,7 @@ VITE_RESELLER_API_KEY = "7cfd4cd975c20fe02957d4a0fb7b194e"
 VITE_RESELLER_ENDPOINT = "https://xyzcheats.com/api/reseller_v1.php"
 VITE_RESELLER_MASTER_KEY = "a7f3e8b2c9d1f4a6b8c2d5e9f1a3b6c8"
 TURNSTILE_SECRET = "0x4AAAAAAEEMr6cVJlMYLTfg5k-jBfYmScM"
+RESELLER_ENDPOINT = "https://xyzcheats.com/api/reseller_v1.php"
 
 [workflows]
 runButton = "Project"

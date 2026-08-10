@@ -6,6 +6,20 @@ function resellerDevProxy(env) {
     name: 'reseller-dev-proxy',
     configureServer(server) {
       server.middlewares.use('/api/reseller', (req, res) => {
+          if (req.method === 'GET' && req.url === '/status') {
+            const configured = Boolean(env.RESELLER_API_KEY && env.RESELLER_MASTER_KEY && env.RESELLER_ENDPOINT);
+            res.statusCode = configured ? 200 : 503;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({
+              configured,
+              endpointConfigured: Boolean(env.RESELLER_ENDPOINT),
+              credentialsConfigured: Boolean(env.RESELLER_API_KEY && env.RESELLER_MASTER_KEY),
+              message: configured
+                ? 'Reseller API is configured server-side.'
+                : 'Set RESELLER_API_KEY, RESELLER_MASTER_KEY, and RESELLER_ENDPOINT in the server environment.',
+            }));
+            return;
+          }
         if (req.method !== 'POST') {
           res.statusCode = 405;
           res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -17,9 +31,11 @@ function resellerDevProxy(env) {
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', async () => {
           const incoming = new URLSearchParams(Buffer.concat(chunks).toString());
-          const apiKey = env.RESELLER_API_KEY || env.VITE_RESELLER_API_KEY;
-          const masterKey = env.RESELLER_MASTER_KEY || env.VITE_RESELLER_MASTER_KEY;
-          const endpoint = env.RESELLER_ENDPOINT || env.VITE_RESELLER_ENDPOINT;
+          // Never read reseller credentials from VITE_ variables. VITE values
+          // are exposed to the browser bundle; these must stay server-side.
+          const apiKey = env.RESELLER_API_KEY;
+          const masterKey = env.RESELLER_MASTER_KEY;
+          const endpoint = env.RESELLER_ENDPOINT;
           if (!apiKey || !masterKey || !endpoint) {
             res.statusCode = 503;
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -83,6 +99,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () => `/scrape?cookie=${encodeURIComponent(env.PRODUCTS_SCRAPE_COOKIE || '')}`,
         },
+      },
+      define: {
+        // Keep accidental client-side access to these names impossible.
+        'import.meta.env.VITE_RESELLER_API_KEY': 'undefined',
+        'import.meta.env.VITE_RESELLER_MASTER_KEY': 'undefined',
       },
       watch: {
         ignored: [

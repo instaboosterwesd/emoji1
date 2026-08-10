@@ -1725,30 +1725,14 @@ export async function adminDeleteReseller(resellerId) {
 }
 
 export async function checkResellerBalance() {
-  const body = new URLSearchParams({
-    action: 'buy',
-    product_id: '__connection_test__',
-    duration: '__connection_test__',
-  });
   try {
-    const response = await fetch(resellerEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-    });
-    const raw = await response.text();
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      data = { raw };
-    }
+    const response = await fetch(`${resellerEndpoint}/status`, { cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
     return {
       ...data,
       __httpStatus: response.status,
       __ok: response.ok,
-      __raw: raw,
-      __test: 'safe_validation',
+      __test: 'configuration_status',
     };
   } catch (err) {
     return { error: true, message: err.message };
