@@ -77,6 +77,7 @@ import {
   fetchStorefrontProducts,
   adminSaveProductCatalog,
   adminSetProductCatalogLinkMode,
+  parseProductSource,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -2551,6 +2552,7 @@ function AdminPage({ session, onSessionChange }) {
   const [catalogImportType, setCatalogImportType] = useState('user');
   const [catalogImportHtml, setCatalogImportHtml] = useState('');
   const [catalogSourceDomain, setCatalogSourceDomain] = useState('');
+  const [catalogPidOverrides, setCatalogPidOverrides] = useState({});
   const [catalogImporting, setCatalogImporting] = useState(false);
   const [productChannels, setProductChannels] = useState([]);
   const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
@@ -2692,8 +2694,9 @@ function AdminPage({ session, onSessionChange }) {
     }
     setCatalogImporting(true);
     try {
-      const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain);
+      const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain, catalogPidOverrides);
       setCatalogImportHtml('');
+      setCatalogPidOverrides({});
       const nextMeta = await getProductCatalogMeta().catch(() => catalogMeta);
       setCatalogMeta(nextMeta);
       await loadAdmin();
@@ -2704,6 +2707,15 @@ function AdminPage({ session, onSessionChange }) {
       setCatalogImporting(false);
     }
   };
+
+  const catalogPreview = useMemo(() => {
+    if (!catalogImportHtml.trim()) return { products: [], error: '' };
+    try {
+      return { products: parseProductSource(catalogImportHtml, catalogSourceDomain), error: '' };
+    } catch (err) {
+      return { products: [], error: err.message };
+    }
+  }, [catalogImportHtml, catalogSourceDomain]);
 
   const setSourceLinkMode = async enabled => {
     try {
@@ -3040,6 +3052,50 @@ function AdminPage({ session, onSessionChange }) {
               required
             />
           </label>
+          {catalogImportHtml.trim() && (
+            <div className="catalog-pid-preview">
+              <div className="admin-card-header">
+                <div>
+                  <h3>Detected products &amp; PIDs</h3>
+                  <p className="muted">
+                    {catalogPreview.products.length
+                      ? `${catalogPreview.products.length} products found. Correct any PID before submitting.`
+                      : catalogPreview.error || 'Reading source…'}
+                  </p>
+                </div>
+              </div>
+              {catalogPreview.products.length > 0 && (
+                <div className="catalog-pid-table-wrap">
+                  <table className="catalog-pid-table">
+                    <thead>
+                      <tr><th>Product</th><th>PID used for API</th><th>Durations / stock</th></tr>
+                    </thead>
+                    <tbody>
+                      {catalogPreview.products.map(product => {
+                        const currentPid = catalogPidOverrides[product.name] ?? product.pid;
+                        return (
+                          <tr key={`${product.name}-${product.pid}`}>
+                            <td><strong>{product.name}</strong></td>
+                            <td>
+                              <input
+                                value={currentPid}
+                                onChange={e => setCatalogPidOverrides(current => ({ ...current, [product.name]: e.target.value }))}
+                                aria-label={`PID for ${product.name}`}
+                                inputMode="numeric"
+                              />
+                            </td>
+                            <td>
+                              <small>{product.pricing.map(item => `${item.duration}${item.stock !== null ? ` [Stock: ${item.stock}]` : ''}`).join(' · ')}</small>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
           <button className="modal-save" type="submit" disabled={catalogImporting}>
             <MatIcon name="sync" size={16} />
             {catalogImporting ? 'Updating catalog…' : `Submit ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`}

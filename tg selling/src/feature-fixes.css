@@ -711,6 +711,53 @@
   margin-bottom: 12px;
 }
 
+.catalog-pid-preview {
+  border: 1px solid rgba(142, 207, 240, .16);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(7, 13, 29, .42);
+}
+
+.catalog-pid-table-wrap {
+  overflow-x: auto;
+}
+
+.catalog-pid-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+
+.catalog-pid-table th,
+.catalog-pid-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid rgba(142, 207, 240, .1);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.catalog-pid-table th {
+  color: #9ec9e4;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.catalog-pid-table td:first-child {
+  min-width: 220px;
+}
+
+.catalog-pid-table input {
+  width: 100px;
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.catalog-pid-table small {
+  color: rgba(233, 241, 255, .72);
+  line-height: 1.5;
+}
+
 .admin-list {
   display: grid;
   gap: 8px;

@@ -146,8 +146,8 @@ export function parseProductSource(html, sourceDomain = '') {
   if (typeof DOMParser === 'undefined') throw new Error('HTML import is only available in the browser.');
   const document = new DOMParser().parseFromString(String(html || ''), 'text/html');
   const cards = [...document.querySelectorAll('[id^="product-card-"]')];
-  if (!cards.length) throw new Error('No product cards found. Paste the complete User or Reseller page source.');
-  return cards.map((card, index) => {
+  if (cards.length) {
+    return cards.map((card, index) => {
     const pid = card.id.match(/^product-card-(.+)$/i)?.[1] || String(index + 1);
     const name = cleanSourceText(card.querySelector('.product-title, h5, h4')?.textContent) || `Product ${pid}`;
     const images = [...card.querySelectorAll('img[src]')].map(item => sourceUrl(item.getAttribute('src'), sourceDomain)).filter(Boolean);
@@ -179,7 +179,55 @@ export function parseProductSource(html, sourceDomain = '') {
       fileUpdateUrl: updateLink?.href || '',
       sourceDomain: sourceDomain.trim(),
     };
-  }).filter(product => product.name && product.pricing.length);
+    }).filter(product => product.name && product.pricing.length);
+  }
+
+  // Some provider profile pages do not render product cards. They expose the
+  // authoritative PID in a "PRODUCT REFERENCE TABLE" instead:
+  // <tr><td>Product name</td><td><span class="badge-pid">133</span></td>...
+  const referenceRows = [...document.querySelectorAll('tr')].filter(row =>
+    row.querySelector('.badge-pid') && row.querySelector('.badge-api'),
+  );
+  if (!referenceRows.length) {
+    throw new Error('No product cards or PID reference table found. Paste the complete User or Reseller page source.');
+  }
+
+  return referenceRows.map((row, index) => {
+    const cells = [...row.querySelectorAll(':scope > td')];
+    const pid = cleanSourceText(row.querySelector('.badge-pid')?.textContent) || String(index + 1);
+    const name = cleanSourceText(cells[0]?.textContent) || `Product ${pid}`;
+    const pricing = [...row.querySelectorAll('.badge-api')].map(badge => {
+      const raw = cleanSourceText(badge.textContent).replace(/^[^\w₹]+/, '');
+      const duration = cleanSourceText(raw.split(/\[/, 1)[0]) || 'Default';
+      const stockMatch = raw.match(/\[\s*Stock:\s*(\d+)\s*\]/i);
+      return {
+        label: duration,
+        duration,
+        sourceDuration: duration,
+        price: 0,
+        stock: stockMatch ? Number(stockMatch[1]) : null,
+      };
+    }).filter((item, itemIndex, all) =>
+      item.duration && all.findIndex(other => other.duration.toLowerCase() === item.duration.toLowerCase()) === itemIndex,
+    );
+    const modeText = cleanSourceText(cells[2]?.textContent);
+    return {
+      id: pid,
+      pid,
+      purchasePid: pid,
+      name,
+      game: cleanSourceText(row.getAttribute('data-game')) || 'Unknown',
+      platform: cleanSourceText(row.getAttribute('data-device')) || 'Android',
+      image: productIconFor(name) || '',
+      videos: [],
+      features: modeText ? [modeText] : [],
+      pricing,
+      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+      fileUpdateUrl: '',
+      sourceDomain: sourceDomain.trim(),
+      sourceFormat: 'pid-reference-table',
+    };
+  }).filter(product => product.name && product.pid && product.pricing.length);
 }
 
 export async function getProductCatalog(type = 'user') {
@@ -237,10 +285,15 @@ export async function getProductCatalogMeta() {
   }));
 }
 
-export async function adminSaveProductCatalog(type, html, sourceDomain = '') {
+export async function adminSaveProductCatalog(type, html, sourceDomain = '', pidOverrides = {}) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   const catalogType = type === 'reseller' ? 'reseller' : 'user';
-  const products = parseProductSource(html, sourceDomain);
+  const parsedProducts = parseProductSource(html, sourceDomain);
+  const products = parsedProducts.map(product => {
+    const override = String(pidOverrides?.[product.name] || '').trim();
+    if (!override || override === String(product.pid)) return product;
+    return { ...product, id: override, pid: override, purchasePid: override };
+  });
   const catalogRef = ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`);
   const previousSnap = await get(catalogRef);
   const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
