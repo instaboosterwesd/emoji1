@@ -1,0 +1,194 @@
+आप एक काम करो, admin panel में जहां पर product data दिखता है, वहां पर user and reseller था, जहां पर हम source डाल कर import कर लेते हैं। वहीं पर एक button लगाओ Pid नाम से। वहां पर Pid वाला source डाल देंगे और जो भी Pid होगी वह update हो जाएगी। अगर मान लो किसी की change होती है तो update हो जाएगी।
+
+RO
+roroba7322
+roroba7322
+1 hour ago
+समझ गया। Product Data में User Data और Reseller Data के साथ तीसरा PID button जोड़ूँगा। PID source paste करने पर:
+
+selected catalog (User या Reseller) के existing products से नाम match होंगे;
+केवल pid, purchasePid और id update होंगे;
+pricing, duration, links, images और बाकी data जस का तस रहेगा;
+बदले हुए, नए match हुए और unmatched products का preview दिखेगा;
+source submit करने पर केवल PID mapping update होगी, पूरा catalog replace नहीं होगा।
+
+8 actions
+अब अलग PID-update flow जोड़ रहा हूँ। PID button चुनने पर User/Reseller target चुना रहेगा, लेकिन submit केवल existing catalog के pid, purchasePid और id बदलेगा—पूरा product data या pricing replace नहीं होगी।
+
+
+2 actions
+PID update logic जोड़ दिया गया है। अब UI का बाकी हिस्सा पूरा कर रहा हूँ: User Data / Reseller Data / PID तीन buttons, PID mode का अलग preview, और update के बाद changed/unchanged/unmatched summary।
+
+
+3 actions
+PID button और अलग update flow तैयार है। अब मैं build, diff और workflow logs से syntax/runtime verify कर रहा हूँ; साथ ही यह सुनिश्चित करूँगा कि PID mode में catalog data replace न हो और केवल matching product IDs update हों।
+
+
+7 actions
+एक छोटी usability सुधार कर रहा हूँ: PID mode में भी User/Reseller target बदला जा सकेगा, बिना PID mode से बाहर निकले। साथ ही Product Data का description PID mode में “catalog replace” नहीं बताएगा, और irrelevant File Update toggle PID mode में छिपेगा।
+
+
+2 actions
+एक छोटा bug पकड़कर ठीक कर रहा हूँ: PID mode में User/Reseller target बदलने पर selected button साफ दिखना चाहिए, और PID source preview के PID fields read-only होने चाहिए क्योंकि update source से आएगा। Manual correction के लिए User/Reseller import का existing editable preview अलग रहेगा।
+
+
+3 actions
+PID mode में target बदलने और सामान्य import पर लौटने का behavior साफ कर रहा हूँ: PID button दोबारा दबाने पर normal Product Data mode वापस आएगा; PID mode में User/Reseller दबाने पर सिर्फ target बदलेगा।
+
+
+2 actions
+UI behavior finalize कर रहा हूँ: PID mode में PID button active रहेगा और User/Reseller buttons target बदलेंगे, ताकि दो buttons एक साथ active दिखकर confusion न हो। उसके बाद final build, preview और GitHub push करूँगा।
+
+
+2 actions
+PID flow अब पूरा है। अंतिम verification कर रहा हूँ—build, workflow restart, preview और git diff—फिर केवल code files GitHub main पर push करूँगा। Uploaded source file commit नहीं होगी।
+
+
+3 actions
+Build सफल है और PID update flow तैयार है। अब workflow restart और अंतिम preview check कर रहा हूँ, फिर code changes को GitHub main पर push कर दूँगा।
+
+
+2 actions
+Workflow restart सफल है। अब अंतिम screenshot/log और git verification कर रहा हूँ; सब ठीक होने पर commit करके GitHub पर push कर दूँगा।
+
+
+3 actions
+सब verification पास है और preview/workflow ठीक चल रहे हैं। अब केवल code files commit करके GitHub main पर push कर रहा हूँ; uploaded source reference file को commit में शामिल नहीं करूँगा।
+
+
+2 actions
+PID update feature तैयार है और GitHub पर push हो गया है।
+
+Admin Panel में अब 3 buttons हैं
+User Data
+Reseller Data
+PID
+PID button का काम
+Product Data → PID पर क्लिक करें।
+ऊपर से target चुनें:
+User Data
+Reseller Data
+PID वाला source paste करें।
+Preview में Product Name और PID दिखेंगे।
+Update User PIDs या Update Reseller PIDs दबाएँ।
+यह केवल matching products के:
+
+id
+pid
+purchasePid
+update करेगा।
+
+Pricing, duration, images, links और बाकी product data बिल्कुल change नहीं होगा। अगर किसी PID में बदलाव होगा तो वह update हो जाएगा; same PID unchanged रहेगा और unmatched product names अलग दिखेंगे।
+
+Verification:
+
+Build सफल
+Workflow running
+Preview सफल
+GitHub push सफल
+Latest commit:
+
+7c4dc1a Add separate PID catalog update flow
+
+Uploaded source file GitHub में commit नहीं की गई।
+
+
+Worked for 2 minutes
+
+Checkpoint made
+1 hour ago
+reqest dkheo ja rahi ha ya nahai proper
+
+RO
+roroba7322
+roroba7322
+1 hour ago
+Investigating user request
+
+Investigating user request
+मैं request flow को सीधे check कर रहा हूँ—frontend payload, server proxy और provider response तीनों verify करूँगा। Fake/safe request से test करूँगा, कोई real purchase नहीं भेजूँगा।
+
+
+4 actions
+Code देखकर proxy structure सही है: frontend /api/reseller को form data भेजता है, server credentials जोड़कर provider को POST करता है। अब actual safe fake-PID request भेजकर देखता हूँ कि provider तक request पहुँच रही है या local proxy में रुक रही है।
+
+
+4 actions
+हाँ, request properly जा रही है।
+
+Safe test का result:
+
+Local proxy status: configured: true
+Server-side API key और master key configured हैं
+Request provider तक पहुँची
+Provider ने response दिया:
+{"status":"error","msg":"Product not found"}
+
+इसका मतलब request बीच में block नहीं हुई। Provider ने product_id=999999999 को check करके invalid बताया।
+
+Frontend से भेजे जाने वाले fields:
+
+action=buy
+product_id=<PID>
+duration=<duration>
+android_id=<सिर्फ Bala/device-bound product के लिए>
+
+Server provider को credentials के साथ ये request भेज रहा है:
+
+api_key
+action
+product_id
+duration
+android_id
+Header: x-master-key
+इस test में कोई real purchase नहीं हुई। Valid PID और सही duration देने पर ही actual order place होगा।
+
+
+Worked for 20 seconds
+1 Hours 133
+
+RO
+roroba7322
+roroba7322
+1 hour ago
+PID 133 और duration 1 Hours मिल गया। यह valid purchase request हो सकती है, इसलिए भेजने से पहले एक बात confirm करनी होगी: क्या मैं provider को real purchase request भेजूँ? इससे balance/order प्रभावित हो सकता है। साथ ही PID 133 अगर device-bound product है तो Android ID भी चाहिए।
+
+
+Searched for "133|1 ?hours"
+PID 133 वाला product BALA MOD XYZ FF MAIN ID NONROOT है और provider के अनुसार 1 Hours के लिए Android ID अनिवार्य है। Real purchase करने पर provider balance/order प्रभावित हो सकता है।
+
+Real request भेजने के लिए confirmation और Android ID दोनों चाहिए।
+
+क्या PID 133 की real purchase request भेजूँ?
+Real purchase भेजें?
+हाँ, भेजें
+Android ID
+0fa38ca172e4c84c
+RO
+roroba7322
+roroba7322
+
+Worked for 13 seconds
+Confirmation और Android ID मिल गया है। अब PID 133, duration 1 Hours, और दिए गए Android ID के साथ provider को real purchase request भेज रहा हूँ।
+
+
+Fetched a URL
+Request properly provider तक गई, लेकिन purchase complete नहीं हुई।
+
+Provider response:
+
+{
+  "status": "error",
+  "msg": "Low Balance! Wallet: ₹0"
+}
+
+मतलब:
+
+PID: 133
+Duration: 1 Hours
+Android ID request में भेजा गया
+Provider ने request accept करके process की
+Provider wallet balance: ₹0
+कोई license/key generate नहीं हुई
+कोई purchase complete नहीं हुई
+Provider wallet में balance add होने के बाद यही request दोबारा भेजनी होगी।
