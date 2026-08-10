@@ -758,6 +758,31 @@
   line-height: 1.5;
 }
 
+.catalog-pid-results {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(116, 224, 165, .24);
+  border-radius: 14px;
+  background: rgba(116, 224, 165, .07);
+}
+
+.catalog-pid-results p {
+  margin: 5px 0 10px;
+}
+
+.catalog-pid-result-list {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.catalog-pid-result-list span {
+  color: #dfffea;
+  font-size: 12px;
+}
+
 .admin-list {
   display: grid;
   gap: 8px;

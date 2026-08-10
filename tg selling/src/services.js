@@ -230,6 +230,52 @@ export function parseProductSource(html, sourceDomain = '') {
   }).filter(product => product.name && product.pid && product.pricing.length);
 }
 
+const pidMatchKey = value => String(value || '')
+  .toLowerCase()
+  .replace(/&amp;/g, '&')
+  .replace(/[^a-z0-9]+/g, '')
+  .trim();
+
+export function parseProductPidSource(html) {
+  if (typeof DOMParser === 'undefined') throw new Error('HTML import is only available in the browser.');
+  const document = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const entries = [];
+  const seen = new Set();
+
+  const addEntry = (nameValue, pidValue) => {
+    const name = cleanSourceText(nameValue);
+    const pid = cleanSourceText(pidValue).replace(/^pid\s*[:#-]?\s*/i, '');
+    const key = pidMatchKey(name);
+    if (!name || !pid || !key || seen.has(key)) return;
+    seen.add(key);
+    entries.push({ name, pid });
+  };
+
+  // Provider reference tables use the product name in the first cell and the
+  // authoritative PID in a .badge-pid element.
+  [...document.querySelectorAll('tr')].forEach(row => {
+    const pid = row.querySelector('.badge-pid, [data-pid]')?.textContent
+      || row.querySelector('[data-pid]')?.getAttribute('data-pid');
+    const cells = [...row.querySelectorAll(':scope > td, :scope > th')];
+    const nameCell = cells.find(cell => !cell.matches('.text-center') && !cell.querySelector('.badge-pid, [data-pid]'));
+    addEntry(nameCell?.textContent, pid);
+  });
+
+  // Also accept cards or custom markup where the PID is explicitly exposed.
+  [...document.querySelectorAll('[data-pid], .product-card, [id^="product-card-"]')].forEach(node => {
+    const pid = node.getAttribute('data-pid') || node.querySelector('.badge-pid, [data-pid]')?.textContent
+      || node.id.match(/^product-card-(.+)$/i)?.[1];
+    const name = node.querySelector('.product-title, .product-name, h3, h4, h5')?.textContent
+      || node.getAttribute('data-product-name');
+    addEntry(name, pid);
+  });
+
+  if (!entries.length) {
+    throw new Error('No product names and PIDs found. Paste the provider PID reference source.');
+  }
+  return entries;
+}
+
 export async function getProductCatalog(type = 'user') {
   if (!firebaseDb) return [];
   const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}`));
@@ -324,6 +370,56 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '', pid
     newProducts,
     replaced: true,
   };
+}
+
+export async function adminUpdateProductPids(type, html) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  const entries = parseProductPidSource(html);
+  const catalogRef = ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`);
+  const snapshot = await get(catalogRef);
+  if (!snapshot.exists()) throw new Error(`No ${catalogType} catalog found. Import Product Data first.`);
+
+  const current = snapshot.val() || {};
+  const currentProducts = Array.isArray(current.products) ? current.products : [];
+  if (!currentProducts.length) throw new Error(`No ${catalogType} products found. Import Product Data first.`);
+
+  const incomingByName = new Map(entries.map(entry => [pidMatchKey(entry.name), entry]));
+  const changed = [];
+  const unchanged = [];
+  const matchedKeys = new Set();
+  const products = currentProducts.map(product => {
+    const match = incomingByName.get(pidMatchKey(product.name));
+    if (!match) return product;
+    matchedKeys.add(pidMatchKey(product.name));
+    const previousPid = String(product.pid || product.purchasePid || product.id || '');
+    if (previousPid === match.pid) {
+      unchanged.push({ name: product.name, pid: match.pid });
+      return product;
+    }
+    changed.push({ name: product.name, previousPid, pid: match.pid });
+    return { ...product, id: match.pid, pid: match.pid, purchasePid: match.pid };
+  });
+  const unmatchedSource = entries.filter(entry => !matchedKeys.has(pidMatchKey(entry.name)));
+
+  if (!changed.length) {
+    return {
+      type: catalogType,
+      changed,
+      unchanged,
+      unmatchedSource,
+      updated: false,
+    };
+  }
+
+  await set(catalogRef, {
+    ...current,
+    products,
+    count: products.length,
+    pidUpdatedAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  return { type: catalogType, changed, unchanged, unmatchedSource, updated: true };
 }
 
 export async function adminSetProductCatalogLinkMode(type, enabled) {

@@ -76,7 +76,9 @@ import {
   getProductCatalogMeta,
   fetchStorefrontProducts,
   adminSaveProductCatalog,
+  adminUpdateProductPids,
   adminSetProductCatalogLinkMode,
+  parseProductPidSource,
   parseProductSource,
 } from './services';
 import './styles.css';
@@ -2550,10 +2552,12 @@ function AdminPage({ session, onSessionChange }) {
   const [products, setProducts] = useState([]);
   const [catalogMeta, setCatalogMeta] = useState({});
   const [catalogImportType, setCatalogImportType] = useState('user');
+  const [catalogImportMode, setCatalogImportMode] = useState('catalog');
   const [catalogImportHtml, setCatalogImportHtml] = useState('');
   const [catalogSourceDomain, setCatalogSourceDomain] = useState('');
   const [catalogPidOverrides, setCatalogPidOverrides] = useState({});
   const [catalogImporting, setCatalogImporting] = useState(false);
+  const [pidUpdateResults, setPidUpdateResults] = useState(null);
   const [productChannels, setProductChannels] = useState([]);
   const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
   const [search, setSearch] = useState('');
@@ -2694,6 +2698,14 @@ function AdminPage({ session, onSessionChange }) {
     }
     setCatalogImporting(true);
     try {
+      if (catalogImportMode === 'pid') {
+        const result = await adminUpdateProductPids(catalogImportType, catalogImportHtml);
+        setPidUpdateResults(result);
+        setCatalogImportHtml('');
+        await loadAdmin();
+        toast.success(`${result.changed.length} PID${result.changed.length === 1 ? '' : 's'} updated for ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`);
+        return;
+      }
       const result = await adminSaveProductCatalog(catalogImportType, catalogImportHtml, catalogSourceDomain, catalogPidOverrides);
       setCatalogImportHtml('');
       setCatalogPidOverrides({});
@@ -2711,11 +2723,16 @@ function AdminPage({ session, onSessionChange }) {
   const catalogPreview = useMemo(() => {
     if (!catalogImportHtml.trim()) return { products: [], error: '' };
     try {
-      return { products: parseProductSource(catalogImportHtml, catalogSourceDomain), error: '' };
+      return {
+        products: catalogImportMode === 'pid'
+          ? parseProductPidSource(catalogImportHtml)
+          : parseProductSource(catalogImportHtml, catalogSourceDomain),
+        error: '',
+      };
     } catch (err) {
       return { products: [], error: err.message };
     }
-  }, [catalogImportHtml, catalogSourceDomain]);
+  }, [catalogImportHtml, catalogImportMode, catalogSourceDomain]);
 
   const setSourceLinkMode = async enabled => {
     try {
@@ -2986,8 +3003,12 @@ function AdminPage({ session, onSessionChange }) {
           <div className="heading-title-row">
             <MatIcon name="cloud_upload" size={22} />
             <div>
-              <h3>Product Data Import</h3>
-              <p className="muted">Paste the complete HTML source. Each submit fully replaces the selected catalog.</p>
+              <h3>{catalogImportMode === 'pid' ? 'Product PID Update' : 'Product Data Import'}</h3>
+              <p className="muted">
+                {catalogImportMode === 'pid'
+                  ? 'Paste a PID source to update only matching product PIDs. Pricing and product data stay unchanged.'
+                  : 'Paste the complete HTML source. Each submit fully replaces the selected catalog.'}
+              </p>
             </div>
           </div>
         </div>
@@ -2996,14 +3017,26 @@ function AdminPage({ session, onSessionChange }) {
           {[
             { id: 'user', label: 'User Data', icon: 'person' },
             { id: 'reseller', label: 'Reseller Data', icon: 'verified_user' },
+            { id: 'pid', label: 'PID', icon: 'vpn_key' },
           ].map(item => (
             <button
               key={item.id}
               type="button"
-              className={catalogImportType === item.id ? 'active' : ''}
+              className={
+                item.id === 'pid'
+                  ? catalogImportMode === 'pid' ? 'active' : ''
+                  : catalogImportMode !== 'pid' && catalogImportType === item.id ? 'active' : ''
+              }
               onClick={() => {
+                if (item.id === 'pid') {
+                  setCatalogImportMode(current => current === 'pid' ? 'catalog' : 'pid');
+                  setPidUpdateResults(null);
+                  return;
+                }
+                if (catalogImportMode !== 'pid') setCatalogImportMode('catalog');
                 setCatalogImportType(item.id);
                 setCatalogSourceDomain(catalogMeta[item.id]?.sourceDomain || '');
+                setPidUpdateResults(null);
               }}
             >
               <MatIcon name={item.icon} size={17} /> {item.label}
@@ -3011,55 +3044,76 @@ function AdminPage({ session, onSessionChange }) {
           ))}
         </div>
 
-        <div className="catalog-source-link-toggle">
-          <div>
-            <strong>Use File Update links from pasted source</strong>
-            <small className="muted">
-              Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
-            </small>
+        {catalogImportMode !== 'pid' ? (
+          <div className="catalog-source-link-toggle">
+            <div>
+              <strong>Use File Update links from pasted source</strong>
+              <small className="muted">
+                Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
+              </small>
+            </div>
+            <button
+              type="button"
+              className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
+              role="switch"
+              aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
+              onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
+            >
+              <span />
+              {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
+            </button>
           </div>
-          <button
-            type="button"
-            className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
-            role="switch"
-            aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
-            onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
-          >
-            <span />
-            {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
-          </button>
-        </div>
+        ) : (
+          <div className="catalog-source-link-toggle catalog-pid-target">
+            <div>
+              <strong>PID update target: {catalogImportType === 'reseller' ? 'Reseller Data' : 'User Data'}</strong>
+              <small className="muted">Click User Data or Reseller Data above to change the target. Only PID fields will change.</small>
+            </div>
+            <MatIcon name="vpn_key" size={19} />
+          </div>
+        )}
 
         <form className="admin-form catalog-import-form" onSubmit={importCatalog}>
+          {catalogImportMode !== 'pid' && (
+            <label>
+              Source domain
+              <input
+                value={catalogSourceDomain}
+                onChange={e => setCatalogSourceDomain(e.target.value)}
+                placeholder="https://your-domain.com/"
+                type="url"
+                required
+              />
+              <small className="muted">Used to turn relative image/video links into full URLs.</small>
+            </label>
+          )}
           <label>
-            Source domain
-            <input
-              value={catalogSourceDomain}
-              onChange={e => setCatalogSourceDomain(e.target.value)}
-              placeholder="https://your-domain.com/"
-              type="url"
-              required
-            />
-            <small className="muted">Used to turn relative image/video links into full URLs.</small>
-          </label>
-          <label>
-            Complete page source
+            {catalogImportMode === 'pid' ? 'PID source' : 'Complete page source'}
             <textarea
               value={catalogImportHtml}
               onChange={e => setCatalogImportHtml(e.target.value)}
-              placeholder="Paste the full HTML source here…"
+              placeholder={catalogImportMode === 'pid'
+                ? 'Paste the PID reference source here…'
+                : 'Paste the full HTML source here…'}
               rows={12}
               required
             />
+            <small className="muted">
+              {catalogImportMode === 'pid'
+                ? `Only PID values will update the existing ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} catalog. Product names must match.`
+                : 'Each submit fully replaces the selected catalog.'}
+            </small>
           </label>
           {catalogImportHtml.trim() && (
             <div className="catalog-pid-preview">
               <div className="admin-card-header">
                 <div>
-                  <h3>Detected products &amp; PIDs</h3>
+                  <h3>{catalogImportMode === 'pid' ? 'Detected PID updates' : 'Detected products &amp; PIDs'}</h3>
                   <p className="muted">
                     {catalogPreview.products.length
-                      ? `${catalogPreview.products.length} products found. Correct any PID before submitting.`
+                      ? catalogImportMode === 'pid'
+                        ? `${catalogPreview.products.length} product PIDs found for ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data.`
+                        : `${catalogPreview.products.length} products found. Correct any PID before submitting.`
                       : catalogPreview.error || 'Reading source…'}
                   </p>
                 </div>
@@ -3082,10 +3136,15 @@ function AdminPage({ session, onSessionChange }) {
                                 onChange={e => setCatalogPidOverrides(current => ({ ...current, [product.name]: e.target.value }))}
                                 aria-label={`PID for ${product.name}`}
                                 inputMode="numeric"
+                                readOnly={catalogImportMode === 'pid'}
                               />
                             </td>
                             <td>
-                              <small>{product.pricing.map(item => `${item.duration}${item.stock !== null ? ` [Stock: ${item.stock}]` : ''}`).join(' · ')}</small>
+                              <small>
+                                {catalogImportMode === 'pid'
+                                  ? 'Existing product data will be kept'
+                                  : product.pricing.map(item => `${item.duration}${item.stock !== null ? ` [Stock: ${item.stock}]` : ''}`).join(' · ')}
+                              </small>
                             </td>
                           </tr>
                         );
@@ -3098,9 +3157,35 @@ function AdminPage({ session, onSessionChange }) {
           )}
           <button className="modal-save" type="submit" disabled={catalogImporting}>
             <MatIcon name="sync" size={16} />
-            {catalogImporting ? 'Updating catalog…' : `Submit ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`}
+            {catalogImporting
+              ? catalogImportMode === 'pid' ? 'Updating PIDs…' : 'Updating catalog…'
+              : catalogImportMode === 'pid'
+                ? `Update ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} PIDs`
+                : `Submit ${catalogImportType === 'reseller' ? 'Reseller' : 'User'} Data`}
           </button>
         </form>
+
+        {catalogImportMode === 'pid' && pidUpdateResults && (
+          <div className="catalog-pid-results">
+            <strong>PID update result</strong>
+            <p className="muted">
+              {pidUpdateResults.changed.length} changed · {pidUpdateResults.unchanged.length} unchanged
+              {pidUpdateResults.unmatchedSource.length ? ` · ${pidUpdateResults.unmatchedSource.length} source names not matched` : ''}
+            </p>
+            {pidUpdateResults.changed.length > 0 && (
+              <div className="catalog-pid-result-list">
+                {pidUpdateResults.changed.map(item => (
+                  <span key={item.name}><strong>{item.name}</strong>: {item.previousPid || '—'} → {item.pid}</span>
+                ))}
+              </div>
+            )}
+            {pidUpdateResults.unmatchedSource.length > 0 && (
+              <small className="muted">
+                Unmatched: {pidUpdateResults.unmatchedSource.map(item => `${item.name} (PID ${item.pid})`).join(' · ')}
+              </small>
+            )}
+          </div>
+        )}
 
         <div className="catalog-status-grid">
           {['user', 'reseller'].map(type => {
