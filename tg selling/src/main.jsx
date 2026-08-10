@@ -3349,13 +3349,23 @@ function AdminPage({ session, onSessionChange }) {
     'key-history': (
       <div className="admin-card">
         <h3>License History</h3>
-        <p className="muted" style={{ marginBottom: 8 }}>All issued keys and completed DM orders</p>
-        <AdminList items={keys.filter(key => key.status !== 'contact_pending' && key.status !== 'contact_rejected')} empty="No completed license keys yet" render={key => (
+        <p className="muted" style={{ marginBottom: 8 }}>All issued keys and pending contact orders</p>
+        <AdminList items={keys} empty="No license keys sold yet" render={key => (
           <AdminRow
             title={key.productName || key.product || key.name || 'License key'}
             meta={`${key.user || key.uid || 'User'} · ${key.duration || '—'} · ${fmtDate(key.purchasedAt || key.createdAt)}`}
             status={key.status || 'active'}
           >
+            {key.status === 'contact_pending' && (
+              <button className="modal-save" onClick={() => {
+                const replacement = window.prompt(`Give key to ${key.user || key.uid || 'this user'}:`, '');
+                if (replacement?.trim()) {
+                  safeAction(() => adminDeliverContactKey(key.id, replacement), 'Key delivered — order approved');
+                }
+              }}>
+                <MatIcon name="vpn_key" size={13} /> Give key
+              </button>
+            )}
             <button className="danger-mini" onClick={() => { if (window.confirm('Delete this key record?')) safeAction(() => adminDeleteLicenseKey(key.id), 'Key deleted'); }}>
               <MatIcon name="delete" size={13} /> Delete
             </button>

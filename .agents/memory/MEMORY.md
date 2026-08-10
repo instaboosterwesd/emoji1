@@ -1,6 +1,4 @@
 - [Credential-safe Git history](credential-safe-git-history.md) — never commit uploaded service-account files or private credentials; GitHub push protection rejects them even from earlier commits.
 - [Product support links](product-support-links.md) — built-in Telegram defaults stay usable while Firebase provides admin overrides.
 - [Catalog import replacement](catalog-import-replacement.md) — User/Reseller source imports are authoritative full snapshots, not merges.
-- [Gateway fee and wallet credit](gateway-fee-credit-rule.md) — gateway fees are percentage-based and added to payment; requested wallet credit stays unchanged.
-- [Global user price increase](global-user-price-increase.md) — Admin can apply one percentage to every User price without changing Reseller prices.
-- [Device-bound API purchases](device-bound-api-purchases.md) — Bala API buys require an Android ID; missing provider keys must fall back or refund.
+- [Provider duration boundary](provider-duration-boundary.md) — provider requests use canonical duration labels, never storefront price or stock metadata.

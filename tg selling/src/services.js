@@ -127,6 +127,24 @@ export async function adminDeleteProductChannel(channel) {
 }
 
 const cleanSourceText = value => String(value || '').replace(/\s+/g, ' ').trim();
+const cleanProviderDuration = value => {
+  let duration = cleanSourceText(value);
+  if (!duration) return '';
+
+  // Storefront prices and stock labels must never be sent as part of the
+  // provider's duration lookup. Older imported catalogs may contain values
+  // such as "3 Hours ₹80.00" or "3 Hours · Stock: 4".
+  duration = duration
+    .replace(/\s*(?:₹|rs\.?|inr)\s*[\d,]+(?:\.\d+)?/gi, '')
+    .replace(/\s*(?:price|mrp|stock|qty|quantity)\s*[:=-]?\s*[\d,]+(?:\.\d+)?/gi, '')
+    .replace(/\s*[\(\[]\s*(?:₹|rs\.?|inr)?\s*[\d,]+(?:\.\d+)?\s*[\)\]]/gi, '')
+    .replace(/\s*(?:·|•|\||[-–—])\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return duration;
+};
+export { cleanProviderDuration };
 const sourceUrl = (value, sourceDomain) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -158,8 +176,10 @@ export function parseProductSource(html, sourceDomain = '') {
     })).filter(link => link.href);
     const updateLink = links.find(link => /update|download|file/i.test(link.text));
     const pricing = [...card.querySelectorAll('.duration-box')].map(box => {
-      const duration = cleanSourceText(box.querySelector('[style*="font-size"], .duration, div > div')?.textContent)
-        || cleanSourceText(box.textContent).split(/₹|\d+(?:\.\d+)?/)[0];
+      const duration = cleanProviderDuration(
+        cleanSourceText(box.querySelector('[style*="font-size"], .duration, div > div')?.textContent)
+          || cleanSourceText(box.textContent).split(/₹|\d+(?:\.\d+)?/)[0],
+      );
       const price = numberFromText(box.querySelector('.price-text')?.textContent || box.textContent.match(/₹\s*[\d,.]+/)?.[0]);
       const quantity = box.querySelector('input[type="number"]');
       return { label: duration || 'Default', duration: duration || 'Default', price, stock: quantity?.getAttribute('max') ? Number(quantity.getAttribute('max')) : null };
@@ -286,13 +306,16 @@ export async function getProductCatalog(type = 'user') {
     .map(product => {
       const name = product.name || 'Untitled product';
       const pid = String(product.pid || product.id || product.purchasePid || '');
-      const pricing = Array.isArray(product.pricing) ? product.pricing.map(item => ({
-        ...item,
-        label: item.label || item.duration || 'Default',
-        duration: item.duration || item.label || 'Default',
-        price: Number(item.price || 0),
-        stock: item.stock ?? null,
-      })).filter(item => item.price >= 0) : [];
+      const pricing = Array.isArray(product.pricing) ? product.pricing.map(item => {
+        const duration = cleanProviderDuration(item.duration || item.label) || 'Default';
+        return {
+          ...item,
+          label: cleanProviderDuration(item.label || duration) || duration,
+          duration,
+          price: Number(item.price || 0),
+          stock: item.stock ?? null,
+        };
+      }).filter(item => item.price >= 0) : [];
       return {
         ...product,
         id: product.id || pid,
@@ -631,13 +654,16 @@ export async function fetchGameProducts() {
       features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
       description: typeof product.description === 'string' ? product.description : '',
       salesCount: product.salesCount ?? product.purchaseCount ?? product.orders ?? product.sold ?? null,
-      pricing: pricing.map((item, index) => ({
-        label: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
-        duration: LIVE_DURATION_LABELS[name]?.[index] || item.duration || 'Default',
-        sourceDuration: item.duration || 'Default',
+      pricing: pricing.map((item, index) => {
+        const duration = cleanProviderDuration(LIVE_DURATION_LABELS[name]?.[index] || item.duration) || 'Default';
+        return {
+        label: duration,
+        duration,
+        sourceDuration: cleanProviderDuration(item.duration) || 'Default',
         price: Number(item.price || 0),
         stock: item.stock ?? null,
-      })),
+        };
+      }),
       pricingSource: 'live',
       platform: product.platform || '',
     };
@@ -783,7 +809,7 @@ export async function buyResellerProduct(productId, duration, androidId = '') {
   const params = {
     action: 'buy',
     product_id: String(productId),
-    duration,
+    duration: cleanProviderDuration(duration),
   };
   if (androidId?.trim()) params.android_id = androidId.trim();
   const body = new URLSearchParams(params);
@@ -1427,8 +1453,8 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   if (needsAndroidId && !androidId) {
     throw new Error('Android device ID is required for Bala products.');
   }
-  const durationLabel = String(duration.duration || duration.label || '').trim();
-  const providerDuration = String(duration.sourceDuration || durationLabel).trim();
+  const durationLabel = cleanProviderDuration(duration?.duration || duration?.label);
+  const providerDuration = cleanProviderDuration(duration?.sourceDuration || durationLabel);
   if (!durationLabel || !providerDuration) throw new Error('Invalid product duration.');
 
   // 1. Check balance
@@ -1445,7 +1471,6 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   if (product?.onlyContact === true) {
     const keyId = `lk_${now}_${Math.random().toString(36).slice(2, 8)}`;
     const txId = `tx_buy_${now}_${Math.random().toString(36).slice(2, 8)}`;
-    const durationLabel = duration.duration || duration.label;
     const productId = String(product.purchasePid || product.pid);
 
     await set(ref(firebaseDb, `licenseKeys/${keyId}`), {
@@ -1543,7 +1568,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
   } catch (apiError) {
     // 4. API failed — try manual fallback
     const productIds = [...new Set([product.purchasePid, product.pid].filter(Boolean).map(String))];
-    const fallback = (await Promise.all(productIds.map(id => getAvailableManualKey(id, duration.duration || duration.label))))
+    const fallback = (await Promise.all(productIds.map(id => getAvailableManualKey(id, durationLabel))))
       .find(Boolean);
     if (fallback) {
       deliveredKey = fallback.key;
@@ -1555,7 +1580,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
       try { await adminSaveAlert('keys_exhausted', {
         productId: String(product.purchasePid || product.pid),
         productName: product.name,
-        duration: duration.duration || duration.label,
+        duration: durationLabel,
         apiError: apiError.message,
         uid,
         userName: userName || uid,
@@ -1574,7 +1599,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
     productId: String(product.purchasePid || product.pid),
     product: product.name,
     productName: product.name,
-    duration: duration.duration || duration.label,
+    duration: durationLabel,
     key: deliveredKey,
     keyCode: deliveredKey,
     status: 'active',
@@ -1591,7 +1616,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
     amount: value,
     before: currentBalance,
     after: newBalance,
-    note: `${product.name} · ${duration.duration || duration.label}`,
+    note: `${product.name} · ${durationLabel}`,
     productId: String(product.pid),
     createdAt: Date.now(),
   });
@@ -1644,6 +1669,7 @@ export async function adminDeliverContactKey(keyId, replacementKey) {
   return true;
 }
 
+<<<<<<< HEAD
 export async function adminRejectContactKey(keyId, reason = 'DM key request rejected') {
   if (!firebaseDb || !keyId) throw new Error('Contact order is missing.');
 

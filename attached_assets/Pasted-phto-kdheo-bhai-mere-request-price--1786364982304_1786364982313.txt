@@ -1,0 +1,50 @@
+phto kdheo bhai mere आप यह देखो कि यह किस तरीके से request जा रही है। उसमें price थोड़ी ना जा रहा है। Price तो मैं अपने according जैसा भी sell कर रहा हूँ। But price मेरा तो अलग है। But API पर मेरे को जितने का मिल रहा है, उतने का कटना चाहिए। तो यह issue क्यों आ रहा है? मेरे को यह बात समझ में नहीं आ रहा है।$data = [ 'api_key' => '7cfd4cd975c20fe02957d4a0fb7b194e', 'action' => 'buy', 'product_id' => 'PRODUCT_PID_ID', // Exact Product PID 'duration' => '1 Day', // Duration (e.g. 3 Hours, 1 Day, 7 Days) 'android_id' => '0b9b969bc2e7997b' // BALA MOD XYZ V1 ke liye Android ID zaroori hai MANDATORY for Bala Mod / Device Bound Products,(V2 ke liye optional/not required) ];
+
+$headers = [ 'Content-Type: application/x-www-form-urlencoded', 'x-master-key: a7f3e8b2c9d1f4a6b8c2d5e9f1a3b6c8' ];
+
+$ch = curl_init('https://xyzcheats.com/api/reseller_v1.php'); curl_setopt_array($ch, [ CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($data), CURLOPT_HTTPHEADER => $headers, CURLOPT_TIMEOUT => 15 ]); $response = curl_exec($ch); curl_close($ch); echo $response;
+
+MI
+milaba2737
+milaba2737
+8 minutes ago
+Inspecting product data
+
+Inspecting product data
+Screenshot से बात clear है: request में आपकी selling price नहीं जा रही। Code में provider को केवल ये fields भेजी जा रही हैं:
+
+action
+product_id
+duration
+android_id (केवल Bala के लिए)
+
+₹80 सिर्फ app की local selling price है। Screenshot का असली issue है कि provider को duration value गलत/मिली-जुली जा रही है—जैसे 3 Hours ₹80.00—और provider उस exact duration के लिए अपनी cost नहीं ढूँढ पा रहा। मैं अब source-duration mapping inspect कर रहा हूँ ताकि display price और provider duration पूरी तरह अलग रहें।
+
+
+5 actions
+अब root cause मिल गया है: provider को price field अलग से नहीं भेजी जा रही, लेकिन duration के अंदर ही scraped text आ रहा है—3 Hours ₹80.00। Provider exact duration 3 Hours ढूँढता है, इसलिए Price not found for: 3 Hours ₹80.00 दे रहा है। मैं duration को request से पहले clean कर रहा हूँ ताकि UI price अलग रहे और API को सिर्फ 3 Hours भेजा जाए।
+
+
+6 actions
+Root cause confirm हो गया है: provider को request में price field नहीं जाती—यह सही है, क्योंकि provider अपने catalog price से charge करता है। लेकिन आपकी imported product duration में price जुड़ गई थी:
+
+3 Hours ₹80.00
+
+Provider को सिर्फ यह भेजना चाहिए:
+
+3 Hours
+
+मैं अब import/live catalog और final purchase request—दोनों जगह duration से selling price/stock text हटाकर clean कर रहा हूँ। UI में ₹80 आपकी selling price रहेगी, जबकि provider request exact duration पर जाएगी।
+
+Inspecting necessary steps
+
+Inspecting necessary steps
+Patch context match नहीं हुआ, इसलिए कोई आधा-अधूरा change नहीं लगा। अब मैं exact छोटे sections में fix लगा रहा हूँ—पहले duration cleaning helper/import parsing, फिर stored catalog और final request path।
+
+
+6 actions
+पहला targeted patch लग गया है। अब पुराने Firebase catalog records को भी read करते समय clean करूंगा, ताकि re-import किए बिना 3 Hours ₹80.00 जैसी पुरानी value provider को न जाए; साथ ही live products path और final API request दोनों पर अंतिम safeguard रहेगा।
+
+
+Edited services.js
+You've reached you
