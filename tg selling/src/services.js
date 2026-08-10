@@ -738,8 +738,23 @@ function isLikelyProviderErrorText(value) {
   return /(?:error|failed|failure|insufficient|funds?|balance|invalid|unavailable|not\s+found|try\s+again|unable|mandatory|required|expired|duplicate|already\s+(?:used|purchased))/i.test(String(value || ''));
 }
 
+function providerErrorDetail(error) {
+  const message = String(error?.message || error || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!message) return '';
+  // Do not surface a provider response that could contain credentials or a
+  // full HTML/debug payload. Provider errors are only for user diagnosis.
+  const safe = message
+    .replace(/(?:api[_\s-]?key|master[_\s-]?key|authorization|x-master-key)\s*[:=]\s*[^,\s;]+/gi, '[hidden credential]')
+    .replace(/https?:\/\/\S+/gi, '[provider endpoint]')
+    .slice(0, 180)
+    .trim();
+  return safe;
+}
+
 function safePurchaseFailureMessage(error) {
-  const message = String(error?.message || error || '').trim();
+  const message = providerErrorDetail(error);
   if (/low\s+balance|wallet\s*:\s*₹?\s*0|insufficient\s+(?:funds?|balance)|not enough balance/i.test(message)) {
     return 'Provider wallet has insufficient balance. Your wallet balance has been refunded. Please try again later.';
   }
@@ -751,6 +766,15 @@ function safePurchaseFailureMessage(error) {
   }
   if (/product not found/i.test(message)) {
     return 'This product PID was not found by the provider. Your wallet balance has been refunded. Please contact the admin.';
+  }
+  if (/duration|period|days?|hours?|time/i.test(message) && /invalid|not found|unsupported|available|required/i.test(message)) {
+    return `Provider rejected this duration: “${message}”. Your wallet balance has been refunded.`;
+  }
+  if (/android[_\s-]?id|device[_\s-]?id|device bound|mandatory|required/i.test(message)) {
+    return `Provider requires a valid Android device ID: “${message}”. Your wallet balance has been refunded.`;
+  }
+  if (message && !/^provider did not return a license key\.?$/i.test(message)) {
+    return `Provider rejected the purchase: “${message}”. Your wallet balance has been refunded.`;
   }
   return 'Purchase could not be completed. Your wallet balance has been refunded. Please try again later.';
 }
