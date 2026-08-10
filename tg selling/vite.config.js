@@ -86,9 +86,16 @@ function resellerDevProxy(env) {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  // Replit Secrets are injected into process.env. Merge them after .env so
+  // server-only credentials work in the Vite dev proxy without being bundled.
+  const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
   return {
     plugins: [react(), resellerDevProxy(env)],
+    define: {
+      // Keep accidental client-side access to these names impossible.
+      'import.meta.env.VITE_RESELLER_API_KEY': 'undefined',
+      'import.meta.env.VITE_RESELLER_MASTER_KEY': 'undefined',
+    },
     server: {
       host: true,
       port: parseInt(process.env.PORT || '5173'),
@@ -99,11 +106,6 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () => `/scrape?cookie=${encodeURIComponent(env.PRODUCTS_SCRAPE_COOKIE || '')}`,
         },
-      },
-      define: {
-        // Keep accidental client-side access to these names impossible.
-        'import.meta.env.VITE_RESELLER_API_KEY': 'undefined',
-        'import.meta.env.VITE_RESELLER_MASTER_KEY': 'undefined',
       },
       watch: {
         ignored: [
