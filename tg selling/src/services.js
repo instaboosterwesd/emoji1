@@ -738,6 +738,23 @@ function isLikelyProviderErrorText(value) {
   return /(?:error|failed|failure|insufficient|funds?|balance|invalid|unavailable|not\s+found|try\s+again|unable|mandatory|required|expired|duplicate|already\s+(?:used|purchased))/i.test(String(value || ''));
 }
 
+function safePurchaseFailureMessage(error) {
+  const message = String(error?.message || error || '').trim();
+  if (/low\s+balance|wallet\s*:\s*₹?\s*0|insufficient\s+(?:funds?|balance)|not enough balance/i.test(message)) {
+    return 'Provider wallet has insufficient balance. Your wallet balance has been refunded. Please try again later.';
+  }
+  if (/not configured|server environment|503/i.test(message)) {
+    return 'Reseller API is not configured on the live server. Your wallet balance has been refunded. Please contact the admin.';
+  }
+  if (/timed out|unavailable/i.test(message)) {
+    return 'Reseller API is temporarily unavailable. Your wallet balance has been refunded. Please try again later.';
+  }
+  if (/product not found/i.test(message)) {
+    return 'This product PID was not found by the provider. Your wallet balance has been refunded. Please contact the admin.';
+  }
+  return 'Purchase could not be completed. Your wallet balance has been refunded. Please try again later.';
+}
+
 export async function buyResellerProduct(productId, duration, androidId = '') {
   const params = {
     action: 'buy',
@@ -1520,7 +1537,7 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
         userName: userName || uid,
         userPhone: user.phone || '',
       }); } catch (_) { /* non-blocking */ }
-      throw new Error('⛔ Server is currently down. Our team is working on it. Please try again in 1-2 hours. Your balance has been refunded.');
+      throw new Error(safePurchaseFailureMessage(apiError));
     }
   }
 

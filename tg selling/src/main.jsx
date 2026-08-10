@@ -3585,14 +3585,15 @@ function AdminPage({ session, onSessionChange }) {
       <div className="admin-card">
         <h3><MatIcon name="api" size={20} /> Reseller API Settings</h3>
         <p className="muted">
-          API credentials are intentionally not entered here or stored in Firebase. Set
-          <code>RESELLER_API_KEY</code> and <code>RESELLER_MASTER_KEY</code> in Replit Secrets,
-          and set <code>RESELLER_ENDPOINT</code> as a shared environment variable.
+          The provider API is called by a server-side proxy. API credentials must not be
+          entered in this browser form or stored in Firebase, because that would expose
+          your provider wallet to anyone who can inspect the app.
         </p>
         <div className="api-setup-hint">
-          <strong>Current setup</strong>
-          <p className="muted">Use the Dashboard → Reseller API Status card to check whether the server can access the provider.</p>
-          <p className="muted">Provider supports purchase requests; its balance action currently returns “Invalid Action”, so wallet balance cannot be displayed automatically.</p>
+           <strong>Production setup</strong>
+           <p className="muted">Set <code>RESELLER_API_KEY</code> and <code>RESELLER_MASTER_KEY</code> as production Secrets on the hosting project, and set <code>RESELLER_ENDPOINT</code> to <code>https://xyzcheats.com/api/reseller_v1.php</code>.</p>
+           <p className="muted">Then use Dashboard → Reseller API Status → Check now. This verifies server configuration without making a purchase.</p>
+           <p className="muted">The provider can still reject a valid request when its own wallet has no balance. In that case the user wallet is refunded and the error explains the reason.</p>
         </div>
         <button className="modal-save" type="button" onClick={() => { setTab('dashboard'); setTimeout(checkApiStatus, 0); }}>
           <MatIcon name="api" size={16} /> Check server configuration

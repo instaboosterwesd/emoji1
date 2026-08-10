@@ -1,5 +1,4 @@
 const RESELLER_ENDPOINT = process.env.RESELLER_ENDPOINT
-  || process.env.VITE_RESELLER_ENDPOINT
   || 'https://xyzcheats.com/api/reseller_v1.php';
 
 function send(res, status, body) {
@@ -18,10 +17,35 @@ function requestParams(body) {
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return send(res, 204, {});
+
+  // Vercel invokes this function for /api/reseller and /api/reseller/status
+  // with different req.url values depending on the routing configuration.
+  // Any GET is safe to treat as a configuration-status request because
+  // purchases are POST-only.
+  if (req.method === 'GET') {
+    const configured = Boolean(
+      process.env.RESELLER_API_KEY
+      && process.env.RESELLER_MASTER_KEY
+      && RESELLER_ENDPOINT,
+    );
+    return send(res, configured ? 200 : 503, {
+      configured,
+      endpointConfigured: Boolean(RESELLER_ENDPOINT),
+      credentialsConfigured: Boolean(
+        process.env.RESELLER_API_KEY && process.env.RESELLER_MASTER_KEY,
+      ),
+      message: configured
+        ? 'Reseller API is configured server-side.'
+        : 'Set RESELLER_API_KEY, RESELLER_MASTER_KEY, and RESELLER_ENDPOINT in the production environment.',
+    });
+  }
+
   if (req.method !== 'POST') return send(res, 405, { message: 'Method not allowed.' });
 
-  const apiKey = process.env.RESELLER_API_KEY || process.env.VITE_RESELLER_API_KEY;
-  const masterKey = process.env.RESELLER_MASTER_KEY || process.env.VITE_RESELLER_MASTER_KEY;
+  // These values must remain server-side. Never accept credentials from the
+  // browser or fall back to VITE_ variables, which are bundled into the SPA.
+  const apiKey = process.env.RESELLER_API_KEY;
+  const masterKey = process.env.RESELLER_MASTER_KEY;
   if (!apiKey || !masterKey) {
     return send(res, 503, { message: 'Reseller API is not configured on the server.' });
   }
