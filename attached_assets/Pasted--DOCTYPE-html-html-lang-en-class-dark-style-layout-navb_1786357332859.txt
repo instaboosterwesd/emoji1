@@ -1,0 +1,1500 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark-style layout-navbar-fixed layout-menu-fixed" dir="ltr" data-theme="theme-default" data-assets-path="../assets/" data-template="vertical-menu-template">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <title>Profile Hub - XYZ CHEATS</title>
+    
+        <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../assets/images/favicon.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&ampdisplay=swap"
+      rel="stylesheet" />
+      
+    <!-- Icons -->
+    <link rel="stylesheet" href="../assets/vendor/fonts/fontawesome.css" />
+    <link rel="stylesheet" href="../assets/vendor/fonts/tabler-icons.css" />
+    <link rel="stylesheet" href="../assets/vendor/fonts/flag-icons.css" />
+      
+      
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="../assets/vendor/css/rtl/core.css" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="../assets/vendor/css/rtl/theme-default.css" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="../assets/css/demo.css" />
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet" href="../assets/vendor/libs/node-waves/node-waves.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/typeahead-js/typeahead.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/quill/typography.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/quill/katex.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/quill/editor.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/dropzone/dropzone.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/flatpickr/flatpickr.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/tagify/tagify.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/sweetalert2/sweetalert2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/sweetalert2/sweetalert2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+    <!-- Vendor -->
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-auth.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+
+    <!-- Page CSS -->
+    <!-- Page -->
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-auth.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+
+    <!-- Page CSS -->
+    <!-- Page -->
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-auth.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-auth.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-auth.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/apex-charts/apex-charts.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/apex-charts/apex-charts.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/toastr/toastr.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/animate-css/animate.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/flatpickr/flatpickr.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/bootstrap-maxlength/bootstrap-maxlength.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/tagify/tagify.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/bootstrap-select/bootstrap-select.css" />
+    
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-icons.css" />
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-icons.css" /> 
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/animate-css/animate.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/sweetalert2/sweetalert2.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/select2/select2.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+
+    <!-- Page CSS -->
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-account-settings.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-misc.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.css" />
+
+    <!-- Page CSS -->
+    <link rel="stylesheet" href="../assets/vendor/css/pages/page-profile.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-select-bs5/select.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-fixedcolumns-bs5/fixedcolumns.bootstrap5.css" />
+    <link rel="stylesheet" href="../assets/vendor/libs/datatables-fixedheader-bs5/fixedheader.bootstrap5.css" />
+
+    <link rel="stylesheet" href="../assets/vendor/libs/swiper/swiper.css" />
+    
+    
+    
+    
+    <link rel="stylesheet" type="text/css" href="../assets/table/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="../assets/table/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" type="text/css" href="../assets/table/fixedHeader.bootstrap.min.css">
+    
+    
+    
+
+    <!-- Page CSS -->
+    <link rel="stylesheet" href="../assets/vendor/css/pages/ui-carousel.css" />
+    
+    <link rel="stylesheet" href="../assets/vendor/libs/spinkit/spinkit.css" />
+    <!-- Helpers -->
+    <script src="../assets/vendor/js/helpers.js"></script>
+    <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+    <!--? Template customizer: To hide customizer set displayCustomizer value false in config.js.  -->
+    <script src="../assets/vendor/js/template-customizer.js"></script>
+    <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
+    <script src="../assets/js/config.js"></script>
+    
+    
+    <style>
+    #KGF_TEAM {
+    text-decoration: none;
+    }
+    </style>
+    
+    <style>
+    #spinner {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .5s ease-out, visibility 0s linear .5s;
+    z-index: 99999;
+}
+
+#spinner.show {
+    transition: opacity .5s ease-out, visibility 0s linear 0s;
+    visibility: visible;
+    opacity: 1;
+}
+    </style>
+    
+    <!-- Custom Purple/Pink Theme -->
+    <link rel="stylesheet" href="../assets/css/custom-theme.css" />
+    <link rel="stylesheet" href="../assets/css/theme-overrides.css" />
+    <link rel="stylesheet" href="../assets/css/ui-fixes.css" />
+    
+    <style>
+    /* Floating Telegram Button */
+    .floating-telegram-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #0088cc 0%, #229ED9 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4);
+        cursor: pointer;
+        z-index: 9999;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: white;
+    }
+    
+    .floating-telegram-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 136, 204, 0.6);
+        background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
+    }
+    
+    .floating-telegram-btn i {
+        font-size: 28px;
+        color: white;
+    }
+    
+    .floating-telegram-btn::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0088cc 0%, #229ED9 100%);
+        animation: pulse-telegram 2s infinite;
+        z-index: -1;
+    }
+    
+    @keyframes pulse-telegram {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.2);
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 0;
+        }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .floating-telegram-btn {
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+        }
+        
+        .floating-telegram-btn i {
+            font-size: 24px;
+        }
+    }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --neon-cyan: #00f2fe;
+            --neon-purple: #7367f0;
+            --deep-dark: #050505;
+            --card-dark: #0d0d12;
+            --border-color: #1e1e26;
+        }
+
+        body { 
+            background-color: var(--deep-dark) !important; 
+            color: #e0e0e0; 
+            font-family: 'Inter', sans-serif; 
+        }
+
+        .card {
+            background: var(--card-dark) !important;
+            border: 2px solid var(--border-color) !important;
+            box-shadow: 0 0 15px rgba(115, 103, 240, 0.1) !important;
+            border-radius: 15px !important;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            color: var(--neon-cyan) !important;
+            font-weight: 900 !important;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--border-color) !important;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+            padding: 20px !important;
+        }
+
+        .section-title {
+            color: #fff;
+            text-shadow: 0 0 12px var(--neon-cyan);
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .api-key-box {
+            background: #000 !important;
+            border: 1px dashed var(--neon-cyan) !important;
+            color: #28c76f !important;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .form-label { 
+            color: var(--neon-cyan) !important; 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            font-weight: 800; 
+        }
+
+        .form-control { 
+            background-color: rgba(255, 255, 255, 0.03) !important; 
+            border: 1px solid var(--border-color) !important; 
+            color: #fff !important; 
+        }
+
+        .form-control:focus { 
+            border-color: var(--neon-cyan) !important; 
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2) !important; 
+        }
+
+        .btn-primary { 
+            background: var(--neon-cyan) !important; 
+            border: none !important; 
+            color: #000 !important; 
+            font-weight: 900 !important; 
+            text-transform: uppercase; 
+        }
+
+        .btn-outline-info { 
+            border: 1px solid var(--neon-cyan) !important; 
+            color: var(--neon-cyan) !important; 
+            font-weight: 800; 
+        }
+        
+        pre { 
+            background: #050508; 
+            padding: 15px; 
+            border-radius: 8px; 
+            color: #a9e34b; 
+            border: 1px solid #2d2b45; 
+            font-size: 0.8rem; 
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .badge-api { 
+            background: rgba(0, 242, 254, 0.1); 
+            color: var(--neon-cyan); 
+            border: 1px solid var(--neon-cyan); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.7rem; 
+            display: inline-block;
+            margin-bottom: 2px;
+        }
+
+        .table { 
+            color: #ffffff !important; 
+            background-color: transparent !important; 
+        }
+        
+        .table thead th { 
+            color: var(--neon-cyan) !important; 
+            background: rgba(0, 0, 0, 0.6) !important;
+            border-bottom: 2px solid var(--border-color) !important;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        .table tbody td {
+            background-color: transparent !important;
+            color: #ffffff !important; 
+            border-bottom: 1px solid var(--border-color) !important;
+        }
+
+        .table-responsive {
+            background: #000 !important; 
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .badge-pid {
+            background: rgba(115, 103, 240, 0.2) !important;
+            color: var(--neon-purple) !important;
+            border: 1px solid var(--neon-purple) !important;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .android-note-box {
+            background: rgba(0, 242, 254, 0.05);
+            border: 1px dashed var(--neon-cyan);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 11px;
+            color: #00f2fe;
+            margin-top: 10px;
+        }
+
+        #copyToast {
+            visibility: hidden;
+            min-width: 200px;
+            background-color: #0d0d12;
+            color: var(--neon-cyan);
+            text-align: center;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 12px;
+            position: fixed;
+            z-index: 9999;
+            right: 20px;
+            top: 20px;
+            font-weight: 900;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+            transform: scale(0.8);
+            opacity: 0;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+
+        #copyToast.show {
+            visibility: visible;
+            transform: scale(1);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="copyToast">COPIED!</div>
+
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            <div id="spinner" class="show position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center" style="z-index: 9999; background: #050505 !important;">
+    <div class="sk-wave sk-primary">
+        <div class="sk-wave-rect" style="background-color: var(--reseller-neon, #00f2fe) !important; box-shadow: 0 0 15px var(--reseller-neon, #00f2fe);"></div>
+        <div class="sk-wave-rect" style="background-color: var(--reseller-neon, #00f2fe) !important; box-shadow: 0 0 15px var(--reseller-neon, #00f2fe);"></div>
+        <div class="sk-wave-rect" style="background-color: var(--reseller-neon, #00f2fe) !important; box-shadow: 0 0 15px var(--reseller-neon, #00f2fe);"></div>
+        <div class="sk-wave-rect" style="background-color: var(--reseller-neon, #00f2fe) !important; box-shadow: 0 0 15px var(--reseller-neon, #00f2fe);"></div>
+        <div class="sk-wave-rect" style="background-color: var(--reseller-neon, #00f2fe) !important; box-shadow: 0 0 15px var(--reseller-neon, #00f2fe);"></div>
+    </div>
+</div>
+
+<style>
+    /* Default Base Sky Blue Styles */
+    :root {
+        --reseller-neon: #00f2fe;
+        --deep-dark: #050505;
+        --card-dark: #0d0d12;
+        --border-color: #1e1e26;
+    }
+
+    #layout-menu { background: var(--deep-dark) !important; border-right: 1px solid var(--border-color) !important; }
+    .menu-inner { background: var(--deep-dark) !important; }
+
+    .menu-item.active > .menu-link {
+        background: rgba(0, 242, 254, 0.1) !important;
+        color: var(--reseller-neon) !important;
+        box-shadow: inset 4px 0 0 var(--reseller-neon) !important;
+    }
+
+    .menu-link { color: #888 !important; transition: 0.3s !important; }
+    .menu-link:hover { color: var(--reseller-neon) !important; background: rgba(0, 242, 254, 0.05) !important; }
+    .menu-header-text { color: var(--reseller-neon) !important; opacity: 0.7; font-size: 0.65rem !important; text-transform: uppercase; letter-spacing: 1px; }
+    .app-brand { background: var(--deep-dark) !important; border-bottom: 1px solid var(--border-color); }
+    .app-brand-text { color: var(--reseller-neon) !important; text-shadow: 0 0 10px rgba(0, 242, 254, 0.5) !important; }
+
+    .layout-navbar {
+        background: rgba(13, 13, 18, 0.8) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color) !important;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5) !important;
+        border-radius: 10px !important;
+        margin-top: 5px;
+    }
+
+    .avatar-online:after {
+        background-color: var(--reseller-neon) !important;
+        box-shadow: 0 0 0 2px var(--deep-dark), 0 0 10px var(--reseller-neon) !important;
+    }
+
+    .dropdown-menu { 
+        background: var(--card-dark) !important; 
+        border: 1px solid var(--border-color) !important; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important; 
+    }
+    .dropdown-item { color: #ccc !important; transition: 0.2s; }
+    .dropdown-item:hover { background: rgba(0, 242, 254, 0.1) !important; color: var(--reseller-neon) !important; }
+
+    /* Header Tutorial Button Style */
+    .header-tutorial-btn {
+        background: linear-gradient(45deg, #ff0000, #b20000);
+        color: white !important;
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-weight: bold;
+        font-size: 0.72rem;
+        text-decoration: none !important;
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        border: 1px solid #ff3e1d;
+        white-space: nowrap;
+        transition: 0.3s;
+    }
+    .header-tutorial-btn:hover {
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+        transform: scale(1.03);
+    }
+
+    /* Icon-Only Theme Switcher Button Style */
+    .icon-theme-btn {
+        border-color: var(--reseller-neon, #00f2fe) !important;
+        color: var(--reseller-neon, #00f2fe) !important;
+        padding: 6px 10px !important;
+        border-radius: 8px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.3s;
+    }
+    .icon-theme-btn:hover {
+        background: rgba(0, 242, 254, 0.1);
+        box-shadow: 0 0 10px var(--reseller-neon, #00f2fe);
+    }
+
+    /* Custom Modals Styling */
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(5px);
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .custom-modal-box {
+        background: #0d0d12;
+        border: 2px solid var(--reseller-neon);
+        box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        padding: 25px;
+        text-align: left;
+        animation: modalFadeIn 0.3s ease-out;
+    }
+    @keyframes modalFadeIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .custom-modal-header {
+        color: #ff3e1d;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        text-shadow: 0 0 8px rgba(255, 62, 29, 0.3);
+    }
+    .custom-modal-body {
+        color: #e0e0e0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 20px;
+    }
+    .lang-block {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #1e1e26;
+        margin-bottom: 10px;
+    }
+    .lang-label {
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: var(--reseller-neon);
+        margin-bottom: 5px;
+        display: block;
+    }
+    
+    .modal-btn-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    
+    .custom-modal-btn {
+        flex: 1;
+        background: var(--reseller-neon) !important;
+        box-shadow: 0 0 10px var(--reseller-neon);
+        border: none;
+        color: #000;
+        padding: 12px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: 0.3s;
+    }
+
+    .custom-modal-btn-back {
+        flex: 1;
+        background: #16161d !important;
+        border: 1px solid #333 !important;
+        color: #fff !important;
+        padding: 12px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: 0.3s;
+    }
+
+    /* Color Palette Grid */
+    .theme-color-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 15px;
+    }
+    .theme-color-item {
+        background: #16161d;
+        border: 2px solid #282833;
+        border-radius: 10px;
+        padding: 12px 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .theme-color-item:hover {
+        transform: translateY(-3px);
+    }
+    .color-circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        margin: 0 auto 6px;
+    }
+</style>
+
+
+<!-- Color Switcher Modal Popup -->
+<div id="themeColorModal" class="custom-modal-overlay">
+    <div class="custom-modal-box">
+        <div class="custom-modal-header" style="color: var(--reseller-neon); text-shadow: 0 0 8px var(--reseller-neon);">🎨 SELECT COLOR THEME</div>
+        <div class="custom-modal-body">
+            <div class="theme-color-grid">
+                <div class="theme-color-item" onclick="applyTheme('#00f2fe')">
+                    <div class="color-circle" style="background: #00f2fe; box-shadow: 0 0 8px #00f2fe;"></div>
+                    <small class="fw-bold text-white">Sky Blue</small>
+                </div>
+                <div class="theme-color-item" onclick="applyTheme('#7367f0')">
+                    <div class="color-circle" style="background: #7367f0; box-shadow: 0 0 8px #7367f0;"></div>
+                    <small class="fw-bold text-white">Purple</small>
+                </div>
+                <div class="theme-color-item" onclick="applyTheme('#e2136e')">
+                    <div class="color-circle" style="background: #e2136e; box-shadow: 0 0 8px #e2136e;"></div>
+                    <small class="fw-bold text-white">Pink Neon</small>
+                </div>
+                <div class="theme-color-item" onclick="applyTheme('#f3ba2f')">
+                    <div class="color-circle" style="background: #f3ba2f; box-shadow: 0 0 8px #f3ba2f;"></div>
+                    <small class="fw-bold text-white">Golden</small>
+                </div>
+                <div class="theme-color-item" onclick="applyTheme('#28c76f')">
+                    <div class="color-circle" style="background: #28c76f; box-shadow: 0 0 8px #28c76f;"></div>
+                    <small class="fw-bold text-white">Green</small>
+                </div>
+                <div class="theme-color-item" onclick="applyTheme('#ff0055')">
+                    <div class="color-circle" style="background: #ff0055; box-shadow: 0 0 8px #ff0055;"></div>
+                    <small class="fw-bold text-white">Red Neon</small>
+                </div>
+            </div>
+        </div>
+        <div class="modal-btn-row">
+            <button class="custom-modal-btn-back w-100" onclick="closeThemeModal()">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Support Neon Modal -->
+<div id="sidebarSupportModal" class="custom-modal-overlay">
+    <div class="custom-modal-box">
+        <div class="custom-modal-header">⚠️ IMPORTANT NOTICE / महत्वपूर्ण सूचना ⚠️</div>
+        <div class="custom-modal-body">
+            <div class="lang-block">
+                <span class="lang-label">ENGLISH</span>
+                If you have any payment issue, please send your <strong>Payment Screenshot</strong> and <strong>Username</strong>. Message only once, do not spam or you will be blocked.
+            </div>
+            <div class="lang-block" style="border-color: rgba(243, 186, 47, 0.2);">
+                <span class="lang-label" style="color: #f3ba2f;">HINDI</span>
+                अगर आपका कोई पेमेंट इश्यू है, तो अपना <strong>पेमेंट स्क्रीनशॉट</strong> और <strong>यूजरनेम</strong> भेजें। केवल एक बार मैसेज करें, स्पैम न करें वरना ब्लॉक कर दिया जाएगा।
+            </div>
+        </div>
+        <div class="modal-btn-row">
+            <button class="custom-modal-btn-back" onclick="closeHeaderSupportModal()">BACK</button>
+            <button class="custom-modal-btn" onclick="confirmHeaderSupportRedirect()">OK</button>
+        </div>
+    </div>
+</div>
+
+<aside id="layout-menu" class="layout-menu menu-vertical menu">
+    <div class="app-brand demo">
+        <a id="bt4" href="dashboard.php" class="app-brand-link">
+            <span class="app-brand-logo demo">
+                <img src="../assets/img/logo.png" alt="Logo" height="34" style="filter: drop-shadow(0 0 5px var(--reseller-neon));" />
+            </span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2">ADMIN PANEL</span>
+        </a>
+        <a id="bt4" href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+            <i class="ti menu-toggle-icon d-none d-xl-block ti-sm align-middle text-white"></i>
+            <i class="ti ti-x d-block d-xl-none ti-sm align-middle text-white"></i>
+        </a>
+    </div>
+
+    <ul class="menu-inner py-1">
+        <li class="menu-item ">
+            <a id="bt4" href="dashboard.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-smart-home"></i>
+                <div>Dashboard</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="deposit.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-wallet"></i>
+                <div>Deposit</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="buy.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-shopping-cart"></i>
+                <div>Buy Keys</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="resellers.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-users"></i>
+                <div>My Resellers</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="mykeys.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-key"></i>
+                <div>My Keys</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="history.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-history"></i>
+                <div>History</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="support.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-headset"></i>
+                <div>Support Ticket</div>
+            </a>
+        </li>
+        <!-- Payment Isshu Support Quick Menu Item -->
+        <li class="menu-item">
+            <a id="bt4" href="javascript:void(0);" onclick="openHeaderSupportModal()" class="menu-link" style="color: #ff3e1d !important;">
+                <i class="menu-icon tf-icons ti ti-brand-telegram text-danger"></i>
+                <div class="text-danger fw-bold">Payment Isshu Support</div>
+            </a>
+        </li>
+        <li class="menu-item ">
+            <a id="bt4" href="referrals.php" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-users"></i>
+                <div>Refer And Earn Money</div>
+            </a>
+        </li>
+        <li class="menu-header small text-uppercase"><span class="menu-header-text">Account</span></li>
+        <li class="menu-item active">
+            <a id="bt4" href="profile.php" class="menu-link"><i class="menu-icon tf-icons ti ti-user"></i><div>Api And Password</div></a>
+        </li>
+        <li class="menu-item">
+            <a id="bt4" href="../logout.php" onclick="clearThemeOnLogout()" class="menu-link"><i class="menu-icon tf-icons ti ti-logout text-danger"></i><div class="text-danger">Logout</div></a>
+        </li>
+    </ul>
+</aside>
+
+<div class="layout-page">
+    <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center" id="layout-navbar">
+        <div class="layout-menu-toggle navbar-nav align-items-xl-center me-2 me-xl-0 d-xl-none">
+            <a id="bt4" class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+                <i class="ti ti-menu-2 ti-sm text-white"></i>
+            </a>
+        </div>
+        <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+            
+            <!-- How to Deposit Button & Icon-Only Palette Theme Switcher -->
+            <div class="d-flex align-items-center me-auto gap-2">
+                <a href="https://youtube.com/shorts/jEdtxlLqYAo?feature=share" target="_blank" class="header-tutorial-btn">
+                    <i class="ti ti-brand-youtube me-1"></i>HOW TO DEPOSIT?
+                </a>
+                
+                <button type="button" class="btn btn-sm btn-outline-primary icon-theme-btn" onclick="openThemeModal()" title="Change Color Theme">
+                    <i class="ti ti-palette ti-sm"></i>
+                </button>
+            </div>
+
+            <ul class="navbar-nav flex-row align-items-center ms-auto">
+                <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                    <a id="bt4" class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+                        <div class="avatar avatar-online" style="border: 2px solid var(--reseller-neon, #00f2fe); border-radius: 50%; padding: 1px;">
+                            <img src="../assets/img/avatars/1.png" alt class="h-auto rounded-circle" />
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li>
+                            <a id="bt4" class="dropdown-item" href="profile.php">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3"><div class="avatar avatar-online"><img src="../assets/img/avatars/1.png" class="h-auto rounded-circle" /></div></div>
+                                    <div class="flex-grow-1">
+                                        <span class="fw-medium d-block text-white">rgxonly</span>
+                                        <small class="text-muted">Reseller Partner</small>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                        <li><div class="dropdown-divider"></div></li>
+                        <li><a id="bt4" class="dropdown-item" href="profile.php"><i class="ti ti-user-circle me-2 ti-sm" style="color: var(--reseller-neon, #00f2fe);"></i><span class="align-middle">My Profile</span></a></li>
+                        <li><a id="bt4" class="dropdown-item" href="deposit.php"><i class="ti ti-wallet me-2 ti-sm" style="color: var(--reseller-neon, #00f2fe);"></i><span class="align-middle">Wallet Balance</span></a></li>
+                        <li><a id="bt4" class="dropdown-item" href="javascript:void(0);" onclick="openHeaderSupportModal()"><i class="ti ti-brand-telegram me-2 ti-sm text-danger"></i><span class="align-middle text-danger fw-bold">Payment Isshu Support</span></a></li>
+                        <li><a id="bt4" class="dropdown-item" href="support.php"><i class="ti ti-headset me-2 ti-sm" style="color: var(--reseller-neon, #00f2fe);"></i><span class="align-middle">Support Ticket</span></a></li>
+                        <li><div class="dropdown-divider"></div></li>
+                        <li><a id="bt4" class="dropdown-item" href="../logout.php" onclick="clearThemeOnLogout()"><i class="ti ti-logout me-2 ti-sm text-danger"></i><span class="align-middle text-danger">Log Out</span></a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <script>
+    function openThemeModal() {
+        document.getElementById('themeColorModal').style.display = 'flex';
+    }
+
+    function closeThemeModal() {
+        document.getElementById('themeColorModal').style.display = 'none';
+    }
+
+    function applyTheme(colorHex) {
+        document.documentElement.style.setProperty('--reseller-neon', colorHex);
+        sessionStorage.setItem('panelCurrentSessionTheme', colorHex);
+        closeThemeModal();
+    }
+
+    function clearThemeOnLogout() {
+        sessionStorage.removeItem('panelCurrentSessionTheme');
+        localStorage.removeItem('panelCurrentSessionTheme');
+    }
+
+    // Direct Login or Fresh Session = Always Sky Blue (#00f2fe)!
+    (function initTheme() {
+        const activeUserSession = "rgxonly";
+        const savedUser = sessionStorage.getItem('activeThemeUser');
+
+        // Reset theme to Sky Blue if new login/user session detected
+        if (!savedUser || savedUser !== activeUserSession) {
+            sessionStorage.setItem('activeThemeUser', activeUserSession);
+            sessionStorage.removeItem('panelCurrentSessionTheme');
+        }
+
+        const currentSessionColor = sessionStorage.getItem('panelCurrentSessionTheme') || '#00f2fe';
+        document.documentElement.style.setProperty('--reseller-neon', currentSessionColor);
+    })();
+
+    function openHeaderSupportModal() {
+        document.getElementById('sidebarSupportModal').style.display = 'flex';
+    }
+
+    function closeHeaderSupportModal() {
+        document.getElementById('sidebarSupportModal').style.display = 'none';
+    }
+
+    function confirmHeaderSupportRedirect() {
+        closeHeaderSupportModal();
+        
+        const pName = "rgxonly";
+        const role = "RESELLER";
+        const adminUrl = "https:\/\/t.me\/Panel_supportbot";
+        
+        const rawMsg = `🛠️ *PAYMENT ISSUE SUPPORT*\n` +
+                       `----------------------\n` +
+                       `👤 *User:* ${pName}\n` +
+                       `🎖️ *Role:* ${role}\n` +
+                       `📝 *Issue:* \n` +
+                       `🖼️ *Screenshot:* [Please Attach Payment Screenshot]\n` +
+                       `----------------------\n` +
+                       `Hello Admin, I am facing an issue with my payment. Details are attached above.`;
+        
+        let cleanUrl = adminUrl.trim();
+        const encodedText = encodeURIComponent(rawMsg);
+
+        let finalUrl = cleanUrl;
+        if (cleanUrl.includes('t.me/')) {
+            let username = cleanUrl.split('t.me/')[1].replace('/', '').split('?')[0];
+            if (username && !username.startsWith('share')) {
+                finalUrl = `https://t.me/${username}?text=${encodedText}`;
+            } else {
+                finalUrl = cleanUrl.includes('?') ? `${cleanUrl}&text=${encodedText}` : `${cleanUrl}?text=${encodedText}`;
+            }
+        } else {
+            finalUrl = cleanUrl.includes('?') ? `${cleanUrl}&text=${encodedText}` : `${cleanUrl}?text=${encodedText}`;
+        }
+
+        window.open(finalUrl, '_blank');
+    }
+    </script>
+    <!-- Floating Telegram Button -->
+<a href="https://t.me/SHIVAMBABYUP51" target="_blank" class="floating-telegram-btn" title="Join our Telegram">
+    <i class="ti ti-brand-telegram"></i>
+</a>
+
+            <div class="content-wrapper">
+                <div class="container-xxl flex-grow-1 container-p-y">
+                    <h4 class="fw-bold py-3 mb-4 section-title">>> API AND PASSWORD PROFILE</h4>
+
+                    
+                    
+                    <div class="row">
+                        <!-- API AUTHENTICATION KEY -->
+                        <div class="col-md-12 mb-4">
+                            <div class="card h-100">
+                                <h5 class="card-header"><i class="fa-solid fa-key me-2"></i> RESELLER API AUTHENTICATION</h5>
+                                <div class="card-body mt-3">
+                                    <label class="form-label">Active API Access Token</label>
+                                    <div class="api-key-box mb-3">
+                                        <!-- Hidden Text Displayed initially as dots -->
+                                        <span id="apiTokenDisplay">••••••••••••••••••••••••••••••••</span>
+                                        <input type="hidden" id="realApiToken" value="7cfd4cd975c20fe02957d4a0fb7b194e">
+                                        
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <!-- Show/Hide Button -->
+                                            <button type="button" class="btn btn-sm btn-dark text-info p-1 px-2" onclick="toggleApiTokenVisibility()" id="toggleApiBtn" title="Show/Hide Token">
+                                                <i class="fa-solid fa-eye" id="toggleApiIcon"></i>
+                                            </button>
+                                            <!-- Copy Button -->
+                                            <button type="button" class="btn btn-sm btn-dark text-cyan p-1 px-2" onclick="copyApiTokenToClipboard()" title="Copy Token">
+                                                <i class="fa-solid fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <form method="POST" class="mb-4">
+                                        <input type="hidden" name="csrf_token" value="d8689504a72d434235e67ee3b67c02bb440692161d63bb99838871f04826098f">                                        <button type="submit" name="generate_api_token" class="btn btn-outline-info btn-sm w-100">
+                                            <i class="fa-solid fa-arrows-rotate me-1"></i> RE-GENERATE SECURE TOKEN
+                                        </button>
+                                    </form>
+
+                                    <h6 class="text-white small fw-bold mb-2">QUICK INTEGRATION GUIDE:</h6>
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(0,0,0,0.3);">
+                                        <p class="small mb-1"><span class="badge-api">ENDPOINT</span> <code>https://xyzcheats.com/api/reseller_v1.php</code></p>
+                                        <p class="small mb-0 text-muted" style="font-size: 11px;">
+                                            Send POST request with: <b>api_key</b>, <b>action</b>, <b>product_id</b>, <b>duration</b>. (BALA MOD XYZ V1 ke liye <b>android_id</b> bhejna zaroori hai, jabki BALA MOD XYZ V2 ke liye android_id ki zaroorat nahi hai).
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DEVELOPER API DOCUMENTATION -->
+                        <div class="col-12 mb-4">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-code me-2"></i> RESELLER API CODE</span>
+                                    <div class="d-flex gap-2">
+                                        <!-- Show/Hide Code API Key Button -->
+                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="toggleCodeApiKeyVisibility()">
+                                            <i class="fa-solid fa-eye me-1" id="toggleCodeKeyIcon"></i> <span id="toggleCodeKeyText">SHOW KEY</span>
+                                        </button>
+                                        <!-- Copy Code Button -->
+                                        <button class="btn btn-sm btn-outline-info" onclick="copyFullCodeWithRealToken()">
+                                            <i class="fa-solid fa-copy me-1"></i> COPY CODE
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body mt-3">
+                                    
+                                    <pre id="developerUnifiedCodeBlock">$data = [
+    'api_key'    => '<span id="codeApiKeySpan">••••••••••••••••••••••••••••••••</span>',
+    'action'     => 'buy',
+    'product_id' => 'PRODUCT_PID_ID',             // Exact Product PID
+    'duration'   => '1 Day',                       // Duration (e.g. 3 Hours, 1 Day, 7 Days)
+    'android_id' => '0b9b969bc2e7997b'             // BALA MOD XYZ V1 ke liye Android ID zaroori hai MANDATORY for Bala Mod / Device Bound Products,(V2 ke liye optional/not required)
+];
+
+$headers = [
+    'Content-Type: application/x-www-form-urlencoded',
+    'x-master-key: a7f3e8b2c9d1f4a6b8c2d5e9f1a3b6c8'
+];
+
+$ch = curl_init('https://xyzcheats.com/api/reseller_v1.php');
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => http_build_query($data),
+    CURLOPT_HTTPHEADER     => $headers,
+    CURLOPT_TIMEOUT        => 15
+]);
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;</pre>
+
+                                    <div class="android-note-box">
+                                        <i class="fa-solid fa-circle-info me-1"></i> <b>IMPORTANT CONFIGURATION CHECKLIST:</b>
+                                        <br>1. <b>PID Verification:</b> Apne reseller panel me Product ka PID (Product ID) <b>Sahi</b> rakhein.
+                                        <br>2. <b>Duration Name:</b> Duration exact <b>Hours</b> ya <b>Day</b> paas karein.
+                                        <br>3. <b>Android ID System:</b> BALA MOD XYZ V1 products ke liye `android_id` bhejye.MANDATORY for Bala Mod / Device Bound Products, BALA MOD XYZ V2 me bina `android_id` ke key auto-generate ho jaati hai.
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PRODUCT REFERENCE TABLE WITH ALL API & STOCK STATUS -->
+                        <div class="col-12 mb-4">
+                            <div class="card">
+                                <h5 class="card-header"><i class="fa-solid fa-table-list me-2"></i> PRODUCT REFERENCE TABLE (PIDs & LIVE STOCK)</h5>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <td class="text-center"><b>PID</b></td>
+                                                    <th>API Mode / Available Stock</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">BALA MOD XYZ FF MAIN ID NONROOT</td>
+                                                        <td class="text-center"><span class="badge-pid">133</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>1 Hours [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>3 Hours [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>6 Hours [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>12 Hours [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>1 DaYs [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>2 DaYs [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>3 DaYs [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>5 DaYs [BALA MODS XYZ V1 (Android ID Req)]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>7 DaYs [BALA MODS XYZ V1 (Android ID Req)]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">BR MOD FF PC VERSION</td>
+                                                        <td class="text-center"><span class="badge-pid">49</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 Day Pc Modmenu x86 [Stock: 5]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 Day Pc Modmenu x86 [Stock: 5]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 Days Pc Aim Silent  [Stock: 4]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 Days Pc Bypass + Silent  [Stock: 3]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 Day Pc Modmenu x86 [Stock: 4]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 Days Pc Aim Silent  [Stock: 3]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 Days Pc Bypass + Silent [Stock: 2]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">BR MOD FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">67</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 97]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>15 DaYs [Stock: 30]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 9]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 35]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">DRIPCLIENT 8BP NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">59</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 18]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 12]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 19]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">DRIPCLIENT FF NONROOT APKMOD</td>
+                                                        <td class="text-center"><span class="badge-pid">62</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYS NONROOT  [Stock: 192]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>15 DaYS NONROOT  [Stock: 30]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYS NONROOT  [Stock: 102]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYS NONROOT  [Stock: 11]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYS NONROOT  [Stock: 74]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">DRIPCLIENT FF PC AIMKILL</td>
+                                                        <td class="text-center"><span class="badge-pid">44</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>15 DaYS PC AIMKILL  [Stock: 7]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYS PC AIMKILL  [Stock: 7]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYS PC AIMKILL  [Stock: 5]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">DRIPCLIENT FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">63</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYS ROOT  [Stock: 3]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">DRIPCLIENT PROXY FF NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">91</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 145]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs [Stock: 19]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 27]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 51]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">FLUORITE IOS FF</td>
+                                                        <td class="text-center"><span class="badge-pid">58</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DAYs FluoRite FF  [Stock: 10]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DAYs FluoRite FF  [Stock: 5]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DAYs FluoRite FF  [Stock: 4]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">FLUORITE IOS MLBB</td>
+                                                        <td class="text-center"><span class="badge-pid">84</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 2]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">HAXX-CKER PRO FF NONROOT+ROOT</td>
+                                                        <td class="text-center"><span class="badge-pid">64</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>10 DaYs [HAXXCKERPRO API]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>20 DaYs [HAXXCKERPRO API]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>30 DaYs [HAXXCKERPRO API]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>60 DaYs [HAXXCKERPRO API]</span><span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>120 DaYs [HAXXCKERPRO API]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">HG CHEATS ANDROID PROXY FF NONROOT</td>
+                                                        <td class="text-center"><span class="badge-pid">123</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 79]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 DaYs [Stock: 55]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 31]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 46]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">HG CHEATS FF APKMOD NONROOT+ROOT</td>
+                                                        <td class="text-center"><span class="badge-pid">65</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs Root + Nonroot [Stock: 88]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 DaYs Root+Nonroot [Stock: 65]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs Root+Nonroot [Stock: 7]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs Root+Nonroot [Stock: 90]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">IOS CLOUD CODM</td>
+                                                        <td class="text-center"><span class="badge-pid">87</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 3]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">IOS FLUORITE 8 BALL POOL</td>
+                                                        <td class="text-center"><span class="badge-pid">86</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 1]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 2]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">IOS IPHONE ALL GBOX CERTIFICATE</td>
+                                                        <td class="text-center"><span class="badge-pid">85</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 Year Ios Esign Gbox Certificate [Stock: 20]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 Year Ios Signer Gbox Certificate [Stock: 5]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">KOS 8 BALL POOL NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">76</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs Premium Access [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs Mod [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs Premium Access [Stock: 4]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs Premium Access [Stock: 11]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">KOS CARROM POOL NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">75</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 4]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 6]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">KOS FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">74</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 3]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">MIGUL IPHONE IOS FF</td>
+                                                        <td class="text-center"><span class="badge-pid">69</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs Basic [Stock: 14]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs PRO [Stock: 13]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs Basic [Stock: 14]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs PRO [Stock: 9]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs Basic [Stock: 8]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs PRO [Stock: 15]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">PATO TEAM FF ALL ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">54</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>15 DaYs All Colours Mix [Stock: 20]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs All Colours Mix [Stock: 39]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs All Colours Mix [Stock: 13]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs All Colours Mix [Stock: 40]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">PRIME HOOK FF NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">48</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 Days Nonroot [Stock: 70]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 Days Nonroot [Stock: 20]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 Days Nonroot [Stock: 63]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 Days NonRoot [Stock: 20]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">RAPID CORE FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">130</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 85]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>14 DaYs [Stock: 44]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 34]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 27]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">REAPER X PRO FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">81</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 DaYs [Stock: 13]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">SILENT CHEAT FF NONROOT APKMOD</td>
+                                                        <td class="text-center"><span class="badge-pid">127</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs [Stock: 69]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>14 DaYs [Stock: 30]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>28 DaYs [Stock: 23]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs [Stock: 59]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs [Stock: 39]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">SILENT CHEAT FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">128</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs BRUTAL [Stock: 105]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 DaYs SAFE [Stock: 67]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>14 DaYs BRUTAL [Stock: 28]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>14 DaYs SAFE [Stock: 31]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>28 DaYs BRUTAL [Stock: 24]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>28 DaYs SAFE [Stock: 30]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs BRUTAL [Stock: 74]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs SAFE [Stock: 80]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs BRUTAL [Stock: 67]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>7 DaYs SAFE [Stock: 44]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">SNAKE 8 BALL POOL NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">79</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 DaYs [Stock: 3]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs [Stock: 3]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 1]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">SNAKE CARROM POOL NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">77</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs [Stock: 3]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 2]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">SNAKE SOCCER STARS NONROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">78</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>10 DaYs [Stock: 3]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 DaYs [Stock: 2]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>30 DaYs [Stock: 2]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">Teststtstst</td>
+                                                        <td class="text-center"><span class="badge-pid">136</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#28c76f; border-color:#28c76f;'><i class='fa-solid fa-bolt me-1'></i>1 Hours [BALA MODS XYZ V2 (Auto - No HWID)]</span>                                                        </td>
+                                                    </tr>
+                                                                                                        <tr>
+                                                        <td class="text-white fw-bold">XYZ CHEATS FF ROOT ANDROID</td>
+                                                        <td class="text-center"><span class="badge-pid">66</span></td>
+                                                        <td>
+                                                            <span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>1 Days  [Stock: 38]</span><span class='badge-api me-1' style='color:#00f2fe; border-color:#00f2fe;'>3 Days [Stock: 8]</span>                                                        </td>
+                                                    </tr>
+                                                                                                                                                </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCOUNT OVERVIEW -->
+                        <div class="col-md-12 mb-4">
+                            <div class="card">
+                                <h5 class="card-header">>> ACCOUNT OVERVIEW</h5>
+                                <div class="card-body mt-3">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">Username</label>
+                                            <input type="text" class="form-control" value="rgxonly" readonly>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">Registered Email</label>
+                                            <input type="text" class="form-control text-warning fw-bold" value="rgxonly@outlook.com" readonly>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">Role Access</label>
+                                            <input type="text" class="form-control text-info fw-bold" value="RESELLER" readonly>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">Current Balance</label>
+                                            <input type="text" class="form-control text-success fw-bold" value="₹0.00" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECURITY & PRIVACY -->
+                        <div class="col-md-12 mb-4">
+                            <div class="card">
+                                <h5 class="card-header">>> SECURITY & PRIVACY</h5>
+                                <div class="card-body mt-3">
+                                    <form method="POST" class="row">
+                                        <input type="hidden" name="csrf_token" value="d8689504a72d434235e67ee3b67c02bb440692161d63bb99838871f04826098f">                                        <input type="hidden" name="change_pass" value="1">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Current Password</label>
+                                            <input type="password" class="form-control" name="old_password" required placeholder="••••••••">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">New Password</label>
+                                            <input type="password" class="form-control" name="new_password" required placeholder="••••••••">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Confirm Password</label>
+                                            <input type="password" class="form-control" name="confirm_password" required placeholder="••••••••">
+                                        </div>
+                                        <div class="col-12">
+                                            <button type="submit" class="btn btn-primary w-100">Update Account Security</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Core JS -->
+    <!-- build:js assets/vendor/js/core.js -->
+    
+    
+    <script type="text/javascript" src="../assets/table/jquery-3.7.0.js"></script>
+    <script type="text/javascript" src="../assets/table/dataTables.bootstrap4.min.js"></script>
+    <script type="text/javascript" src="../assets/table/dataTables.fixedHeader.min.js"></script>
+    <script type="text/javascript" src="../assets/table/dataTables.responsive.min.js"></script>
+    <script type="text/javascript" src="../assets/table/responsive.bootstrap.min.js"></script>
+    <script type="text/javascript" src="../assets/table/table.js"></script>
+   
+    
+    
+    <script src="../assets/vendor/libs/jquery/jquery.js"></script>
+    <script src="../assets/vendor/libs/popper/popper.js"></script>
+    <script src="../assets/vendor/js/bootstrap.js"></script>
+    <script src="../assets/vendor/libs/node-waves/node-waves.js"></script>
+    <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+    <script src="../assets/vendor/libs/hammer/hammer.js"></script>
+    <script src="../assets/vendor/libs/i18n/i18n.js"></script>
+    <script src="../assets/vendor/libs/typeahead-js/typeahead.js"></script>
+    <script src="../assets/vendor/js/menu.js"></script>
+    <script src="../assets/vendor/libs/quill/katex.js"></script>
+    <script src="../assets/vendor/libs/quill/quill.js"></script>
+    <script src="../assets/vendor/libs/select2/select2.js"></script>
+    <script src="../assets/vendor/libs/dropzone/dropzone.js"></script>
+    <script src="../assets/vendor/libs/jquery-repeater/jquery-repeater.js"></script>
+    <script src="../assets/vendor/libs/flatpickr/flatpickr.js"></script>
+    <script src="../assets/vendor/libs/tagify/tagify.js"></script>
+    <script src="../assets/js/app-ecommerce-product-add.js"></script>
+    <script src="../assets/vendor/libs/moment/moment.js"></script>
+    <script src="../assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js"></script>
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/app-ecommerce-referral.js"></script>
+    <script src="../assets/vendor/libs/@form-validation/umd/bundle/popular.min.js"></script>
+    <script src="../assets/vendor/libs/@form-validation/umd/plugin-bootstrap5/index.min.js"></script>
+    <script src="../assets/vendor/libs/@form-validation/umd/plugin-auto-focus/index.min.js"></script>
+    <script src="../assets/js/modal-edit-user.js"></script>
+    <script src="../assets/js/app-user-view.js"></script>
+    <script src="../assets/js/modal-edit-user.js"></script>
+    <script src="../assets/js/modal-enable-otp.js"></script>
+    <script src="../assets/js/app-user-view.js"></script>
+    <script src="../assets/js/app-user-view-security.js"></script>
+    <script src="../assets/js/pages-auth.js"></script>
+    <script src="../assets/vendor/libs/apex-charts/apexcharts.js"></script>
+    <script src="../assets/vendor/libs/apex-charts/apexcharts.js"></script>
+    <script src="../assets/vendor/libs/clipboard/clipboard.js"></script>
+    <script src="../assets/vendor/libs/moment/moment.js"></script>
+    <script src="../assets/vendor/libs/idletimer/idletimer.js"></script>
+    <script src="../assets/vendor/libs/numeral/numeral.js"></script>
+    <script src="../assets/vendor/libs/toastr/toastr.js"></script>
+    <script src="../assets/js/extended-ui-misc-clipboardjs.js"></script>
+    <script src="../assets/js/extended-ui-misc-idle-timer.js"></script>
+    <script src="../assets/js/extended-ui-misc-numeraljs.js"></script>
+    <script src="../assets/vendor/libs/moment/moment.js"></script>
+    <script src="../assets/vendor/libs/flatpickr/flatpickr.js"></script>
+    <script src="../assets/js/form-layouts.js"></script>
+    <script src="../assets/vendor/libs/autosize/autosize.js"></script>
+    <script src="../assets/vendor/libs/bootstrap-maxlength/bootstrap-maxlength.js"></script>
+    <script src="../assets/vendor/libs/jquery-repeater/jquery-repeater.js"></script>
+    <script src="../assets/js/forms-extras.js"></script>
+    <script src="../assets/vendor/libs/tagify/tagify.js"></script>
+    <script src="../assets/vendor/libs/bootstrap-select/bootstrap-select.js"></script>
+    <script src="../assets/vendor/libs/typeahead-js/typeahead.js"></script>
+    <script src="../assets/vendor/libs/bloodhound/bloodhound.js"></script>
+    <script src="../assets/js/forms-selects.js"></script>
+    <script src="../assets/js/forms-tagify.js"></script>
+    <script src="../assets/js/forms-typeahead.js"></script>
+    <script src="../assets/vendor/libs/cleavejs/cleave.js"></script>
+    <script src="../assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
+    <script src="../assets/js/pages-account-settings-account.js"></script>
+    <script src="../assets/vendor/libs/cleavejs/cleave-phone.js"></script>
+    <script src="../assets/js/pages-account-settings-security.js"></script>
+    <script src="../assets/js/modal-enable-otp.js"></script>
+    <script src="../assets/js/pages-profile.js"></script>
+    <script src="../assets/js/tables-datatables-extensions.js"></script>
+    <script src="../assets/vendor/libs/swiper/swiper.js"></script>
+    <script src="../assets/js/ui-carousel.js"></script>
+    <script src="../assets/js/ui-popover.js"></script>
+    <script>
+			function getToken(){
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+    let tokenLength = 6;
+    let token =  "";
+
+    for (let i=0; i<tokenLength; i++){
+        let randomNumber = Math.floor(Math.random() * chars.length);
+        token += chars.substring(randomNumber,randomNumber+1);
+    }
+    document.getElementById('token').value = 'KGF_TEAM_'+token;
+}
+const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+    let tokenLength = 6;
+    let token =  "";
+
+    for (let i=0; i<tokenLength; i++){
+        let randomNumber = Math.floor(Math.random() * chars.length);
+        token += chars.substring(randomNumber,randomNumber+1);
+    }
+    document.getElementById('token').value = 'KGF_TEAM_'+token;
+		</script>
+		
+		<script>
+		(function ($) {
+    "use strict";
+
+    // Spinner
+    var spinner = function () {
+        setTimeout(function () {
+            if ($('#spinner').length > 0) {
+                $('#spinner').removeClass('show');
+            }
+        }, 1);
+    };
+    spinner();
+    
+   
+    
+})(jQuery);
+
+
+		</script>
+    
+    <script>
+        let isTokenVisible = false;
+        let isCodeKeyVisible = false;
+
+        function toggleApiTokenVisibility() {
+            const displaySpan = document.getElementById("apiTokenDisplay");
+            const realToken = document.getElementById("realApiToken").value;
+            const toggleIcon = document.getElementById("toggleApiIcon");
+
+            if (!realToken) {
+                showToast("⚠️ GENERATE TOKEN FIRST!", "#ff4d4d");
+                return;
+            }
+
+            if (isTokenVisible) {
+                displaySpan.innerText = "••••••••••••••••••••••••••••••••";
+                toggleIcon.className = "fa-solid fa-eye";
+                isTokenVisible = false;
+            } else {
+                displaySpan.innerText = realToken;
+                toggleIcon.className = "fa-solid fa-eye-slash";
+                isTokenVisible = true;
+            }
+        }
+
+        function toggleCodeApiKeyVisibility() {
+            const codeSpan = document.getElementById("codeApiKeySpan");
+            const realToken = document.getElementById("realApiToken").value;
+            const icon = document.getElementById("toggleCodeKeyIcon");
+            const text = document.getElementById("toggleCodeKeyText");
+
+            if (!realToken) {
+                showToast("⚠️ GENERATE TOKEN FIRST!", "#ff4d4d");
+                return;
+            }
+
+            if (isCodeKeyVisible) {
+                codeSpan.innerText = "••••••••••••••••••••••••••••••••";
+                icon.className = "fa-solid fa-eye me-1";
+                text.innerText = "SHOW KEY";
+                isCodeKeyVisible = false;
+            } else {
+                codeSpan.innerText = realToken;
+                icon.className = "fa-solid fa-eye-slash me-1";
+                text.innerText = "HIDE KEY";
+                isCodeKeyVisible = true;
+            }
+        }
+
+        function copyApiTokenToClipboard() {
+            const realToken = document.getElementById("realApiToken").value;
+            if (!realToken) {
+                showToast("⚠️ GENERATE TOKEN FIRST!", "#ff4d4d");
+                return;
+            }
+            
+            navigator.clipboard.writeText(realToken).then(() => {
+                showToast("🚀 COPIED!", "#00f2fe");
+            }).catch(() => {
+                showToast("⚠️ COPY FAILED!", "#ff4d4d");
+            });
+        }
+
+        function copyFullCodeWithRealToken() {
+            const realToken = document.getElementById("realApiToken").value || 'YOUR_API_KEY';
+            const codeBlock = document.getElementById("developerUnifiedCodeBlock").innerText;
+            
+            // Replaces stars or whatever token text with actual real API Token
+            const codeSpanText = document.getElementById("codeApiKeySpan").innerText;
+            const fullRealCode = codeBlock.replace(codeSpanText, realToken);
+
+            navigator.clipboard.writeText(fullRealCode).then(() => {
+                showToast("🚀 CODE COPIED!", "#00f2fe");
+            }).catch(() => {
+                showToast("⚠️ COPY FAILED!", "#ff4d4d");
+            });
+        }
+
+        function showToast(message, color) {
+            const toast = document.getElementById("copyToast");
+            toast.innerText = message;
+            toast.style.borderColor = color;
+            toast.style.color = color;
+            toast.className = "show";
+            
+            setTimeout(function(){ 
+                toast.className = toast.className.replace("show", ""); 
+            }, 1200);
+        }
+    </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"47ab5eb860d84fa2bf70b2ecebc97412","r":1}' crossorigin="anonymous"></script>
+</body>
+</html>
