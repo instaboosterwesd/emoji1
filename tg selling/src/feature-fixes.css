@@ -3232,11 +3232,44 @@
   border-radius: 12px;
   background: rgba(4,4,10,.42);
 }
+
+/* The base modal makes every direct div a button-row. Documentation has
+   content sections as direct children, so restore their normal flow. */
+.api-docs-dialog > div {
+  display: block;
+  justify-content: initial;
+  gap: initial;
+  margin-top: 0;
+}
+.api-docs-dialog > .dialog-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.api-docs-dialog > .modal-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+.api-doc-section h3 {
+  min-width: 0;
+}
+.api-doc-section h3 span {
+  flex: 0 0 25px;
+}
+
 @media (max-width: 520px) {
   .api-docs-dialog { width: calc(100vw - 14px); padding: 15px; }
   .api-docs-dialog .dialog-title-row h2 { font-size: 18px; }
   .api-doc-intro { padding: 13px; }
   .api-doc-section { margin-top: 15px; padding-top: 15px; }
   .api-doc-example pre, .api-response-section pre { font-size: 10px; }
+  .api-doc-section h3 {
+    align-items: flex-start;
+    line-height: 1.25;
+  }
 }
 
