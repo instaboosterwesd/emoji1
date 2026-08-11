@@ -10,10 +10,10 @@
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Import the **yikav542058956/tgselling** repository
 3. Set:
-   - **Root Directory**: `tg selling`
-   - **Framework**: Vite
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
+   - **Root Directory**: repository root (`.`)
+   - **Framework**: Other
+   - **Build Command**: `npm run build --prefix "tg selling"`
+   - **Output Directory**: `tg selling/dist`
 4. Click **Deploy**
 
 ## Vercel Project (already created via API)
@@ -31,9 +31,9 @@ Add these in Vercel project settings → Environment Variables:
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
-- `VITE_RESELLER_ENDPOINT`
-- `VITE_RESELLER_API_KEY`
-- `VITE_RESELLER_MASTER_KEY`
+- `RESELLER_ENDPOINT` (server-side only; never use a `VITE_` prefix)
+- `RESELLER_API_KEY` (server-side only; never use a `VITE_` prefix)
+- `RESELLER_MASTER_KEY` (server-side only; never use a `VITE_` prefix)
 - `PRODUCTS_SCRAPE_COOKIE` (server-side secret for the live products proxy)
 
 ## Public customer API

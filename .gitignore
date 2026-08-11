@@ -17,3 +17,4 @@ flaticon-proxy/node_modules/
 *.log
 .env
 .env.local
+vercel-env.txt

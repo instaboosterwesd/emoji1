@@ -33,6 +33,84 @@ async function dbRequest(path, options = {}) {
   return data;
 }
 
+async function dbValueWithEtag(path) {
+  const base = databaseUrl();
+  if (!base) throw new Error('Firebase database is not configured on the server.');
+  const response = await fetch(`${base}/${path.replace(/^\/+/, '')}.json`, {
+    headers: { 'X-Firebase-ETag': 'true' },
+  });
+  const raw = await response.text();
+  if (!response.ok) {
+    const error = new Error('Database request failed.');
+    error.status = response.status;
+    throw error;
+  }
+  let value = null;
+  try { value = raw ? JSON.parse(raw) : null; } catch { value = null; }
+  return { value, etag: response.headers.get('etag') || '' };
+}
+
+async function dbConditionalPut(path, value, etag) {
+  const base = databaseUrl();
+  if (!base) throw new Error('Firebase database is not configured on the server.');
+  const response = await fetch(`${base}/${path.replace(/^\/+/, '')}.json`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'if-match': etag,
+    },
+    body: JSON.stringify(value),
+  });
+  if (response.status === 412) return false;
+  if (!response.ok) {
+    const error = new Error('Database request failed.');
+    error.status = response.status;
+    throw error;
+  }
+  return true;
+}
+
+async function reserveBalance(uid, amount) {
+  const balancePath = `users/${encodeURIComponent(uid)}/balance`;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const snapshot = await dbValueWithEtag(balancePath);
+    const before = Number(snapshot.value || 0);
+    if (before < amount) {
+      const error = new Error(`Insufficient balance. Required ₹${amount}, available ₹${before}.`);
+      error.status = 402;
+      error.code = 'INSUFFICIENT_BALANCE';
+      throw error;
+    }
+    const after = before - amount;
+    if (await dbConditionalPut(balancePath, after, snapshot.etag)) {
+      await dbRequest(`users/${encodeURIComponent(uid)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ updatedAt: Date.now() }),
+      });
+      return { before, after };
+    }
+  }
+  const error = new Error('Wallet changed while placing the order. Please try again.');
+  error.status = 409;
+  throw error;
+}
+
+async function refundBalance(uid, amount) {
+  const balancePath = `users/${encodeURIComponent(uid)}/balance`;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const snapshot = await dbValueWithEtag(balancePath);
+    const next = Number(snapshot.value || 0) + Number(amount || 0);
+    if (await dbConditionalPut(balancePath, next, snapshot.etag)) {
+      await dbRequest(`users/${encodeURIComponent(uid)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ updatedAt: Date.now() }),
+      });
+      return;
+    }
+  }
+  throw new Error('Wallet refund could not be applied safely.');
+}
+
 function hashApiKey(value) {
   return createHash('sha256').update(String(value || '')).digest('hex');
 }
@@ -124,11 +202,23 @@ async function patchUser(uid, updates) {
 }
 
 async function refund(uid, amount) {
-  const user = await dbRequest(`users/${encodeURIComponent(uid)}`) || {};
-  await patchUser(uid, {
-    balance: Number(user.balance || 0) + Number(amount || 0),
-    updatedAt: Date.now(),
-  });
+  await refundBalance(uid, amount);
+}
+
+async function incrementPurchaseStats(uid, amount) {
+  const userPath = `users/${encodeURIComponent(uid)}`;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const snapshot = await dbValueWithEtag(userPath);
+    const user = snapshot.value || {};
+    const next = {
+      ...user,
+      totalPurchase: Number(user.totalPurchase || 0) + Number(amount || 0),
+      myPurchases: Number(user.myPurchases || 0) + Number(amount || 0),
+      updatedAt: Date.now(),
+    };
+    if (await dbConditionalPut(userPath, next, snapshot.etag)) return;
+  }
+  throw new Error('User purchase stats could not be updated safely.');
 }
 
 function errorResponse(error) {
@@ -173,14 +263,17 @@ module.exports = async function handler(req, res) {
       return send(res, 400, { success: false, error: { code: 'ANDROID_ID_REQUIRED', message: 'android_id is required for this device-bound product.' } });
     }
 
-    const currentBalance = Number(auth.user.balance || 0);
-    if (currentBalance < price) {
-      return send(res, 402, { success: false, error: { code: 'INSUFFICIENT_BALANCE', message: `Insufficient balance. Required ₹${price}, available ₹${currentBalance}.` } });
-    }
-
     const now = Date.now();
-    const newBalance = currentBalance - price;
-    await patchUser(auth.uid, { balance: newBalance, updatedAt: now });
+    let balanceReservation;
+    try {
+      balanceReservation = await reserveBalance(auth.uid, price);
+    } catch (error) {
+      if (error.code === 'INSUFFICIENT_BALANCE') {
+        return send(res, 402, { success: false, error: { code: error.code, message: error.message } });
+      }
+      throw error;
+    }
+    const { before: currentBalance, after: newBalance } = balanceReservation;
     let providerResult;
     try {
       providerResult = await buyFromProvider({
@@ -214,31 +307,35 @@ module.exports = async function handler(req, res) {
       createdAt: now,
     };
     try {
-      await dbRequest(`licenseKeys/${keyId}`, { method: 'PUT', body: JSON.stringify(order) });
-      await dbRequest(`transactions/${txId}`, {
-        method: 'PUT',
+      await dbRequest('', {
+        method: 'PATCH',
         body: JSON.stringify({
-          uid: auth.uid,
-          type: 'purchase',
-          source: 'api',
-          amount: price,
-          before: currentBalance,
-          after: newBalance,
-          note: `${product.name} · ${duration.duration}`,
-          productId: product.pid,
-          licenseKeyId: keyId,
-          createdAt: now,
+          [`licenseKeys/${keyId}`]: order,
+          [`transactions/${txId}`]: {
+            uid: auth.uid,
+            type: 'purchase',
+            source: 'api',
+            amount: price,
+            before: currentBalance,
+            after: newBalance,
+            note: `${product.name} · ${duration.duration}`,
+            productId: product.pid,
+            licenseKeyId: keyId,
+            createdAt: now,
+          },
         }),
-      });
-      await patchUser(auth.uid, {
-        balance: newBalance,
-        totalPurchase: Number(auth.user.totalPurchase || 0) + price,
-        myPurchases: Number(auth.user.myPurchases || 0) + price,
-        updatedAt: now,
       });
     } catch (error) {
       await refund(auth.uid, price);
       return send(res, 502, { success: false, error: { code: 'ORDER_SAVE_FAILED', message: 'The provider key was received but the order could not be saved. Wallet balance was refunded.' } });
+    }
+    // The order and wallet reservation are already committed. Keep the
+    // successful order if this non-critical aggregate update is unavailable;
+    // it can be reconciled later without issuing a duplicate provider order.
+    try {
+      await incrementPurchaseStats(auth.uid, price);
+    } catch (_) {
+      // Do not refund a delivered key because a summary counter failed.
     }
 
     return send(res, 201, {
