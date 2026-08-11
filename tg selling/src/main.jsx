@@ -15,6 +15,7 @@ import {
   ensurePhoneUser,
   ensureUserApiKey,
   getUserProfile,
+  subscribeUserProfile,
   getGoogleRedirectResult,
   loginWithApiKey,
   resetUserApiKey,
@@ -22,7 +23,7 @@ import {
   signInWithGoogle,
   updateUserProfile,
   verifyIndiaOtp,
-  adminAdjustUserFund,
+  adminEditUser,
   adminSaveAnnouncement,
   adminSaveProductRule,
   adminSaveProductPricingSettings,
@@ -784,6 +785,18 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
     if (!session?.uid) return;
     getUserProfile(session.uid).then(next => { setProfile(next); onSessionChange(next); }).catch(() => {});
   }, [session?.uid]);
+
+  useEffect(() => {
+    if (!session?.uid) return undefined;
+    return subscribeUserProfile(
+      session.uid,
+      next => {
+        setProfile(next);
+        onSessionChange(next);
+      },
+      () => {},
+    );
+  }, [session?.uid, onSessionChange]);
 
   useEffect(() => {
     getAnnouncements().then(list => {
@@ -2558,6 +2571,73 @@ function UserViewDialog({ user, onClose }) {
   );
 }
 
+/* ── UserEditDialog ─────────────────────────────────────────────── */
+function UserEditDialog({ user, onClose, onSaved }) {
+  const [balance, setBalance] = useState(String(Number(user?.balance || 0)));
+  const [role, setRole] = useState(user?.role === 'reseller' || user?.reseller ? 'reseller' : user?.role || 'user');
+  const [status, setStatus] = useState(user?.status === 'banned' ? 'banned' : 'active');
+  const [saving, setSaving] = useState(false);
+
+  if (!user) return null;
+
+  const save = async event => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await adminEditUser(user.uid, { balance, role, status });
+      toast.success('User updated');
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+      <section className="action-modal liquid-dialog user-edit-dialog">
+        <div className="dialog-title-row">
+          <MatIcon name="edit" size={20} />
+          <h2>Edit user</h2>
+          <button className="icon-button" type="button" onClick={onClose} disabled={saving}><MatIcon name="close" size={18} /></button>
+        </div>
+        <p className="muted dialog-sub">{user.name || 'Account holder'} · {user.email || user.phone || user.uid}</p>
+        <form className="user-edit-form" onSubmit={save}>
+          <label>
+            <span>Wallet balance (₹)</span>
+            <input type="number" min="0" step="0.01" value={balance} onChange={e => setBalance(e.target.value)} inputMode="decimal" required />
+            <small>Set the final balance directly. No add or subtract calculation is needed.</small>
+          </label>
+          <label>
+            <span>Account role</span>
+            <select value={role} onChange={e => setRole(e.target.value)}>
+              <option value="user">User</option>
+              <option value="reseller">Reseller</option>
+              <option value="admin">Admin</option>
+            </select>
+            <small>{role === 'reseller' ? 'Reseller pricing and privileges will be enabled.' : role === 'admin' ? 'Admin dashboard access will be enabled.' : 'Standard user access; reseller privileges will be removed.'}</small>
+          </label>
+          <label>
+            <span>Account status</span>
+            <select value={status} onChange={e => setStatus(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="banned">Banned</option>
+            </select>
+          </label>
+          <div className="modal-btn-row">
+            <button type="button" onClick={onClose} disabled={saving}><MatIcon name="close" size={16} /> Cancel</button>
+            <button className="modal-save" type="submit" disabled={saving}>
+              <MatIcon name={saving ? 'schedule' : 'check'} size={16} /> {saving ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 /* ── PricingEditDialog ──────────────────────────────────────────── */
 function PricingEditDialog({ product, onClose, onSave }) {
   const [rules, setRules] = useState({});
@@ -2695,7 +2775,6 @@ function AdminPage({ session, onSessionChange }) {
   const [search, setSearch] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [annTitle, setAnnTitle] = useState('');
-  const [fundForm, setFundForm] = useState({ uid: '', amount: '', mode: 'add' });
   const [resellerForm, setResellerForm] = useState({ username: '', password: '', fund: '' });
   const [userIncreasePercent, setUserIncreasePercent] = useState('0');
   const [resellerIncreasePercent, setResellerIncreasePercent] = useState('0');
@@ -2708,6 +2787,7 @@ function AdminPage({ session, onSessionChange }) {
   const [cashfreeAppId, setCashfreeAppId] = useState('');
   const [communityLinks, setCommunityLinks] = useState({ resellerUpdatesUrl: '', getFileUrl: '', helpUrl: '' });
   const [historyUser, setHistoryUser] = useState(null);
+  const [editUser, setEditUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
   const [apiChecking, setApiChecking] = useState(false);
@@ -2999,29 +3079,14 @@ function AdminPage({ session, onSessionChange }) {
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, phone, email" />
         </div>
-        <form className="admin-form compact" onSubmit={e => { e.preventDefault(); safeAction(async () => { await adminAdjustUserFund(fundForm.uid, fundForm.amount, fundForm.mode); setFundForm({ uid: '', amount: '', mode: 'add' }); }, 'User fund updated'); }}>
-          <input value={fundForm.uid} onChange={e => setFundForm({ ...fundForm, uid: e.target.value })} placeholder="User UID" />
-          <input value={fundForm.amount} onChange={e => setFundForm({ ...fundForm, amount: e.target.value })} placeholder="Amount" inputMode="numeric" />
-          <select value={fundForm.mode} onChange={e => setFundForm({ ...fundForm, mode: e.target.value })}>
-            <option value="add">Add fund</option>
-            <option value="subtract">Subtract</option>
-          </select>
-          <button className="modal-save"><MatIcon name="account_balance_wallet" size={15} /> Update fund</button>
-        </form>
         <AdminList items={filteredUsers} empty="No users found" render={user => (
           <AdminRow
             title={user.name || user.uid}
             meta={`${user.phone || user.email || user.uid} · ${fmtDate(user.createdAt)}`}
-            status={<>{user.role || 'user'} · {user.status || 'active'} · <MoneyDisplay value={user.balance} /></>}
+            status={<>{user.role === 'reseller' || user.reseller ? 'reseller' : user.role || 'user'} · {user.status || 'active'} · <MoneyDisplay value={user.balance} /></>}
           >
-            <button onClick={() => setFundForm({ uid: user.uid, amount: '', mode: 'add' })}><MatIcon name="account_balance_wallet" size={13} /> Fund</button>
+            <button onClick={() => setEditUser(user)}><MatIcon name="edit" size={13} /> Edit</button>
             <button onClick={() => setHistoryUser(user)}><MatIcon name="history" size={13} /> History</button>
-            <button onClick={() => safeAction(() => adminUpdateUser(user.uid, { reseller: !user.reseller }), user.reseller ? 'Reseller removed' : 'Reseller enabled')}>
-              {user.reseller ? 'Remove reseller' : 'Reseller'}
-            </button>
-            <button className="danger-mini" onClick={() => safeAction(() => adminUpdateUser(user.uid, { status: user.status === 'banned' ? 'active' : 'banned' }), user.status === 'banned' ? 'User unbanned' : 'User banned')}>
-              <MatIcon name={user.status === 'banned' ? 'check_circle' : 'block'} size={13} /> {user.status === 'banned' ? 'Unban' : 'Ban'}
-            </button>
           </AdminRow>
         )} />
       </div>
@@ -3899,6 +3964,7 @@ function AdminPage({ session, onSessionChange }) {
       </div>
       <Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} />
       {historyUser && <UserHistoryDialog user={historyUser} onClose={() => setHistoryUser(null)} />}
+      {editUser && <UserEditDialog user={editUser} onClose={() => setEditUser(null)} onSaved={loadAdmin} />}
       {viewIssueUser && <UserViewDialog user={viewIssueUser} onClose={() => setViewIssueUser(null)} />}
       {pricingProduct && <PricingEditDialog product={pricingProduct} onClose={() => setPricingProduct(null)} onSave={loadAdmin} />}
     </main>
@@ -4315,8 +4381,14 @@ function App() {
     }
   }, []);
 
-  const updateSession = next => { localStorage.setItem('app_session', JSON.stringify(next)); setSession(next); };
-  const logout = () => { localStorage.removeItem('app_session'); setSession(null); };
+  const updateSession = useCallback(next => {
+    localStorage.setItem('app_session', JSON.stringify(next));
+    setSession(next);
+  }, []);
+  const logout = useCallback(() => {
+    localStorage.removeItem('app_session');
+    setSession(null);
+  }, []);
 
   useEffect(() => {
     let active = true;

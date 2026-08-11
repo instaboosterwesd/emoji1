@@ -825,6 +825,45 @@
   color: #ffd7d7;
 }
 
+.user-edit-dialog {
+  width: min(100%, 430px) !important;
+}
+.user-edit-form {
+  display: grid;
+  gap: 14px;
+}
+.user-edit-form label {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+.user-edit-form label > span {
+  color: rgba(255, 255, 255, .78);
+  font-size: 12px;
+  font-weight: 600;
+}
+.user-edit-form input,
+.user-edit-form select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+.user-edit-form select option {
+  color: #111827;
+}
+.user-edit-form small {
+  color: rgba(255, 255, 255, .45);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.user-edit-form .modal-btn-row {
+  margin-top: 4px;
+}
+
 .upi-preview {
   display: grid;
   place-items: center;

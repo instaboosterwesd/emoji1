@@ -514,6 +514,7 @@ const randomSecret = (size = 24) => {
 const publicProfile = (uid, value = {}) => ({
   uid,
   role: value.role || 'user',
+  reseller: Boolean(value.reseller || value.role === 'reseller'),
   phone: value.phone || '',
   email: value.email || '',
   name: value.name || 'Account holder',
@@ -532,6 +533,17 @@ export async function getUserProfile(uid) {
   if (!firebaseDb || !uid) return publicProfile(uid);
   const snapshot = await get(ref(firebaseDb, `users/${uid}`));
   return publicProfile(uid, snapshot.exists() ? snapshot.val() : {});
+}
+
+export function subscribeUserProfile(uid, onChange, onError) {
+  if (!firebaseDb || !uid || typeof onChange !== 'function') return () => {};
+  return onValue(
+    ref(firebaseDb, `users/${uid}`),
+    snapshot => onChange(publicProfile(uid, snapshot.exists() ? snapshot.val() : {})),
+    error => {
+      if (typeof onError === 'function') onError(error);
+    },
+  );
 }
 
 export async function ensureGoogleUser(user) {
@@ -921,6 +933,45 @@ export async function adminUpdateUser(uid, updates) {
   if (updates.status !== undefined) safeUpdates.status = updates.status;
   if (updates.reseller !== undefined) safeUpdates.reseller = Boolean(updates.reseller);
   await update(ref(firebaseDb, `users/${uid}`), safeUpdates);
+  return getUserProfile(uid);
+}
+
+export async function adminEditUser(uid, { balance, role = 'user', status = 'active' } = {}) {
+  if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
+  if (!['user', 'reseller', 'admin'].includes(role)) throw new Error('Select a valid user role.');
+  if (!['active', 'banned'].includes(status)) throw new Error('Select a valid user status.');
+
+  const nextBalance = Number(balance);
+  if (!Number.isFinite(nextBalance) || nextBalance < 0) throw new Error('Enter a valid non-negative balance.');
+
+  const userRef = ref(firebaseDb, `users/${uid}`);
+  const snapshot = await get(userRef);
+  if (!snapshot.exists()) throw new Error('User not found.');
+  const current = snapshot.val() || {};
+  const currentBalance = Number(current.balance || 0);
+  const now = Date.now();
+  const updates = {
+    [`users/${uid}/balance`]: nextBalance,
+    [`users/${uid}/role`]: role,
+    [`users/${uid}/reseller`]: role === 'reseller',
+    [`users/${uid}/status`]: status,
+    [`users/${uid}/updatedAt`]: now,
+  };
+
+  if (currentBalance !== nextBalance) {
+    const id = `tx_${now}_${Math.random().toString(36).slice(2, 8)}`;
+    updates[`transactions/${id}`] = {
+      uid,
+      type: 'admin_set_balance',
+      amount: Math.abs(nextBalance - currentBalance),
+      before: currentBalance,
+      after: nextBalance,
+      note: 'Admin set wallet balance',
+      createdAt: now,
+    };
+  }
+
+  await update(ref(firebaseDb), updates);
   return getUserProfile(uid);
 }
 
