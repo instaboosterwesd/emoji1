@@ -212,7 +212,6 @@ export function addSecurityMetaTags() {
 
   const metas = [
     { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' },
-    { 'http-equiv': 'X-Frame-Options', content: 'DENY' },
     { 'http-equiv': 'X-XSS-Protection', content: '1; mode=block' },
     { name: 'referrer', content: 'no-referrer-when-downgrade' },
     { name: 'Content-Security-Policy', content: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.firebaseio.com https://identitytoolkit.googleapis.com https://rozgarapinew.teachx.in https://game-cheats-api.vercel.app https://www.googleapis.com https://api.cashfree.com wss://*.firebaseio.com; frame-src 'self' https://*.firebaseapp.com https://*.cashfree.com;" },

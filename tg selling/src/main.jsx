@@ -1312,7 +1312,7 @@ function OrdersView({ session, communityLinks }) {
     );
   }
 
-  const downloadInvoice = (order) => {
+  function downloadInvoice(order) {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 20;
@@ -1436,7 +1436,7 @@ function OrdersView({ session, communityLinks }) {
     doc.text('Thank you for your purchase!', pageW / 2, y + 4, { align: 'center' });
 
     doc.save(`invoice-${invoiceNo}.pdf`);
-  };
+  }
 
   return (
     <>

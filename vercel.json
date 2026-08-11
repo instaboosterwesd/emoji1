@@ -1,6 +1,16 @@
 {
   "buildCommand": "npm run build --prefix \"tg selling\"",
   "installCommand": "npm install --prefix \"tg selling\" --no-audit --no-fund",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer-when-downgrade" }
+      ]
+    }
+  ],
   "outputDirectory": "tg selling/dist",
   "rewrites": [
     { "source": "/low", "destination": "/index.html" },
