@@ -2463,6 +2463,25 @@ function UserHistoryDialog({ user, onClose }) {
   }, [user?.uid]);
 
   if (!user) return null;
+  const transactionIcon = tx => {
+    if (tx.type === 'admin_set_balance') return 'edit';
+    if (tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending') return 'schedule';
+    if (tx.type === 'deposit_approved') return 'add_circle';
+    if (tx.type === 'deposit_rejected') return 'cancel';
+    return 'shopping_cart';
+  };
+  const transactionAmount = tx => {
+    if (tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending') return <span className="history-status pending">Pending</span>;
+    if (tx.type === 'deposit_rejected') return <span className="history-status rejected">Rejected</span>;
+    if (tx.type === 'admin_set_balance') {
+      return (
+        <span className="history-balance-change">
+          <MoneyDisplay value={tx.before} /> → <MoneyDisplay value={tx.after} />
+        </span>
+      );
+    }
+    return <span className={tx.type === 'purchase' ? 'history-amount negative' : 'history-amount'}>{tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} /></span>;
+  };
 
   return (
     <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -2474,24 +2493,31 @@ function UserHistoryDialog({ user, onClose }) {
         </div>
         {loading ? <p className="muted empty-state">Loading…</p> : (
           <>
-            <h4 style={{ margin: '12px 0 6px' }}>Transactions ({transactions.length})</h4>
+            <div className="history-section-heading">
+              <h4>Transactions ({transactions.length})</h4>
+              <span className="muted">Complete wallet activity</span>
+            </div>
             <div className="history-scroll">
-              {transactions.length === 0 ? <p className="muted empty-state">No transactions</p> : transactions.slice(0, 30).map(tx => (
+              {transactions.length === 0 ? <p className="muted empty-state">No transactions</p> : transactions.map(tx => (
                 <div className="tx-row compact" key={tx.id}>
-                  <MatIcon name={tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? 'schedule' : tx.type === 'deposit_approved' ? 'add_circle' : tx.type === 'deposit_rejected' ? 'cancel' : 'shopping_cart'} size={15} style={{ filter: 'invert(0.6)' }} />
+                  <MatIcon name={transactionIcon(tx)} size={15} style={{ filter: 'invert(0.6)' }} />
                   <div className="tx-main">
                     <strong>{tx.note || tx.type}</strong>
-                    <span>{fmtDate(tx.createdAt)}</span>
+                    <span>
+                      {fmtDate(tx.createdAt)}
+                      {tx.type === 'admin_set_balance' && ` · Before ₹${money(tx.before)} · After ₹${money(tx.after)}`}
+                    </span>
                   </div>
-                  <b style={{ color: tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? '#fbbf24' : tx.type === 'deposit_rejected' || tx.type === 'purchase' ? '#f87171' : '#4ade80', fontSize: '0.85rem' }}>
-                    {tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending' ? 'Pending' : tx.type === 'deposit_rejected' ? 'Rejected' : <>{tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} /></>}
-                  </b>
+                  <b className="history-amount-cell">{transactionAmount(tx)}</b>
                 </div>
               ))}
             </div>
-            <h4 style={{ margin: '12px 0 6px' }}>License Keys ({userKeys.length})</h4>
+            <div className="history-section-heading">
+              <h4>License Keys ({userKeys.length})</h4>
+              <span className="muted">Complete purchase history</span>
+            </div>
             <div className="history-scroll">
-              {userKeys.length === 0 ? <p className="muted empty-state">No keys</p> : userKeys.slice(0, 20).map(k => (
+              {userKeys.length === 0 ? <p className="muted empty-state">No keys</p> : userKeys.map(k => (
                 <div className="tx-row compact" key={k.id}>
                   <LottieIcon src="/icons/new/key-lottie.json" size={16} />
                   <div className="tx-main">
@@ -2773,6 +2799,7 @@ function AdminPage({ session, onSessionChange }) {
   const [productChannels, setProductChannels] = useState([]);
   const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
   const [search, setSearch] = useState('');
+  const [balanceFilter, setBalanceFilter] = useState('all');
   const [announcement, setAnnouncement] = useState('');
   const [annTitle, setAnnTitle] = useState('');
   const [resellerForm, setResellerForm] = useState({ username: '', password: '', fund: '' });
@@ -2885,7 +2912,13 @@ function AdminPage({ session, onSessionChange }) {
     .filter(key => key.status === 'contact_pending')
     .sort((a, b) => (b.contactRequestedAt || b.purchasedAt || 0) - (a.contactRequestedAt || a.purchasedAt || 0));
 
-  const filteredUsers = users.filter(u => `${u.name} ${u.phone} ${u.email} ${u.uid}`.toLowerCase().includes(search.toLowerCase()));
+  const searchedUsers = users.filter(u => `${u.name} ${u.phone} ${u.email} ${u.uid}`.toLowerCase().includes(search.toLowerCase()));
+  const filteredUsers = searchedUsers.filter(user => {
+    const balance = Number(user.balance || 0);
+    if (balanceFilter === 'zero') return balance === 0;
+    if (balanceFilter === 'positive') return balance > 0;
+    return true;
+  });
   const filteredProducts = products.filter(p => `${p.name} ${p.pid} ${p.game}`.toLowerCase().includes(search.toLowerCase())).slice(0, 20);
 
   const safeAction = async (action, success) => {
@@ -3079,6 +3112,27 @@ function AdminPage({ session, onSessionChange }) {
           <DeviceIcon emoji="/icons/new/search-emoji.json" icon="search" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, phone, email" />
         </div>
+        <div className="user-balance-filters" role="tablist" aria-label="Filter users by balance">
+          {[
+            { id: 'all', label: 'All users', count: searchedUsers.length },
+            { id: 'zero', label: '₹0 balance', count: searchedUsers.filter(user => Number(user.balance || 0) === 0).length },
+            { id: 'positive', label: '₹1+ balance', count: searchedUsers.filter(user => Number(user.balance || 0) > 0).length },
+          ].map(filter => (
+            <button
+              key={filter.id}
+              type="button"
+              role="tab"
+              aria-selected={balanceFilter === filter.id}
+              className={balanceFilter === filter.id ? 'active' : ''}
+              onClick={() => setBalanceFilter(filter.id)}
+            >
+              {filter.label} <b>{filter.count}</b>
+            </button>
+          ))}
+        </div>
+        <p className="muted user-filter-summary">
+          Showing {filteredUsers.length} of {searchedUsers.length} matching user{searchedUsers.length === 1 ? '' : 's'}
+        </p>
         <AdminList items={filteredUsers} empty="No users found" render={user => (
           <AdminRow
             title={user.name || user.uid}

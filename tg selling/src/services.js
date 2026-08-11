@@ -515,6 +515,8 @@ const publicProfile = (uid, value = {}) => ({
   uid,
   role: value.role || 'user',
   reseller: Boolean(value.reseller || value.role === 'reseller'),
+  createdAt: value.createdAt || 0,
+  updatedAt: value.updatedAt || 0,
   phone: value.phone || '',
   email: value.email || '',
   name: value.name || 'Account holder',
