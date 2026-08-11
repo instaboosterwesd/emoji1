@@ -39,7 +39,13 @@ async function dbPut(path, value) {
 
 async function sendTelegram(text) {
   const token = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
-  const chatId = String(process.env.TELEGRAM_CHAT_ID || '').trim();
+  // Keep the requested admin destination working when Vercel has only the
+  // bot token configured. It can still be overridden without a code change.
+  const chatId = String(
+    process.env.TELEGRAM_CHAT_ID
+      || process.env.TELEGRAM_ADMIN_CHAT_ID
+      || '5844447576',
+  ).trim();
   if (!token || !chatId) throw new Error('Telegram notification is not configured.');
 
   const response = await fetch(`https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`, {

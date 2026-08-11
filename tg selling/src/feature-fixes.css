@@ -3097,11 +3097,20 @@
 }
 
 /* ── Private API documentation ─────────────────────────────────── */
-.api-docs-backdrop { z-index: 1200; }
+.api-docs-backdrop {
+  z-index: 1200;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 .api-docs-dialog {
   width: min(760px, calc(100vw - 28px));
   max-width: 760px;
-  max-height: calc(100dvh - 24px);
+  height: min(900px, calc(100dvh - 24px));
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3272,7 +3281,7 @@
 @media (max-width: 520px) {
   .api-docs-dialog {
     width: calc(100vw - 14px);
-    max-height: calc(100dvh - 14px);
+    height: calc(100dvh - 14px);
     padding: 15px;
   }
   .api-docs-dialog .dialog-title-row h2 { font-size: 18px; }

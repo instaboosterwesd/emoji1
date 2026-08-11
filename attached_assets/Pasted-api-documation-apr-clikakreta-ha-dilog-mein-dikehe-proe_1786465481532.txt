@@ -1,0 +1,30 @@
+api documation apr clikakreta ha dilog mein dikehe proepr kyuki scol anahai hoti shao se nahai dikhti ankdheo jo bot token ha aenvaiment mein vercle to ajsi ekoi dpeosite karne ke liye add par lcikariya to bot mein smsg jaye jasie usme 50 seect iya t vo bhi smjeh
+
+PO
+powohik629
+powohik629
+21 minutes ago
+मैं uploaded screenshot के हिसाब से API Documentation modal का scroll/container behavior और Vercel notification path दोनों verify कर रहा हूँ। खास तौर पर देखूँगा कि production में TELEGRAM_CHAT_ID भी मौजूद है या केवल token, और deposit request बनने पर amount (जैसे ₹50) सही message में जा रहा है।
+
+
+5 actions
+Screenshot में modal के अंदर का scrollbar नहीं दिख रहा; right side वाला scrollbar page का है। मैं CSS containment और backdrop layout को अलग करके modal को खुद scrollable बनाऊँगा, और production notifier को chat ID fallback दूँगा ताकि Vercel पर केवल bot token डालने से भी ₹50 जैसी deposit notification सही chat में जाए।
+
+
+5 actions
+Screenshot में modal का scrollbar वास्तव में page-level पर जा रहा है, dialog के अंदर नहीं। मैं backdrop को page-scroll से रोककर dialog को fixed viewport height दूँगा, ताकि उसके अंदर ही scroll चले और नीचे के sections दिखें। साथ में notifier में दिए हुए chat ID का safe fallback जोड़ूँगा, ताकि Vercel पर सिर्फ TELEGRAM_BOT_TOKEN रखने पर भी ₹50 जैसी deposit notification भेजी जाए।
+
+
+7 actions
+मैं अब दो targeted fixes लगा रहा हूँ: (1) पूरे backdrop/page को lock करके modal को निश्चित viewport height और अंदर का scroll दूँगा, (2) Vercel पर सिर्फ TELEGRAM_BOT_TOKEN होने पर भी दिए गए admin chat ID पर संदेश भेजने का fallback रखूँगा। Notification में ₹50 amount और PENDING status पढ़े जाएँगे।
+
+
+3 actions
+Targeted patch लग गया है। अब build, notifier syntax, और fresh workflow restart verify कर रहा हूँ; फिर बदलाव GitHub पर push करूँगा ताकि Vercel नया code उठा सके।
+
+
+3 actions
+Patch build में सफल है। अब workflow को एक बार restart करके logs देखूँगा, फिर केवल code changes commit करके GitHub main पर push करूँगा—uploaded screenshot या generated screenshot को commit नहीं करूँगा।
+
+Restarted workflow TG Selling App
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
