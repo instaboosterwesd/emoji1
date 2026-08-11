@@ -1317,6 +1317,8 @@ function OrdersView({ session, communityLinks }) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 20;
     const contentW = pageW - margin * 2;
+    const amount = Number(order.price);
+    const amountText = `INR ${Number.isFinite(amount) ? amount.toLocaleString('en-IN') : '0'}`;
 
     // Brand accent
     const accent = '#c795ff';
@@ -1382,7 +1384,7 @@ function OrdersView({ session, communityLinks }) {
     doc.setTextColor(80, 80, 80);
     doc.text('PRODUCT', margin + 3, y + 7);
     doc.text('DURATION', margin + 90, y + 7);
-    doc.text('AMOUNT', pageW - margin - 25, y + 7, { align: 'right' });
+    doc.text('AMOUNT (INR)', pageW - margin - 25, y + 7, { align: 'right' });
 
     // Table row
     y += 10;
@@ -1394,7 +1396,7 @@ function OrdersView({ session, communityLinks }) {
     doc.setFontSize(10);
     doc.text(String(order.productName || order.product || 'Product'), margin + 3, y + 4);
     doc.text(String(order.duration || '—'), margin + 90, y + 4);
-    doc.text(`₹${Number(order.price || 0).toLocaleString('en-IN')}`, pageW - margin - 25, y + 4, { align: 'right' });
+    doc.text(amountText, pageW - margin - 25, y + 4, { align: 'right' });
 
     // Total row
     y += 12;
@@ -1405,8 +1407,8 @@ function OrdersView({ session, communityLinks }) {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(26, 21, 37);
-    doc.text('Total', margin + 3, y);
-    doc.text(`₹${Number(order.price || 0).toLocaleString('en-IN')}`, pageW - margin - 25, y, { align: 'right' });
+    doc.text('Total (INR)', margin + 3, y);
+    doc.text(amountText, pageW - margin - 25, y, { align: 'right' });
 
     // License key section
     y += 20;
