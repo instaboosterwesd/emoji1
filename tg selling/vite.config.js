@@ -1,5 +1,57 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const publicApiHandler = require('../api/public-api.js');
+
+function createVercelResponse(res) {
+  const response = {
+    status(code) {
+      res.statusCode = code;
+      return response;
+    },
+    setHeader(name, value) {
+      res.setHeader(name, value);
+      return response;
+    },
+    end(body) {
+      res.end(body);
+      return response;
+    },
+  };
+  return response;
+}
+
+function publicApiDevMiddleware() {
+  return {
+    name: 'public-api-dev-middleware',
+    configureServer(server) {
+      server.middlewares.use('/api/public-api', (req, res) => {
+        const queryStart = String(req.url || '').indexOf('?');
+        const queryString = queryStart >= 0 ? req.url.slice(queryStart + 1) : '';
+        req.query = Object.fromEntries(new URLSearchParams(queryString));
+
+        const chunks = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', async () => {
+          const rawBody = Buffer.concat(chunks).toString();
+          if (rawBody) {
+            try { req.body = JSON.parse(rawBody); } catch { req.body = rawBody; }
+          }
+          try {
+            await publicApiHandler(req, createVercelResponse(res));
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: false, error: { message: 'Public API request failed.' } }));
+            server.config.logger.error(error);
+          }
+        });
+      });
+    },
+  };
+}
 
 function resellerDevProxy(env) {
   return {
@@ -90,7 +142,7 @@ export default defineConfig(({ mode }) => {
   // server-only credentials work in the Vite dev proxy without being bundled.
   const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
   return {
-    plugins: [react(), resellerDevProxy(env)],
+    plugins: [react(), resellerDevProxy(env), publicApiDevMiddleware()],
     define: {
       // Keep accidental client-side access to these names impossible.
       'import.meta.env.VITE_RESELLER_API_KEY': 'undefined',

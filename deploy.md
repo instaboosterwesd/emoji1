@@ -36,4 +36,28 @@ Add these in Vercel project settings → Environment Variables:
 - `VITE_RESELLER_MASTER_KEY`
 - `PRODUCTS_SCRAPE_COOKIE` (server-side secret for the live products proxy)
 
+## Public customer API
+
+The app exposes an authenticated API at:
+
+`https://<your-domain>/api/public-api`
+
+Customers use the private key generated in Profile → API settings with either
+the `x-api-key` header or `Authorization: Bearer <key>`. The API supports:
+
+- `GET ?action=products` — account catalog, storefront PID, provider purchase PID, durations, prices and stock
+- `GET ?action=product&pid=133` — one product by PID
+- `GET ?action=balance` — wallet balance
+- `POST ?action=buy` — provider purchase, wallet deduction/refund, and Firebase order creation
+
+API purchases are written to `licenseKeys` with `uid`, `source: "api"` and
+`apiOrder: true`, so the returned key appears in the same user's My Orders and
+can use the existing invoice download. Keep these server-side variables
+configured for the API function:
+
+- `FIREBASE_DATABASE_URL` (or the existing `VITE_FIREBASE_DATABASE_URL`)
+- `RESELLER_ENDPOINT`
+- `RESELLER_API_KEY`
+- `RESELLER_MASTER_KEY`
+
 (Values are in Replit secrets — copy them to Vercel)

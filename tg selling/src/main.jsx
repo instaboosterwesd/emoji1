@@ -724,6 +724,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
   const [tab, setTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
   const [dialog, setDialog] = useState(null);
+  const [apiDocsOpen, setApiDocsOpen] = useState(false);
 
   /* ── Auto‑refresh when perf mode changes (including first selection) ──
      perfMode === null means dialog is opening — never reload on that.
@@ -820,7 +821,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
     tab === 'orders' ? <OrdersView session={session} communityLinks={communityLinks} /> :
     tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
+    tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} openApiDocs={() => setApiDocsOpen(true)} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
     <DashboardHome profile={profile} role={profile.role} setTab={setTab} communityLinks={communityLinks} />;
 
   return (
@@ -879,7 +880,8 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           </button>
         ))}
       </nav>
-      <ProfileDialog type={dialog} profile={profile} apiState={apiState} close={() => setDialog(null)} onLogout={onLogout} onProfile={next => { setProfile(next); onSessionChange(next); }} onApiState={setApiState} />
+      <ProfileDialog type={dialog} profile={profile} apiState={apiState} close={() => setDialog(null)} onLogout={onLogout} onProfile={next => { setProfile(next); onSessionChange(next); }} onApiState={setApiState} onApiDocs={() => setApiDocsOpen(true)} />
+      {apiDocsOpen && <ApiDocumentation apiState={apiState} onClose={() => setApiDocsOpen(false)} />}
       {showNotifs && (
         <div className="notif-overlay" role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false); }}>
           <div className="notif-dialog liquid-dialog">
@@ -2033,7 +2035,7 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
 }
 
 /* ── ProfileView ────────────────────────────────────────────────── */
-function ProfileView({ profile, communityLinks, openDialog, openApi, onShowPerf, onResellerBenefits }) {
+function ProfileView({ profile, communityLinks, openDialog, openApi, openApiDocs, onShowPerf, onResellerBenefits }) {
   const [giftOpen, setGiftOpen] = useState(false);
   return (
     <>
@@ -2051,6 +2053,7 @@ function ProfileView({ profile, communityLinks, openDialog, openApi, onShowPerf,
         <button className="has-lottie" onClick={() => openDialog('edit')}><LottieIcon src="/icons/new/edit-profile.json" size={24} />Edit profile</button>
         <button className="has-lottie" onClick={() => openDialog('password')}><DeviceIcon emoji="/icons/new/lock-emoji.json" icon="lock-emoji" size={22} />Change password</button>
         <button className="has-lottie" onClick={openApi}><LottieIcon src="/icons/new/api-settings.json" size={24} />API settings</button>
+        <button className="has-lottie" onClick={openApiDocs}><DeviceIcon emoji="/icons/new/api-settings.json" icon="menu_book" size={22} />API Documentation</button>
         <button className="has-lottie" onClick={() => setGiftOpen(true)}><DeviceIcon emoji="/icons/new/gift-code.json" icon="gift-code" size={22} />Gift code</button>
         {profile.role !== 'reseller' && (
           <button className="has-lottie reseller-profile-btn" onClick={onResellerBenefits}>
@@ -2187,7 +2190,7 @@ function GiftCodeUsersDialog({ gc, onClose }) {
 }
 
 /* ── ProfileDialog ──────────────────────────────────────────────── */
-function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, onApiState }) {
+function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, onApiState, onApiDocs }) {
   const [name, setName] = useState(profile.name || '');
   const [photoData, setPhotoData] = useState('');
   const [oldPassword, setOldPassword] = useState('');
@@ -2255,9 +2258,10 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
         <section className="action-modal liquid-dialog">
           <div className="dialog-title-row"><LottieIcon src="/icons/new/key-lottie.json" size={24} /><h2>Private API</h2></div>
           {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
-          <p>This key enables Bot login. Keep it private.</p>
+          <p>This private key enables API access and Bot login. Keep it private. It is shown only when generated or reset.</p>
           <div className="modal-btn-row">
             <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Close</button>
+            <button type="button" onClick={onApiDocs}><MatIcon name="menu_book" size={15} /> API Docs</button>
             <button className="modal-save has-lottie" type="button" onClick={resetApi}><DeviceIcon emoji="/icons/new/refresh-emoji.json" icon="refresh" size={16} /> Reset key</button>
           </div>
         </section>
@@ -2272,6 +2276,105 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function ApiDocumentation({ apiState, onClose }) {
+  const endpoint = `${window.location.origin}/api/public-api`;
+  const [copied, setCopied] = useState('');
+  const copy = async (name, value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(name);
+      setTimeout(() => setCopied(''), 1800);
+    } catch {
+      toast.error('Copy failed. Select the example manually.');
+    }
+  };
+  const curlProducts = `curl -H "x-api-key: YOUR_API_KEY" "${endpoint}?action=products"`;
+  const curlBalance = `curl -H "x-api-key: YOUR_API_KEY" "${endpoint}?action=balance"`;
+  const curlBuy = `curl -X POST "${endpoint}?action=buy" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_API_KEY" \\
+  -d '{"product_id":"133","duration":"3 Hours","android_id":"YOUR_ANDROID_ID"}'`;
+  const jsExample = `const response = await fetch('${endpoint}?action=buy', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.TG_API_KEY },
+  body: JSON.stringify({ product_id: '133', duration: '3 Hours', android_id: 'YOUR_ANDROID_ID' })
+});
+const result = await response.json();`;
+  const pythonExample = `import requests
+
+result = requests.post(
+    '${endpoint}?action=buy',
+    headers={'x-api-key': 'YOUR_API_KEY'},
+    json={'product_id': '133', 'duration': '3 Hours', 'android_id': 'YOUR_ANDROID_ID'},
+)
+print(result.json())`;
+  const Example = ({ name, title, children }) => (
+    <div className="api-doc-example">
+      <div className="api-doc-example-head"><strong>{title}</strong><button type="button" onClick={() => copy(name, children)}><MatIcon name={copied === name ? 'check' : 'content_copy'} size={15} /> {copied === name ? 'Copied' : 'Copy'}</button></div>
+      <pre><code>{children}</code></pre>
+    </div>
+  );
+
+  return (
+    <div className="action-modal-backdrop api-docs-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="action-modal liquid-dialog api-docs-dialog">
+        <div className="dialog-title-row">
+          <DeviceIcon emoji="/icons/new/api-settings.json" icon="menu_book" size={22} />
+          <h2>API Documentation</h2>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Close documentation"><MatIcon name="close" size={18} /></button>
+        </div>
+        <div className="api-doc-intro">
+          <span className="api-doc-status"><MatIcon name="verified" size={15} /> Your API is ready</span>
+          <p>Use your private API key from API settings to connect your own server. Never put the key in frontend code, public repositories, or client-side apps.</p>
+          <code className="api-endpoint">{endpoint}</code>
+          <p className="muted">Your current key: {apiState.apiKey ? <strong>generated just now</strong> : <strong>••••••••{apiState.last4 || '••••'}</strong>}</p>
+        </div>
+        <div className="api-doc-section">
+          <h3><span>01</span> Fetch products and PIDs</h3>
+          <p>Returns the products available to your account, including <code>pid</code>, name, durations, price and stock. Save the PID and exact duration for checkout.</p>
+          <Example name="products" title="GET · Products">{curlProducts}</Example>
+          <p className="api-doc-route"><code>GET ?action=product&amp;pid=133</code> fetches one product.</p>
+        </div>
+        <div className="api-doc-section">
+          <h3><span>02</span> Check wallet balance</h3>
+          <p>Reads the same wallet balance shown in your dashboard. Amounts are in INR.</p>
+          <Example name="balance" title="GET · Balance">{curlBalance}</Example>
+        </div>
+        <div className="api-doc-section">
+          <h3><span>03</span> Place an order</h3>
+          <p>Send the product PID and duration from the products response. Our server securely calls the provider, deducts your wallet only after validation, saves the returned key, and refunds the wallet if the provider fails.</p>
+          <Example name="buy" title="POST · Purchase">{curlBuy}</Example>
+          <div className="api-doc-note"><MatIcon name="info" size={16} /> Device-bound Bala products require <code>android_id</code>. The returned <code>order.id</code> is the same order that appears in My Orders and can be invoiced there.</div>
+        </div>
+        <div className="api-doc-section">
+          <h3><span>04</span> Use it from your own server</h3>
+          <Example name="javascript" title="Node.js / JavaScript">{jsExample}</Example>
+          <Example name="python" title="Python">{pythonExample}</Example>
+        </div>
+        <div className="api-doc-section api-response-section">
+          <h3><span>05</span> Response format</h3>
+          <pre><code>{`{
+  "success": true,
+  "order": {
+    "id": "lk_api_...",
+    "product_id": "133",
+    "duration": "3 Hours",
+    "price": 80,
+    "key": "YOUR_DELIVERED_KEY",
+    "status": "active"
+  }
+}`}</code></pre>
+          <p className="muted">For errors, check <code>success: false</code> and <code>error.code</code>. Common codes: <code>INSUFFICIENT_BALANCE</code>, <code>PRODUCT_NOT_FOUND</code>, <code>DURATION_NOT_FOUND</code>, <code>PROVIDER_PURCHASE_FAILED</code>.</p>
+        </div>
+        <div className="modal-btn-row">
+          <button type="button" onClick={onClose}><MatIcon name="close" size={16} /> Close documentation</button>
+          <button className="modal-save" type="button" onClick={() => copy('endpoint', endpoint)}><MatIcon name={copied === 'endpoint' ? 'check' : 'content_copy'} size={15} /> {copied === 'endpoint' ? 'Copied' : 'Copy endpoint'}</button>
+        </div>
+      </section>
     </div>
   );
 }
