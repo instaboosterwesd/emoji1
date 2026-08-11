@@ -87,6 +87,33 @@ import './site-status.css';
 import './issues.css';
 import './gift-code.css';
 
+async function copyTextToClipboard(value) {
+  const text = String(value ?? '');
+  if (!text) throw new Error('Nothing to copy.');
+
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Clipboard permissions can be blocked inside mobile preview iframes.
+    }
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Clipboard access was blocked.');
+}
+
 /* ── Performance Context ────────────────────────────────────────── */
 const PerfCtx = React.createContext();
 const usePerf = () => React.useContext(PerfCtx);
@@ -1255,7 +1282,7 @@ function OrdersView({ session, communityLinks }) {
             </div>
             <code className={keyVisible ? '' : 'key-blurred'}>{selected.key || selected.keyCode || '—'}</code>
             {(selected.key || selected.keyCode) && (
-              <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(selected.key || selected.keyCode); toast.success('Key copied!'); }}>
+              <button type="button" className="copy-key-btn" onClick={async () => { try { await copyTextToClipboard(selected.key || selected.keyCode); toast.success('Key copied!'); } catch { toast.error('Copy failed. Please select the key manually.'); } }}>
                 <MatIcon name="content_copy" size={15} /> Copy
               </button>
             )}
@@ -1969,7 +1996,7 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
               <div className="key-reveal-box">
                 <label>Your license key</label>
                 <code>{result.key}</code>
-                <button type="button" className="copy-key-btn" onClick={() => { navigator.clipboard.writeText(result.key); toast.success('Key copied!'); }}>
+                <button type="button" className="copy-key-btn" onClick={async () => { try { await copyTextToClipboard(result.key); toast.success('Key copied!'); } catch { toast.error('Copy failed. Please select the key manually.'); } }}>
                   <DeviceIcon emoji="/icons/new/download-emoji.json" icon="download" size={16} /> Copy key
                 </button>
               </div>
@@ -2287,11 +2314,11 @@ function ApiDocumentation({ apiState, onClose }) {
   const [copied, setCopied] = useState('');
   const copy = async (name, value) => {
     try {
-      await navigator.clipboard.writeText(value);
+      await copyTextToClipboard(value);
       setCopied(name);
       setTimeout(() => setCopied(''), 1800);
     } catch {
-      toast.error('Copy failed. Select the example manually.');
+      toast.error('Copy failed. Please select the example manually.');
     }
   };
   const curlProducts = `curl -H "x-api-key: YOUR_API_KEY" "${endpoint}?action=products"`;

@@ -846,6 +846,23 @@ export async function buyResellerProduct(productId, duration, androidId = '') {
 
 const toArray = value => Object.entries(value || {}).map(([id, item]) => ({ id, ...(item || {}) }));
 
+async function notifyPaymentRequest(requestId) {
+  if (!requestId) return;
+  try {
+    const response = await fetch('/api/telegram-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId }),
+    });
+    if (!response.ok) {
+      console.warn('Telegram payment notification was not sent.');
+    }
+  } catch {
+    // Notifications must never make a successful payment request fail.
+    console.warn('Telegram payment notification is unavailable.');
+  }
+}
+
 export async function getAdminOverview() {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   const [usersSnap, keysSnap, depositsSnap, txSnap, resellersSnap, announcementsSnap, pricingSnap, paymentSettingsSnap, manualKeysSnap, communitySnap, keyResetSnap] = await Promise.all([
@@ -1230,6 +1247,7 @@ export async function createPaymentRequest(uid, amount, senderUpi, userName, typ
       createdAt: now,
     },
   });
+  void notifyPaymentRequest(id);
   return id;
 }
 
@@ -1298,6 +1316,7 @@ export async function createGatewayPaymentRequest(uid, amount, paidAmount, order
       createdAt: now,
     },
   });
+  void notifyPaymentRequest(id);
   if (type === 'reseller') {
     await update(userRef, { role: 'reseller', reseller: true, updatedAt: now });
   }

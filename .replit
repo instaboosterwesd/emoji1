@@ -17,6 +17,7 @@ VITE_FIREBASE_STORAGE_BUCKET = "panleseling.firebasestorage.app"
 VITE_PRODUCTS_ENDPOINT = "https://game-cheats-api.vercel.app/products"
 TURNSTILE_SECRET = "0x4AAAAAAEEMr6cVJlMYLTfg5k-jBfYmScM"
 RESELLER_ENDPOINT = "https://xyzcheats.com/api/reseller_v1.php"
+TELEGRAM_CHAT_ID = "5844447576"
 
 [workflows]
 runButton = "Project"
