@@ -3632,8 +3632,6 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
 @media (max-width: 520px) {
   .api-docs-dialog {
     width: calc(100vw - 14px);
-    height: calc(100dvh - 14px);
-    max-height: calc(100dvh - 14px);
     padding: 15px;
   }
   .api-docs-dialog .dialog-title-row h2 { font-size: 18px; }
@@ -3643,6 +3641,122 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
   .api-doc-section h3 {
     align-items: flex-start;
     line-height: 1.25;
+  }
+}
+
+/* The dashboard docs are a page, not a modal. Override the legacy modal
+   height here so the browser owns the scroll on both desktop and mobile. */
+html:has(.api-doc-page-shell),
+body:has(.api-doc-page-shell) {
+  overflow-x: hidden;
+}
+.api-doc-page-shell {
+  width: 100%;
+  min-width: 0;
+  padding-bottom: calc(30px + env(safe-area-inset-bottom));
+}
+.api-doc-page {
+  width: min(100% - 28px, 980px);
+  min-width: 0;
+}
+.api-docs-content.api-docs-dialog {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  min-height: calc(100svh - 90px);
+  overflow: visible !important;
+}
+.api-docs-content .dialog-title-row h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.api-docs-content .api-doc-example,
+.api-docs-content .api-response-section > pre {
+  max-width: 100%;
+}
+.api-docs-content .api-doc-example pre,
+.api-docs-content .api-response-section > pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: pre;
+  word-break: normal;
+}
+
+@media (max-width: 520px) {
+  .api-doc-page {
+    width: calc(100% - 14px);
+    padding: 7px 0 calc(24px + env(safe-area-inset-bottom));
+  }
+  .api-docs-content.api-docs-dialog {
+    min-height: calc(100svh - 14px);
+    padding: 15px;
+    border-radius: 20px;
+  }
+  .api-docs-content .dialog-title-row {
+    gap: 8px;
+    margin: -15px -15px 16px;
+    padding: 14px 15px 13px;
+  }
+  .api-docs-content .dialog-title-row h2 {
+    flex: 1 1 auto;
+    font-size: clamp(16px, 5vw, 18px);
+    line-height: 1.2;
+  }
+  .api-doc-back-btn {
+    flex: 0 0 36px;
+    padding: 7px !important;
+  }
+  .api-doc-intro {
+    padding: 13px;
+  }
+  .api-doc-intro p {
+    font-size: 12px;
+  }
+  .api-doc-section > p {
+    font-size: 12px;
+  }
+  .api-doc-section h3 {
+    gap: 8px;
+    font-size: 14px;
+  }
+  .api-doc-example pre,
+  .api-response-section pre {
+    padding: 11px;
+    font-size: 10px;
+    line-height: 1.55;
+  }
+  .api-doc-note {
+    padding: 10px;
+  }
+  .api-docs-content > .modal-btn-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .api-docs-content > .modal-btn-row button {
+    width: 100%;
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 360px) {
+  .api-doc-page {
+    width: calc(100% - 10px);
+  }
+  .api-docs-content.api-docs-dialog {
+    padding: 12px;
+    border-radius: 17px;
+  }
+  .api-docs-content .dialog-title-row {
+    margin: -12px -12px 14px;
+    padding: 12px;
+  }
+  .api-docs-content .dialog-title-row h2 {
+    font-size: 16px;
+  }
+  .api-doc-intro {
+    padding: 11px;
   }
 }
 
