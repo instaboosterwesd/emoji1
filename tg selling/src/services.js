@@ -529,6 +529,12 @@ const publicProfile = (uid, value = {}) => ({
   active: Number(value.active || 0),
   status: value.status || 'active',
   apiKeyLast4: value.apiKeyLast4 || '',
+  userPriceIncreasePercent: value.userPriceIncreasePercent === '' || value.userPriceIncreasePercent === null || value.userPriceIncreasePercent === undefined
+    ? ''
+    : Math.max(0, Math.min(1000, Number(value.userPriceIncreasePercent) || 0)),
+  resellerPriceIncreasePercent: value.resellerPriceIncreasePercent === '' || value.resellerPriceIncreasePercent === null || value.resellerPriceIncreasePercent === undefined
+    ? ''
+    : Math.max(0, Math.min(1000, Number(value.resellerPriceIncreasePercent) || 0)),
 });
 
 export async function getUserProfile(uid) {
@@ -542,6 +548,31 @@ export function subscribeUserProfile(uid, onChange, onError) {
   return onValue(
     ref(firebaseDb, `users/${uid}`),
     snapshot => onChange(publicProfile(uid, snapshot.exists() ? snapshot.val() : {})),
+    error => {
+      if (typeof onError === 'function') onError(error);
+    },
+  );
+}
+
+export function subscribeAdminUsers(onChange, onError) {
+  if (!firebaseDb || typeof onChange !== 'function') return () => {};
+  return onValue(
+    ref(firebaseDb, 'users'),
+    snapshot => {
+      const users = Object.entries(snapshot.val() || {}).map(([uid, value]) => publicProfile(uid, value));
+      onChange(users);
+    },
+    error => {
+      if (typeof onError === 'function') onError(error);
+    },
+  );
+}
+
+export function subscribeAdminResellers(onChange, onError) {
+  if (!firebaseDb || typeof onChange !== 'function') return () => {};
+  return onValue(
+    ref(firebaseDb, 'resellers'),
+    snapshot => onChange(toArray(snapshot.val())),
     error => {
       if (typeof onError === 'function') onError(error);
     },
@@ -988,13 +1019,29 @@ export async function adminUpdateUser(uid, updates) {
   return getUserProfile(uid);
 }
 
-export async function adminEditUser(uid, { balance, role = 'user', status = 'active' } = {}) {
+export async function adminEditUser(uid, {
+  balance,
+  role = 'user',
+  status = 'active',
+  userPriceIncreasePercent = '',
+  resellerPriceIncreasePercent = '',
+} = {}) {
   if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
   if (!['user', 'reseller', 'admin'].includes(role)) throw new Error('Select a valid user role.');
   if (!['active', 'banned'].includes(status)) throw new Error('Select a valid user status.');
 
   const nextBalance = Number(balance);
   if (!Number.isFinite(nextBalance) || nextBalance < 0) throw new Error('Enter a valid non-negative balance.');
+  const normalisePercent = (value, label) => {
+    if (value === '' || value === null || value === undefined) return '';
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < 0 || number > 1000) {
+      throw new Error(`${label} must be blank or between 0% and 1000%.`);
+    }
+    return Math.round(number * 100) / 100;
+  };
+  const nextUserPercent = normalisePercent(userPriceIncreasePercent, 'Personal User price increase');
+  const nextResellerPercent = normalisePercent(resellerPriceIncreasePercent, 'Personal Reseller price increase');
 
   const userRef = ref(firebaseDb, `users/${uid}`);
   const snapshot = await get(userRef);
@@ -1007,6 +1054,8 @@ export async function adminEditUser(uid, { balance, role = 'user', status = 'act
     [`users/${uid}/role`]: role,
     [`users/${uid}/reseller`]: role === 'reseller',
     [`users/${uid}/status`]: status,
+    [`users/${uid}/userPriceIncreasePercent`]: nextUserPercent,
+    [`users/${uid}/resellerPriceIncreasePercent`]: nextResellerPercent,
     [`users/${uid}/updatedAt`]: now,
   };
 

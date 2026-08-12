@@ -30,10 +30,13 @@ import {
   adminSaveReseller,
   adminSaveUpi,
   adminUpdateUser,
+  adminAdjustUserFund,
   adminDeleteLicenseKey,
   adminUpdatePaymentRequest,
   fetchGameProducts,
   getAdminOverview,
+  subscribeAdminUsers,
+  subscribeAdminResellers,
   getPaymentSettings,
   createPaymentRequest,
   createGatewayPaymentRequest,
@@ -164,8 +167,21 @@ const productIconForWithFallback = name => productIconFor(name) || '/icons/new/p
 const AI_CATALOG_REFRESH_MS = 120000;
 const MAX_AI_CART_CALLS_PER_MINUTE = 6;
 
-function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
+function effectiveIncreasePercent(pricingSettings, role, profile) {
+  const personalValue = role === 'reseller'
+    ? profile?.resellerPriceIncreasePercent
+    : profile?.userPriceIncreasePercent;
+  if (personalValue !== '' && personalValue !== null && personalValue !== undefined && Number.isFinite(Number(personalValue))) {
+    return Math.max(0, Math.min(1000, Number(personalValue)));
+  }
+  return role === 'reseller'
+    ? Number(pricingSettings.resellerIncreasePercent || 0)
+    : Number(pricingSettings.userIncreasePercent || 0);
+}
+
+function applyCatalogPricing(product, pricingRules, pricingSettings, role, profile) {
   const isReseller = role === 'reseller';
+  const increasePercent = effectiveIncreasePercent(pricingSettings, role, profile);
   const onlyContact = isOnlyContactProduct(product, pricingRules);
   return {
     ...product,
@@ -181,16 +197,16 @@ function applyCatalogPricing(product, pricingRules, pricingSettings, role) {
         : product.pricingSource === 'imported'
           ? apiPrice
           : Math.max(0, apiPrice + pricingSettings.userAdjustment);
-      const userPrice = pricingSettings.userIncreasePercent > 0
-        ? Math.round(baseUserPrice * (1 + pricingSettings.userIncreasePercent / 100) * 100) / 100
+      const userPrice = increasePercent > 0 && !isReseller
+        ? Math.round(baseUserPrice * (1 + increasePercent / 100) * 100) / 100
         : baseUserPrice;
       const baseResellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
         ? fixedResellerPrice
         : product.pricingSource === 'imported'
           ? apiPrice
           : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
-      const resellerPrice = pricingSettings.resellerIncreasePercent > 0
-        ? Math.round(baseResellerPrice * (1 + pricingSettings.resellerIncreasePercent / 100) * 100) / 100
+      const resellerPrice = increasePercent > 0 && isReseller
+        ? Math.round(baseResellerPrice * (1 + increasePercent / 100) * 100) / 100
         : baseResellerPrice;
       return { ...item, price: isReseller ? resellerPrice : userPrice, isResellerPrice: isReseller };
     }),
@@ -557,8 +573,8 @@ function AiShopPanel({ session, onBuy, onClose }) {
   }, [messages, cart]);
 
   const pricedProducts = useMemo(
-    () => products.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role)),
-    [products, pricingRules, pricingSettings, session?.role],
+    () => products.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role, session)),
+    [products, pricingRules, pricingSettings, session?.role, session?.userPriceIncreasePercent, session?.resellerPriceIncreasePercent],
   );
 
   const addToCart = useCallback((product, duration) => {
@@ -592,7 +608,7 @@ function AiShopPanel({ session, onBuy, onClose }) {
     setMessages(prev => [...prev, { id: `user-${now}`, role: 'user', text: query }]);
     const freshProducts = Date.now() - lastFetchedAt > AI_CATALOG_REFRESH_MS || /price|cost|₹|rupee|package|best|trend/i.test(query);
     const catalog = await loadCatalog(freshProducts) || pricedProducts;
-    const visible = catalog.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role));
+    const visible = catalog.map(product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role, session));
     const lower = query.toLowerCase();
     const ranked = rankCatalogMatches(visible, query);
     const isTrending = /best|trend|popular|selling|seller|top/i.test(lower);
@@ -649,7 +665,7 @@ function AiShopPanel({ session, onBuy, onClose }) {
       products: [product],
       suggestions: ['Show other packages', 'Best sellers'],
     }]);
-  }, [lastFetchedAt, loadCatalog, pricingRules, pricingSettings, pricedProducts, session?.role]);
+  }, [lastFetchedAt, loadCatalog, pricingRules, pricingSettings, pricedProducts, session?.role, session?.userPriceIncreasePercent, session?.resellerPriceIncreasePercent]);
 
   const submit = e => {
     e.preventDefault();
@@ -1800,16 +1816,17 @@ function ProductsView({ session, onBuy }) {
           : product.pricingSource === 'imported'
             ? apiPrice
             : Math.max(0, apiPrice + pricingSettings.userAdjustment);
-        const userPrice = pricingSettings.userIncreasePercent > 0
-          ? Math.round(baseUserPrice * (1 + pricingSettings.userIncreasePercent / 100) * 100) / 100
+        const increasePercent = effectiveIncreasePercent(pricingSettings, session?.role, session);
+        const userPrice = increasePercent > 0 && !isReseller
+          ? Math.round(baseUserPrice * (1 + increasePercent / 100) * 100) / 100
           : baseUserPrice;
         const baseResellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
           ? fixedResellerPrice
           : product.pricingSource === 'imported'
             ? apiPrice
             : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
-        const resellerPrice = pricingSettings.resellerIncreasePercent > 0
-          ? Math.round(baseResellerPrice * (1 + pricingSettings.resellerIncreasePercent / 100) * 100) / 100
+        const resellerPrice = increasePercent > 0 && isReseller
+          ? Math.round(baseResellerPrice * (1 + increasePercent / 100) * 100) / 100
           : baseResellerPrice;
         return {
           ...item,
@@ -1818,7 +1835,7 @@ function ProductsView({ session, onBuy }) {
         };
       }),
     };
-  }, [pricingRules, pricingSettings, session?.role]);
+  }, [pricingRules, pricingSettings, session?.role, session?.userPriceIncreasePercent, session?.resellerPriceIncreasePercent]);
 
   const load = async () => {
     setLoading(true); setError('');
@@ -2590,8 +2607,8 @@ function UserHistoryDialog({ user, onClose }) {
   };
 
   return (
-    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className="action-modal liquid-dialog history-dialog">
+    <div className="action-modal-backdrop admin-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="action-modal liquid-dialog history-dialog admin-dialog">
         <div className="dialog-title-row">
           <MatIcon name="history" size={20} />
           <h2>{user.name || user.uid} — History</h2>
@@ -2663,8 +2680,8 @@ function UserViewDialog({ user, onClose }) {
   const p = profile || user;
 
   return (
-    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className="action-modal liquid-dialog" style={{ maxWidth: 420 }}>
+    <div className="action-modal-backdrop admin-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="action-modal liquid-dialog admin-dialog" style={{ maxWidth: 420 }}>
         <div className="dialog-title-row">
           <MatIcon name="person" size={20} />
           <h2>User details</h2>
@@ -2718,7 +2735,11 @@ function UserEditDialog({ user, onClose, onSaved }) {
   const [balance, setBalance] = useState(String(Number(user?.balance || 0)));
   const [role, setRole] = useState(user?.role === 'reseller' || user?.reseller ? 'reseller' : user?.role || 'user');
   const [status, setStatus] = useState(user?.status === 'banned' ? 'banned' : 'active');
+  const [userPriceIncreasePercent, setUserPriceIncreasePercent] = useState(String(user?.userPriceIncreasePercent ?? ''));
+  const [resellerPriceIncreasePercent, setResellerPriceIncreasePercent] = useState(String(user?.resellerPriceIncreasePercent ?? ''));
+  const [adjustmentAmount, setAdjustmentAmount] = useState('');
   const [saving, setSaving] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
 
   if (!user) return null;
 
@@ -2726,7 +2747,13 @@ function UserEditDialog({ user, onClose, onSaved }) {
     event.preventDefault();
     setSaving(true);
     try {
-      await adminEditUser(user.uid, { balance, role, status });
+      await adminEditUser(user.uid, {
+        balance,
+        role,
+        status,
+        userPriceIncreasePercent,
+        resellerPriceIncreasePercent,
+      });
       toast.success('User updated');
       onSaved();
       onClose();
@@ -2737,9 +2764,29 @@ function UserEditDialog({ user, onClose, onSaved }) {
     }
   };
 
+  const adjustFund = async mode => {
+    const value = Number(adjustmentAmount);
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error('Enter an amount greater than ₹0.');
+      return;
+    }
+    setAdjusting(true);
+    try {
+      const nextBalance = await adminAdjustUserFund(user.uid, value, mode, `Admin ${mode === 'add' ? 'added' : 'subtracted'} wallet funds`);
+      setBalance(String(nextBalance));
+      setAdjustmentAmount('');
+      toast.success(`₹${money(value)} ${mode === 'add' ? 'added to' : 'subtracted from'} wallet`);
+      onSaved();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   return (
-    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
-      <section className="action-modal liquid-dialog user-edit-dialog">
+    <div className="action-modal-backdrop admin-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+      <section className="action-modal liquid-dialog user-edit-dialog admin-dialog">
         <div className="dialog-title-row">
           <MatIcon name="edit" size={20} />
           <h2>Edit user</h2>
@@ -2748,10 +2795,36 @@ function UserEditDialog({ user, onClose, onSaved }) {
         <p className="muted dialog-sub">{user.name || 'Account holder'} · {user.email || user.phone || user.uid}</p>
         <form className="user-edit-form" onSubmit={save}>
           <label>
-            <span>Wallet balance (₹)</span>
+            <span>Wallet total (₹)</span>
             <input type="number" min="0" step="0.01" value={balance} onChange={e => setBalance(e.target.value)} inputMode="decimal" required />
-            <small>Set the final balance directly. No add or subtract calculation is needed.</small>
+            <small>Set the final wallet total directly, then press Save changes.</small>
           </label>
+          <div className="wallet-adjust-panel">
+            <div>
+              <strong>Quick wallet adjustment</strong>
+              <small>Add or subtract funds and save immediately without changing the total manually.</small>
+            </div>
+            <div className="wallet-adjust-controls">
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={adjustmentAmount}
+                onChange={e => setAdjustmentAmount(e.target.value)}
+                placeholder="Amount, e.g. 10"
+                inputMode="decimal"
+                aria-label="Wallet adjustment amount"
+              />
+              <div className="wallet-adjust-buttons">
+                <button type="button" className="wallet-add-button" onClick={() => adjustFund('add')} disabled={saving || adjusting}>
+                  <MatIcon name="add" size={15} /> Add
+                </button>
+                <button type="button" className="wallet-subtract-button" onClick={() => adjustFund('subtract')} disabled={saving || adjusting}>
+                  <MatIcon name="remove" size={15} /> Subtract
+                </button>
+              </div>
+            </div>
+          </div>
           <label>
             <span>Account role</span>
             <select value={role} onChange={e => setRole(e.target.value)}>
@@ -2761,6 +2834,40 @@ function UserEditDialog({ user, onClose, onSaved }) {
             </select>
             <small>{role === 'reseller' ? 'Reseller pricing and privileges will be enabled.' : role === 'admin' ? 'Admin dashboard access will be enabled.' : 'Standard user access; reseller privileges will be removed.'}</small>
           </label>
+          <div className="personal-pricing-panel">
+            <div>
+              <strong>Personal price increases</strong>
+              <small>Blank follows the global percentage. Enter 0 to disable the global increase for this user.</small>
+            </div>
+            <div className="personal-pricing-grid">
+              <label>
+                <span>User price (%)</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  step="0.01"
+                  value={userPriceIncreasePercent}
+                  onChange={e => setUserPriceIncreasePercent(e.target.value)}
+                  placeholder="Global"
+                  inputMode="decimal"
+                />
+              </label>
+              <label>
+                <span>Reseller price (%)</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  step="0.01"
+                  value={resellerPriceIncreasePercent}
+                  onChange={e => setResellerPriceIncreasePercent(e.target.value)}
+                  placeholder="Global"
+                  inputMode="decimal"
+                />
+              </label>
+            </div>
+          </div>
           <label>
             <span>Account status</span>
             <select value={status} onChange={e => setStatus(e.target.value)}>
@@ -2769,8 +2876,8 @@ function UserEditDialog({ user, onClose, onSaved }) {
             </select>
           </label>
           <div className="modal-btn-row">
-            <button type="button" onClick={onClose} disabled={saving}><MatIcon name="close" size={16} /> Cancel</button>
-            <button className="modal-save" type="submit" disabled={saving}>
+            <button type="button" onClick={onClose} disabled={saving || adjusting}><MatIcon name="close" size={16} /> Cancel</button>
+            <button className="modal-save" type="submit" disabled={saving || adjusting}>
               <MatIcon name={saving ? 'schedule' : 'check'} size={16} /> {saving ? 'Saving…' : 'Save changes'}
             </button>
           </div>
@@ -2833,8 +2940,8 @@ function PricingEditDialog({ product, onClose, onSave }) {
   };
 
   return (
-    <div className="action-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
-      <section className="action-modal liquid-dialog pricing-dialog">
+    <div className="action-modal-backdrop admin-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+      <section className="action-modal liquid-dialog pricing-dialog admin-dialog">
         <div className="dialog-title-row">
           <MatIcon name="edit" size={20} />
           <h2>Edit pricing — {product.name}</h2>
@@ -3013,6 +3120,22 @@ function AdminPage({ session, onSessionChange }) {
     if (!session?.uid) return;
     getUserProfile(session.uid).then(next => onSessionChange(next)).catch(() => {});
     loadAdmin();
+  }, [session?.uid]);
+
+  useEffect(() => {
+    if (!session?.uid) return undefined;
+    return subscribeAdminUsers(
+      users => setData(current => current ? { ...current, users } : current),
+      () => {},
+    );
+  }, [session?.uid]);
+
+  useEffect(() => {
+    if (!session?.uid) return undefined;
+    return subscribeAdminResellers(
+      resellers => setData(current => current ? { ...current, resellers } : current),
+      () => {},
+    );
   }, [session?.uid]);
 
   if (!session) return <AdminLocked iconName="lock" title="Admin login required" text="Please login first to access the admin dashboard." action="Go to login" />;

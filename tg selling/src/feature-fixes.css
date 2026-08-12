@@ -1988,6 +1988,173 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
 .pricing-edit-input.short { max-width: 70px; }
 .original-price { color: rgba(255,255,255,0.35); font-size: 0.75rem; margin-left: 4px; text-decoration: line-through; }
 
+/* ── Admin dialogs: full-screen, scroll-safe editing surfaces ───── */
+.admin-dialog-backdrop {
+  place-items: stretch !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.admin-dialog-backdrop .admin-dialog {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100svh;
+  max-height: 100svh !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 0;
+  padding: clamp(20px, 4vw, 42px) clamp(16px, 5vw, 72px) 48px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(126, 89, 255, .18), transparent 34%),
+    linear-gradient(145deg, rgba(18, 24, 48, .98), rgba(10, 14, 31, .98));
+}
+
+.admin-dialog-backdrop .admin-dialog > * {
+  width: min(100%, 1080px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.admin-dialog-backdrop .admin-dialog .dialog-title-row {
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+  width: calc(100% + clamp(32px, 10vw, 144px));
+  margin: calc(clamp(20px, 4vw, 42px) * -1) calc(clamp(16px, 5vw, 72px) * -1) 18px;
+  padding: 16px clamp(16px, 5vw, 72px);
+  background: rgba(12, 17, 36, .94);
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+  backdrop-filter: blur(18px);
+}
+
+.admin-dialog-backdrop .admin-dialog .dialog-title-row h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(20px, 3vw, 30px);
+}
+
+.admin-dialog-backdrop .admin-dialog .dialog-sub {
+  margin-bottom: 22px;
+}
+
+.admin-dialog-backdrop .admin-dialog .modal-btn-row {
+  position: sticky;
+  bottom: -1px;
+  z-index: 2;
+  width: calc(100% + clamp(32px, 10vw, 144px));
+  margin: 28px calc(clamp(16px, 5vw, 72px) * -1) calc(clamp(20px, 4vw, 42px) * -1);
+  padding: 14px clamp(16px, 5vw, 72px);
+  background: rgba(12, 17, 36, .94);
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  backdrop-filter: blur(18px);
+}
+
+.admin-dialog-backdrop .history-dialog .history-ledger,
+.admin-dialog-backdrop .pricing-dialog .pricing-edit-list {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.wallet-adjust-panel,
+.personal-pricing-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(142, 207, 240, .18);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(99, 179, 255, .09), rgba(158, 99, 255, .08));
+}
+
+.wallet-adjust-panel > div:first-child,
+.personal-pricing-panel > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.wallet-adjust-panel strong,
+.personal-pricing-panel strong {
+  font-size: 13px;
+}
+
+.wallet-adjust-panel small,
+.personal-pricing-panel small {
+  color: rgba(255, 255, 255, .56);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.wallet-adjust-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.wallet-adjust-controls input,
+.personal-pricing-grid input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+
+.wallet-adjust-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.wallet-adjust-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.wallet-add-button {
+  border-color: rgba(116, 224, 165, .35) !important;
+  background: rgba(116, 224, 165, .14) !important;
+  color: #b8f5cf !important;
+}
+
+.wallet-subtract-button {
+  border-color: rgba(255, 142, 159, .35) !important;
+  background: rgba(255, 142, 159, .12) !important;
+  color: #ffc0ca !important;
+}
+
+.personal-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.personal-pricing-grid label {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.personal-pricing-grid label > span {
+  color: rgba(255, 255, 255, .78);
+  font-size: 11px;
+}
+
+@media (max-width: 620px) {
+  .wallet-adjust-controls,
+  .personal-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-adjust-buttons button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 /* ── Admin stat accents ──────────────────────────────────────── */
 .admin-stat.accent-green .mat-icon { filter: invert(70%) sepia(1) saturate(3) hue-rotate(85deg); }
 .admin-stat.accent-blue .mat-icon { filter: invert(60%) sepia(1) saturate(3) hue-rotate(190deg); }
