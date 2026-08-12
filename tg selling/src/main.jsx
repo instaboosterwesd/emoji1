@@ -179,6 +179,11 @@ function effectiveIncreasePercent(pricingSettings, role, profile) {
     : Number(pricingSettings.userIncreasePercent || 0);
 }
 
+function formatPercent(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0';
+}
+
 function applyCatalogPricing(product, pricingRules, pricingSettings, role, profile) {
   const isReseller = role === 'reseller';
   const increasePercent = effectiveIncreasePercent(pricingSettings, role, profile);
@@ -1799,43 +1804,10 @@ function ProductsView({ session, onBuy }) {
   const [productChannels, setProductChannels] = useState([]);
   const [communityLinks, setCommunityLinks] = useState({ getFileUrl: '' });
 
-  const applyPricing = useCallback((product) => {
-    const isReseller = session?.role === 'reseller';
-    const onlyContact = isOnlyContactProduct(product, pricingRules);
-    return {
-      ...product,
-      onlyContact,
-      pricing: product.pricing.map(item => {
-        const key = `${product.pid}_${(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
-        const rule = pricingRules[key] || {};
-        const apiPrice = Number(item.price || 0);
-        const fixedUserPrice = Number(rule.price);
-        const fixedResellerPrice = Number(rule.resellerPrice);
-        const baseUserPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
-          ? fixedUserPrice
-          : product.pricingSource === 'imported'
-            ? apiPrice
-            : Math.max(0, apiPrice + pricingSettings.userAdjustment);
-        const increasePercent = effectiveIncreasePercent(pricingSettings, session?.role, session);
-        const userPrice = increasePercent > 0 && !isReseller
-          ? Math.round(baseUserPrice * (1 + increasePercent / 100) * 100) / 100
-          : baseUserPrice;
-        const baseResellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
-          ? fixedResellerPrice
-          : product.pricingSource === 'imported'
-            ? apiPrice
-            : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
-        const resellerPrice = increasePercent > 0 && isReseller
-          ? Math.round(baseResellerPrice * (1 + increasePercent / 100) * 100) / 100
-          : baseResellerPrice;
-        return {
-          ...item,
-          price: isReseller ? resellerPrice : userPrice,
-          isResellerPrice: isReseller,
-        };
-      }),
-    };
-  }, [pricingRules, pricingSettings, session?.role, session?.userPriceIncreasePercent, session?.resellerPriceIncreasePercent]);
+  const applyPricing = useCallback(
+    product => applyCatalogPricing(product, pricingRules, pricingSettings, session?.role, session),
+    [pricingRules, pricingSettings, session],
+  );
 
   const load = async () => {
     setLoading(true); setError('');
@@ -2731,7 +2703,7 @@ function UserViewDialog({ user, onClose }) {
 }
 
 /* ── UserEditDialog ─────────────────────────────────────────────── */
-function UserEditDialog({ user, onClose, onSaved }) {
+function UserEditDialog({ user, pricingSettings, onClose, onSaved }) {
   const [balance, setBalance] = useState(String(Number(user?.balance || 0)));
   const [role, setRole] = useState(user?.role === 'reseller' || user?.reseller ? 'reseller' : user?.role || 'user');
   const [status, setStatus] = useState(user?.status === 'banned' ? 'banned' : 'active');
@@ -2742,6 +2714,13 @@ function UserEditDialog({ user, onClose, onSaved }) {
   const [adjusting, setAdjusting] = useState(false);
 
   if (!user) return null;
+  const isReseller = role === 'reseller';
+  const globalPercent = isReseller
+    ? Number(pricingSettings?.resellerIncreasePercent || 0)
+    : Number(pricingSettings?.userIncreasePercent || 0);
+  const personalPercent = isReseller ? resellerPriceIncreasePercent : userPriceIncreasePercent;
+  const effectivePercent = personalPercent === '' ? globalPercent : Number(personalPercent || 0);
+  const activeRoleLabel = isReseller ? 'Reseller' : 'User';
 
   const save = async event => {
     event.preventDefault();
@@ -2838,11 +2817,15 @@ function UserEditDialog({ user, onClose, onSaved }) {
              <div className="personal-pricing-panel">
                <div>
                  <strong>Personal price increases</strong>
-                 <small>Blank follows the global percentage. Enter 0 to disable the global increase for this user.</small>
+                 <small>
+                   Current role: <b>{activeRoleLabel}</b> · Global: <b>{formatPercent(globalPercent)}%</b> ·
+                   Effective now: <b>{formatPercent(effectivePercent)}%</b>
+                 </small>
+                 <small>Blank follows global pricing. Enter 0 for no increase, or enter 5 for exactly 5% on this account.</small>
                </div>
                <div className="personal-pricing-grid">
-                 <label>
-                   <span>User price (%)</span>
+                 <label className={role === 'user' ? 'active-pricing-role' : ''}>
+                   <span>User price (%) <em>Global {formatPercent(pricingSettings?.userIncreasePercent)}%</em></span>
                    <input
                      type="number"
                      min="0"
@@ -2854,8 +2837,8 @@ function UserEditDialog({ user, onClose, onSaved }) {
                      inputMode="decimal"
                    />
                  </label>
-                 <label>
-                   <span>Reseller price (%)</span>
+                 <label className={role === 'reseller' ? 'active-pricing-role' : ''}>
+                   <span>Reseller price (%) <em>Global {formatPercent(pricingSettings?.resellerIncreasePercent)}%</em></span>
                    <input
                      type="number"
                      min="0"
@@ -4259,7 +4242,14 @@ function AdminPage({ session, onSessionChange }) {
       </div>
       <Toaster position="top-center" offset={78} theme="dark" toastOptions={toastOptions} />
       {historyUser && <UserHistoryDialog user={historyUser} onClose={() => setHistoryUser(null)} />}
-      {editUser && <UserEditDialog user={editUser} onClose={() => setEditUser(null)} onSaved={loadAdmin} />}
+      {editUser && (
+        <UserEditDialog
+          user={editUser}
+          pricingSettings={{ userIncreasePercent: Number(userIncreasePercent || 0), resellerIncreasePercent: Number(resellerIncreasePercent || 0) }}
+          onClose={() => setEditUser(null)}
+          onSaved={loadAdmin}
+        />
+      )}
       {viewIssueUser && <UserViewDialog user={viewIssueUser} onClose={() => setViewIssueUser(null)} />}
       {pricingProduct && <PricingEditDialog product={pricingProduct} onClose={() => setPricingProduct(null)} onSave={loadAdmin} />}
     </main>
