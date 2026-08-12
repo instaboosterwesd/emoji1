@@ -1032,6 +1032,25 @@
   min-height: 100svh;
   padding-bottom: 30px;
 }
+html:has(.api-doc-page-shell) {
+  scrollbar-color: #c795ff rgba(30,26,48,.92);
+  scrollbar-width: auto;
+}
+html:has(.api-doc-page-shell)::-webkit-scrollbar {
+  width: 11px;
+}
+html:has(.api-doc-page-shell)::-webkit-scrollbar-track {
+  background: rgba(30,26,48,.92);
+}
+html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(30,26,48,.98);
+  border-radius: 99px;
+  background: #c795ff;
+  box-shadow: 0 0 10px rgba(199,149,255,.45);
+}
+html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
+  background: #dfb8ff;
+}
 .api-doc-page {
   position: relative;
   z-index: 1;
