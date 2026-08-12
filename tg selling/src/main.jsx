@@ -881,7 +881,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
 
   const section =
     tab === 'orders' ? <OrdersView session={session} communityLinks={communityLinks} /> :
-    tab === 'buy' ? <ProductsView session={session} onBuy={setPurchase} /> :
+    tab === 'buy' ? <ProductsView session={profile} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
     tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} openApiDocs={() => setApiDocsOpen(true)} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
     <DashboardHome profile={profile} role={profile.role} setTab={setTab} communityLinks={communityLinks} />;
@@ -1009,7 +1009,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
           </section>
         </div>
       )}
-      <PurchaseDialog purchase={purchase} session={session} communityLinks={communityLinks} close={() => setPurchase(null)} onPurchased={refreshProfile} />
+      <PurchaseDialog purchase={purchase} session={profile} communityLinks={communityLinks} close={() => setPurchase(null)} onPurchased={refreshProfile} />
       {resellerBenefitsOpen && (
         <ResellerBenefitsDialog
           resellerPrice={0}
@@ -1828,7 +1828,7 @@ function ProductsView({ session, onBuy }) {
     load();
     getProductChannels().then(setProductChannels).catch(() => {});
     getCommunityLinks().then(links => setCommunityLinks({ getFileUrl: links.getFileUrl || '' })).catch(() => {});
-  }, []);
+  }, [session?.role]);
 
   const games = useMemo(() => ['all', ...new Set(products.map(p => p.game).filter(Boolean))], [products]);
 
