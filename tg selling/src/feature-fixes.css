@@ -863,6 +863,16 @@
 .user-edit-form .modal-btn-row {
   margin-top: 4px;
 }
+.user-edit-form-body {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 14px;
+  min-height: 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 0 2px 24px;
+  scrollbar-gutter: stable;
+}
 
 .upi-preview {
   display: grid;
@@ -2039,15 +2049,36 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
 }
 
 .admin-dialog-backdrop .admin-dialog .modal-btn-row {
-  position: sticky;
-  bottom: -1px;
-  z-index: 2;
+  position: static;
   width: calc(100% + clamp(32px, 10vw, 144px));
   margin: 28px calc(clamp(16px, 5vw, 72px) * -1) calc(clamp(20px, 4vw, 42px) * -1);
   padding: 14px clamp(16px, 5vw, 72px);
   background: rgba(12, 17, 36, .94);
   border-top: 1px solid rgba(255, 255, 255, .1);
   backdrop-filter: blur(18px);
+}
+
+.admin-dialog-backdrop .admin-dialog.user-edit-dialog {
+  overflow: hidden !important;
+}
+
+.admin-dialog-backdrop .admin-dialog.user-edit-dialog .user-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.admin-dialog-backdrop .admin-dialog.user-edit-dialog .user-edit-form .modal-btn-row {
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 16px 0 4px;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .admin-dialog-backdrop .history-dialog .history-ledger,
@@ -2085,10 +2116,10 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
 }
 
 .wallet-adjust-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 9px;
+  display: flex;
   align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .wallet-adjust-controls input,
@@ -2101,8 +2132,15 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
   color: #fff;
 }
 
+.wallet-adjust-controls > input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .wallet-adjust-buttons {
   display: flex;
+  align-items: center;
+  flex: 0 0 auto;
   gap: 8px;
 }
 
@@ -2110,7 +2148,9 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  height: 44px;
   min-height: 44px;
+  padding: 0 12px;
   white-space: nowrap;
 }
 
@@ -2144,9 +2184,17 @@ html:has(.api-doc-page-shell)::-webkit-scrollbar-thumb:hover {
 }
 
 @media (max-width: 620px) {
-  .wallet-adjust-controls,
   .personal-pricing-grid {
     grid-template-columns: 1fr;
+  }
+
+  .wallet-adjust-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .wallet-adjust-buttons {
+    width: 100%;
   }
 
   .wallet-adjust-buttons button {

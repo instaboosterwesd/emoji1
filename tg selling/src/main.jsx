@@ -2793,88 +2793,90 @@ function UserEditDialog({ user, onClose, onSaved }) {
           <button className="icon-button" type="button" onClick={onClose} disabled={saving}><MatIcon name="close" size={18} /></button>
         </div>
         <p className="muted dialog-sub">{user.name || 'Account holder'} · {user.email || user.phone || user.uid}</p>
-        <form className="user-edit-form" onSubmit={save}>
-          <label>
-            <span>Wallet total (₹)</span>
-            <input type="number" min="0" step="0.01" value={balance} onChange={e => setBalance(e.target.value)} inputMode="decimal" required />
-            <small>Set the final wallet total directly, then press Save changes.</small>
-          </label>
-          <div className="wallet-adjust-panel">
-            <div>
-              <strong>Quick wallet adjustment</strong>
-              <small>Add or subtract funds and save immediately without changing the total manually.</small>
-            </div>
-            <div className="wallet-adjust-controls">
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={adjustmentAmount}
-                onChange={e => setAdjustmentAmount(e.target.value)}
-                placeholder="Amount, e.g. 10"
-                inputMode="decimal"
-                aria-label="Wallet adjustment amount"
-              />
-              <div className="wallet-adjust-buttons">
-                <button type="button" className="wallet-add-button" onClick={() => adjustFund('add')} disabled={saving || adjusting}>
-                  <MatIcon name="add" size={15} /> Add
-                </button>
-                <button type="button" className="wallet-subtract-button" onClick={() => adjustFund('subtract')} disabled={saving || adjusting}>
-                  <MatIcon name="remove" size={15} /> Subtract
-                </button>
-              </div>
-            </div>
-          </div>
-          <label>
-            <span>Account role</span>
-            <select value={role} onChange={e => setRole(e.target.value)}>
-              <option value="user">User</option>
-              <option value="reseller">Reseller</option>
-              <option value="admin">Admin</option>
-            </select>
-            <small>{role === 'reseller' ? 'Reseller pricing and privileges will be enabled.' : role === 'admin' ? 'Admin dashboard access will be enabled.' : 'Standard user access; reseller privileges will be removed.'}</small>
-          </label>
-          <div className="personal-pricing-panel">
-            <div>
-              <strong>Personal price increases</strong>
-              <small>Blank follows the global percentage. Enter 0 to disable the global increase for this user.</small>
-            </div>
-            <div className="personal-pricing-grid">
-              <label>
-                <span>User price (%)</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="1000"
-                  step="0.01"
-                  value={userPriceIncreasePercent}
-                  onChange={e => setUserPriceIncreasePercent(e.target.value)}
-                  placeholder="Global"
-                  inputMode="decimal"
-                />
-              </label>
-              <label>
-                <span>Reseller price (%)</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="1000"
-                  step="0.01"
-                  value={resellerPriceIncreasePercent}
-                  onChange={e => setResellerPriceIncreasePercent(e.target.value)}
-                  placeholder="Global"
-                  inputMode="decimal"
-                />
-              </label>
-            </div>
-          </div>
-          <label>
-            <span>Account status</span>
-            <select value={status} onChange={e => setStatus(e.target.value)}>
-              <option value="active">Active</option>
-              <option value="banned">Banned</option>
-            </select>
-          </label>
+         <form className="user-edit-form" onSubmit={save}>
+           <div className="user-edit-form-body">
+             <label>
+               <span>Wallet total (₹)</span>
+               <input type="number" min="0" step="0.01" value={balance} onChange={e => setBalance(e.target.value)} inputMode="decimal" required />
+               <small>Set the final wallet total directly, then press Save changes.</small>
+             </label>
+             <div className="wallet-adjust-panel">
+               <div>
+                 <strong>Quick wallet adjustment</strong>
+                 <small>Add or subtract funds and save immediately without changing the total manually.</small>
+               </div>
+               <div className="wallet-adjust-controls">
+                 <input
+                   type="number"
+                   min="0.01"
+                   step="0.01"
+                   value={adjustmentAmount}
+                   onChange={e => setAdjustmentAmount(e.target.value)}
+                   placeholder="Amount, e.g. 10"
+                   inputMode="decimal"
+                   aria-label="Wallet adjustment amount"
+                 />
+                 <div className="wallet-adjust-buttons">
+                   <button type="button" className="wallet-add-button" onClick={() => adjustFund('add')} disabled={saving || adjusting}>
+                     <MatIcon name="add" size={15} /> Add
+                   </button>
+                   <button type="button" className="wallet-subtract-button" onClick={() => adjustFund('subtract')} disabled={saving || adjusting}>
+                     <MatIcon name="remove" size={15} /> Subtract
+                   </button>
+                 </div>
+               </div>
+             </div>
+             <label>
+               <span>Account role</span>
+               <select value={role} onChange={e => setRole(e.target.value)}>
+                 <option value="user">User</option>
+                 <option value="reseller">Reseller</option>
+                 <option value="admin">Admin</option>
+               </select>
+               <small>{role === 'reseller' ? 'Reseller pricing and privileges will be enabled.' : role === 'admin' ? 'Admin dashboard access will be enabled.' : 'Standard user access; reseller privileges will be removed.'}</small>
+             </label>
+             <div className="personal-pricing-panel">
+               <div>
+                 <strong>Personal price increases</strong>
+                 <small>Blank follows the global percentage. Enter 0 to disable the global increase for this user.</small>
+               </div>
+               <div className="personal-pricing-grid">
+                 <label>
+                   <span>User price (%)</span>
+                   <input
+                     type="number"
+                     min="0"
+                     max="1000"
+                     step="0.01"
+                     value={userPriceIncreasePercent}
+                     onChange={e => setUserPriceIncreasePercent(e.target.value)}
+                     placeholder="Global"
+                     inputMode="decimal"
+                   />
+                 </label>
+                 <label>
+                   <span>Reseller price (%)</span>
+                   <input
+                     type="number"
+                     min="0"
+                     max="1000"
+                     step="0.01"
+                     value={resellerPriceIncreasePercent}
+                     onChange={e => setResellerPriceIncreasePercent(e.target.value)}
+                     placeholder="Global"
+                     inputMode="decimal"
+                   />
+                 </label>
+               </div>
+             </div>
+             <label>
+               <span>Account status</span>
+               <select value={status} onChange={e => setStatus(e.target.value)}>
+                 <option value="active">Active</option>
+                 <option value="banned">Banned</option>
+               </select>
+             </label>
+           </div>
           <div className="modal-btn-row">
             <button type="button" onClick={onClose} disabled={saving || adjusting}><MatIcon name="close" size={16} /> Cancel</button>
             <button className="modal-save" type="submit" disabled={saving || adjusting}>
