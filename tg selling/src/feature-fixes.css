@@ -3803,6 +3803,93 @@ body:has(.api-doc-page-shell) {
   box-shadow: 0 10px 22px rgba(34,158,217,.22);
 }
 
+.api-pid-panel {
+  margin-top: 13px;
+  overflow: hidden;
+  border: 1px solid rgba(142,207,240,.22);
+  border-radius: 14px;
+  background: rgba(3,8,20,.34);
+}
+.api-pid-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  color: #f6efff;
+  font-size: 12px;
+}
+.api-pid-panel-head span {
+  flex: none;
+  color: rgba(255,255,255,.55);
+  font-size: 10px;
+}
+.api-pid-list {
+  display: grid;
+}
+.api-pid-row {
+  display: grid;
+  grid-template-columns: minmax(140px, .8fr) minmax(0, 1.2fr);
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.api-pid-row:last-child {
+  border-bottom: 0;
+}
+.api-pid-product {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+.api-pid-product strong {
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.api-pid-product code {
+  width: fit-content;
+  padding: 3px 6px;
+  border: 1px solid rgba(199,149,255,.3);
+  border-radius: 6px;
+  color: #e7ceff;
+  background: rgba(199,149,255,.12);
+  font-size: 10px;
+  font-weight: 800;
+}
+.api-pid-product small {
+  color: rgba(255,255,255,.45);
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.api-pid-durations {
+  display: flex;
+  align-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.api-pid-durations span {
+  padding: 5px 7px;
+  border: 1px solid rgba(116,224,165,.25);
+  border-radius: 7px;
+  color: #c9f8da;
+  background: rgba(116,224,165,.08);
+  font-size: 10px;
+  line-height: 1.2;
+}
+.api-pid-empty {
+  margin: 0;
+  padding: 13px 12px;
+  color: rgba(255,255,255,.58);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 @media (max-width: 520px) {
   .api-docs-content > .modal-btn-row {
     display: grid !important;
@@ -3811,6 +3898,13 @@ body:has(.api-doc-page-shell) {
   }
   .api-docs-content > .modal-btn-row > button {
     width: 100%;
+  }
+  .api-pid-row {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .api-pid-durations {
+    padding-top: 1px;
   }
 }
 
