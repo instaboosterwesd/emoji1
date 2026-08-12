@@ -1026,6 +1026,69 @@
   }
 }
 
+/* ── Full-page API documentation view ──────────────────────────── */
+.api-doc-page-shell {
+  position: relative;
+  min-height: 100svh;
+  padding-bottom: 30px;
+}
+.api-doc-page {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 28px, 980px);
+  margin: 0 auto;
+  padding: clamp(18px, 4vw, 42px) 0 48px;
+}
+.api-docs-content {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: calc(100svh - 90px);
+  max-height: none;
+  margin: 0;
+  overflow: visible !important;
+  border: 1px solid rgba(199,149,255,.2);
+  border-radius: 26px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.28), inset 1px 1px rgba(255,255,255,.09);
+}
+.api-docs-content .dialog-title-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: -22px -22px 16px;
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(25,22,40,.92);
+  backdrop-filter: blur(18px);
+}
+.api-doc-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: auto !important;
+  padding: 7px 10px !important;
+  color: #e4c8ff !important;
+  font-size: 11px;
+}
+.api-doc-back-btn span { display: inline; }
+@media (max-width: 520px) {
+  .api-doc-page {
+    width: calc(100% - 14px);
+    padding-top: 7px;
+  }
+  .api-docs-content {
+    min-height: calc(100svh - 14px);
+    padding: 15px;
+    border-radius: 20px;
+  }
+  .api-docs-content .dialog-title-row {
+    margin: -15px -15px 16px;
+    padding: 14px 15px 13px;
+  }
+  .api-doc-back-btn span { display: none; }
+}
+
 .admin-locked {
   position: relative;
   z-index: 2;

@@ -864,6 +864,16 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
     tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} openApiDocs={() => setApiDocsOpen(true)} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
     <DashboardHome profile={profile} role={profile.role} setTab={setTab} communityLinks={communityLinks} />;
 
+  if (apiDocsOpen) {
+    return (
+      <main className={`dashboard-page ${theme} api-doc-page-shell`}>
+        <img className="dashboard-backdrop" src={theme === 'dark' ? '/dashboard-dark-bg.webp' : '/dashboard-light-bg.webp'} alt="" aria-hidden="true" loading="lazy" />
+        <div className="dashboard-veil" />
+        <ApiDocumentation apiState={apiState} onClose={() => setApiDocsOpen(false)} />
+      </main>
+    );
+  }
+
   return (
     <main className={`dashboard-page ${theme}`}>
       {perfMode === null && (
@@ -921,7 +931,6 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
         ))}
       </nav>
       <ProfileDialog type={dialog} profile={profile} apiState={apiState} close={() => setDialog(null)} onLogout={onLogout} onProfile={next => { setProfile(next); onSessionChange(next); }} onApiState={setApiState} onApiDocs={() => setApiDocsOpen(true)} />
-      {apiDocsOpen && <ApiDocumentation apiState={apiState} onClose={() => setApiDocsOpen(false)} />}
       {showNotifs && (
         <div className="notif-overlay" role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false); }}>
           <div className="notif-dialog liquid-dialog">
@@ -2325,16 +2334,6 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
 function ApiDocumentation({ apiState, onClose }) {
   const endpoint = `${window.location.origin}/api/public-api`;
   const [copied, setCopied] = useState('');
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscroll = document.body.style.overscrollBehavior;
-    document.body.style.overflow = 'hidden';
-    document.body.style.overscrollBehavior = 'none';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehavior = previousOverscroll;
-    };
-  }, []);
   const copy = async (name, value) => {
     try {
       await copyTextToClipboard(value);
@@ -2372,12 +2371,12 @@ print(result.json())`;
   );
 
   return (
-    <div className="action-modal-backdrop api-docs-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className="action-modal liquid-dialog api-docs-dialog">
+    <div className="api-docs-page">
+      <section className="api-docs-dialog api-docs-content">
         <div className="dialog-title-row">
           <DeviceIcon emoji="/icons/new/api-settings.json" icon="menu_book" size={22} />
           <h2>API Documentation</h2>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Close documentation"><MatIcon name="close" size={18} /></button>
+          <button className="icon-button api-doc-back-btn" type="button" onClick={onClose} aria-label="Back to profile"><MatIcon name="arrow_back" size={18} /> <span>Back</span></button>
         </div>
         <div className="api-doc-intro">
           <span className="api-doc-status"><MatIcon name="verified" size={15} /> Your API is ready</span>
@@ -2423,7 +2422,7 @@ print(result.json())`;
           <p className="muted">For errors, check <code>success: false</code> and <code>error.code</code>. Common codes: <code>INSUFFICIENT_BALANCE</code>, <code>PRODUCT_NOT_FOUND</code>, <code>DURATION_NOT_FOUND</code>, <code>PROVIDER_PURCHASE_FAILED</code>.</p>
         </div>
         <div className="modal-btn-row">
-          <button type="button" onClick={onClose}><MatIcon name="close" size={16} /> Close documentation</button>
+          <button type="button" onClick={onClose}><MatIcon name="arrow_back" size={16} /> Back to profile</button>
           <button className="modal-save" type="button" onClick={() => copy('endpoint', endpoint)}><MatIcon name={copied === 'endpoint' ? 'check' : 'content_copy'} size={15} /> {copied === 'endpoint' ? 'Copied' : 'Copy endpoint'}</button>
         </div>
       </section>
