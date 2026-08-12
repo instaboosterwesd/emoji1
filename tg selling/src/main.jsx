@@ -2374,7 +2374,7 @@ print(result.json())`;
   );
 
   return (
-    <div className="api-docs-page">
+    <div className="api-doc-page">
       <section className="api-docs-dialog api-docs-content">
         <div className="dialog-title-row">
           <DeviceIcon emoji="/icons/new/api-settings.json" icon="menu_book" size={22} />
