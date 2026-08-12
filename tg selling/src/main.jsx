@@ -2325,6 +2325,16 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
 function ApiDocumentation({ apiState, onClose }) {
   const endpoint = `${window.location.origin}/api/public-api`;
   const [copied, setCopied] = useState('');
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
+    };
+  }, []);
   const copy = async (name, value) => {
     try {
       await copyTextToClipboard(value);
@@ -2463,24 +2473,60 @@ function UserHistoryDialog({ user, onClose }) {
   }, [user?.uid]);
 
   if (!user) return null;
+  const isNumber = value => value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value));
+  const getTransactionDelta = tx => {
+    if (isNumber(tx.before) && isNumber(tx.after)) return roundMoney(Number(tx.after) - Number(tx.before));
+    if (['deposit_pending', 'reseller_unlock_pending', 'deposit_rejected'].includes(tx.type)) return 0;
+    if (['purchase', 'admin_subtract'].includes(tx.type)) return -Math.abs(Number(tx.amount || 0));
+    if (['deposit_approved', 'gateway_deposit', 'reseller_unlock', 'gift_redeem', 'contact_refund', 'admin_add'].includes(tx.type)) return Math.abs(Number(tx.amount || 0));
+    return 0;
+  };
+  const ledgerRows = [...transactions]
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    .map(tx => ({ ...tx, delta: getTransactionDelta(tx) }));
+  const knownMovement = roundMoney(ledgerRows.reduce((sum, tx) => sum + tx.delta, 0));
+  let runningBalance = roundMoney(Number(user.balance || 0) - knownMovement);
+  const ledger = ledgerRows.map(tx => {
+    const hasRecordedBalances = isNumber(tx.before) && isNumber(tx.after);
+    const opening = hasRecordedBalances ? Number(tx.before) : runningBalance;
+    const closing = hasRecordedBalances ? Number(tx.after) : roundMoney(opening + tx.delta);
+    runningBalance = closing;
+    return { ...tx, opening, closing };
+  }).reverse();
+  const totalCredited = roundMoney(ledgerRows.reduce((sum, tx) => sum + Math.max(0, tx.delta), 0));
+  const totalSpent = roundMoney(ledgerRows.reduce((sum, tx) => sum + Math.max(0, -tx.delta), 0));
+  const purchaseTotal = roundMoney(ledgerRows.filter(tx => tx.type === 'purchase').reduce((sum, tx) => sum + Math.abs(Number(tx.amount || 0)), 0));
   const transactionIcon = tx => {
     if (tx.type === 'admin_set_balance') return 'edit';
+    if (tx.delta > 0) return 'add_circle';
     if (tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending') return 'schedule';
-    if (tx.type === 'deposit_approved') return 'add_circle';
     if (tx.type === 'deposit_rejected') return 'cancel';
-    return 'shopping_cart';
+    if (tx.type === 'purchase') return 'shopping_cart';
+    return 'account_balance_wallet';
   };
-  const transactionAmount = tx => {
+  const transactionLabel = tx => {
+    if (tx.type === 'purchase') return 'Product purchase';
+    if (tx.type === 'admin_set_balance') return 'Admin balance update';
+    if (tx.type === 'gift_redeem') return 'Gift code credited';
+    if (tx.type === 'contact_refund') return 'Purchase refund';
+    if (tx.type === 'deposit_approved' || tx.type === 'gateway_deposit') return 'Wallet deposit';
+    if (tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending') return 'Deposit pending';
+    if (tx.type === 'deposit_rejected') return 'Deposit rejected';
+    return tx.note || tx.type || 'Wallet activity';
+  };
+  const keyForTransaction = tx => {
+    if (tx.licenseKeyId) return userKeys.find(key => key.id === tx.licenseKeyId);
+    if (tx.transactionId) return userKeys.find(key => key.transactionId === tx.id || key.transactionId === tx.transactionId);
+    if (tx.type !== 'purchase') return null;
+    return userKeys
+      .filter(key => (key.productName || key.product) === tx.note?.split(' · ')[0])
+      .sort((a, b) => Math.abs((a.purchasedAt || 0) - (tx.createdAt || 0)) - Math.abs((b.purchasedAt || 0) - (tx.createdAt || 0)))[0];
+  };
+  const signedAmount = tx => {
     if (tx.type === 'deposit_pending' || tx.type === 'reseller_unlock_pending') return <span className="history-status pending">Pending</span>;
-    if (tx.type === 'deposit_rejected') return <span className="history-status rejected">Rejected</span>;
-    if (tx.type === 'admin_set_balance') {
-      return (
-        <span className="history-balance-change">
-          <MoneyDisplay value={tx.before} /> → <MoneyDisplay value={tx.after} />
-        </span>
-      );
-    }
-    return <span className={tx.type === 'purchase' ? 'history-amount negative' : 'history-amount'}>{tx.type === 'purchase' ? '-' : '+'}<MoneyDisplay value={tx.amount} /></span>;
+    if (tx.type === 'deposit_rejected') return <span className="history-status rejected">No balance change</span>;
+    if (tx.delta === 0) return <span className="history-status">—</span>;
+    return <span className={`history-amount ${tx.delta < 0 ? 'negative' : ''}`}>{tx.delta < 0 ? '−' : '+'}₹{money(Math.abs(tx.delta))}</span>;
   };
 
   return (
@@ -2491,40 +2537,50 @@ function UserHistoryDialog({ user, onClose }) {
           <h2>{user.name || user.uid} — History</h2>
           <button className="icon-button" type="button" onClick={onClose}><MatIcon name="close" size={18} /></button>
         </div>
+        <p className="muted history-user-meta">{user.phone || user.email || user.uid} · Current wallet balance</p>
         {loading ? <p className="muted empty-state">Loading…</p> : (
           <>
-            <div className="history-section-heading">
-              <h4>Transactions ({transactions.length})</h4>
-              <span className="muted">Complete wallet activity</span>
+            <div className="history-summary-grid">
+              <div className="history-summary-card current"><span>Current balance</span><strong><MoneyDisplay value={user.balance || 0} /></strong></div>
+              <div className="history-summary-card"><span>Total credited</span><strong className="credit"><MoneyDisplay value={totalCredited} /></strong></div>
+              <div className="history-summary-card"><span>Total spent</span><strong className="debit"><MoneyDisplay value={totalSpent} /></strong></div>
+              <div className="history-summary-card"><span>Purchases total</span><strong><MoneyDisplay value={purchaseTotal || user.totalPurchase || 0} /></strong></div>
             </div>
-            <div className="history-scroll">
-              {transactions.length === 0 ? <p className="muted empty-state">No transactions</p> : transactions.map(tx => (
-                <div className="tx-row compact" key={tx.id}>
-                  <MatIcon name={transactionIcon(tx)} size={15} style={{ filter: 'invert(0.6)' }} />
-                  <div className="tx-main">
-                    <strong>{tx.note || tx.type}</strong>
-                    <span>
-                      {fmtDate(tx.createdAt)}
-                      {tx.type === 'admin_set_balance' && ` · Before ₹${money(tx.before)} · After ₹${money(tx.after)}`}
-                    </span>
+            <div className="history-section-heading">
+              <div><h4>Wallet ledger</h4><span className="muted">Opening balance · movement · closing balance</span></div>
+              <b className="history-count">{transactions.length} entries</b>
+            </div>
+            <div className="history-ledger">
+              <div className="history-ledger-head"><span>Date / details</span><span>Opening</span><span>Movement</span><span>Closing</span></div>
+              {ledger.length === 0 ? <p className="muted empty-state">No transactions</p> : ledger.map(tx => {
+                const key = keyForTransaction(tx);
+                return (
+                  <div className={`history-ledger-row ${tx.delta < 0 ? 'debit-row' : tx.delta > 0 ? 'credit-row' : ''}`} key={tx.id}>
+                    <div className="history-ledger-detail">
+                      <div className="history-ledger-title"><MatIcon name={transactionIcon(tx)} size={15} /><strong>{transactionLabel(tx)}</strong></div>
+                      <span>{tx.note || tx.type} · {fmtDate(tx.createdAt)}</span>
+                      {key && <small>{key.productName || key.product} · {key.duration || '—'} · {key.status === 'contact_pending' ? 'Key pending' : key.status === 'contact_rejected' ? 'Refunded' : 'Key issued'}</small>}
+                    </div>
+                    <b className="history-ledger-money"><MoneyDisplay value={tx.opening} /></b>
+                    <b className="history-ledger-money">{signedAmount(tx)}</b>
+                    <b className="history-ledger-money"><MoneyDisplay value={tx.closing} /></b>
                   </div>
-                  <b className="history-amount-cell">{transactionAmount(tx)}</b>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="history-section-heading">
-              <h4>License Keys ({userKeys.length})</h4>
-              <span className="muted">Complete purchase history</span>
+              <div><h4>License keys ({userKeys.length})</h4><span className="muted">Products purchased by this user</span></div>
             </div>
-            <div className="history-scroll">
+            <div className="history-key-list">
               {userKeys.length === 0 ? <p className="muted empty-state">No keys</p> : userKeys.map(k => (
-                <div className="tx-row compact" key={k.id}>
-                  <LottieIcon src="/icons/new/key-lottie.json" size={16} />
+                <div className="history-key-row" key={k.id}>
+                  <LottieIcon src="/icons/new/key-lottie.json" size={17} />
                   <div className="tx-main">
-                    <strong>{k.productName || k.product}</strong>
-                    <span>{k.duration} · {fmtDate(k.purchasedAt)}</span>
+                    <strong>{k.productName || k.product || 'License key'}</strong>
+                    <span>{k.duration || '—'} · {fmtDate(k.purchasedAt || k.createdAt)} · {k.status || 'active'}</span>
+                    <code>{k.key || k.keyCode || (k.status === 'contact_pending' ? 'Key pending' : '—')}</code>
                   </div>
-                  <b style={{ color: '#94a3b8', fontSize: '0.8rem' }}><MoneyDisplay value={k.price} /></b>
+                  <b><MoneyDisplay value={k.price || 0} /></b>
                 </div>
               ))}
             </div>
