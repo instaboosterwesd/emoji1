@@ -819,7 +819,57 @@ function safePurchaseFailureMessage(error) {
   return 'Purchase could not be completed. Your wallet balance has been refunded. Please try again later.';
 }
 
+async function checkProviderBalance() {
+  const body = new URLSearchParams({ action: 'balance' });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  let response;
+  try {
+    response = await fetch(resellerEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('Reseller balance check timed out after 15 seconds.');
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const raw = await response.text();
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    data = { message: raw };
+  }
+  if (typeof data === 'string') data = { message: data };
+  if (data && typeof data === 'object') data.__raw = raw;
+
+  if (!response.ok || data?.status === false || data?.success === false || String(data?.status).toLowerCase() === 'error') {
+    throw new Error(data?.message || data?.msg || 'Provider balance could not be checked.');
+  }
+
+  const balanceValue = data?.balance
+    ?? data?.data?.balance
+    ?? data?.result?.balance
+    ?? data?.wallet_balance
+    ?? data?.data?.wallet_balance
+    ?? data?.result?.wallet_balance;
+  const balance = Number(balanceValue);
+  if (Number.isFinite(balance) && balance <= 0) {
+    throw new Error('Provider wallet has insufficient balance.');
+  }
+  return data;
+}
+
 export async function buyResellerProduct(productId, duration, androidId = '') {
+  // Avoid a provider purchase request that is guaranteed to fail. This call
+  // is still server-proxied; the provider API and master keys never reach the
+  // browser bundle.
+  await checkProviderBalance();
   const params = {
     action: 'buy',
     product_id: String(productId),

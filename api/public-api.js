@@ -253,15 +253,23 @@ module.exports = async function handler(req, res) {
     }
 
     const productId = String(body.product_id || body.pid || '').trim();
+    const requestedDuration = String(body.duration || '').trim();
+    const androidId = String(body.android_id || '').trim();
+    if (!productId || !requestedDuration || !androidId) {
+      return send(res, 400, {
+        success: false,
+        error: {
+          code: 'REQUIRED_FIELDS_MISSING',
+          message: 'buy requires product_id, duration, and android_id.',
+        },
+      });
+    }
     const product = products.find(item => item.pid === productId || item.purchase_pid === productId || item.id === productId);
     if (!product) return send(res, 404, { success: false, error: { code: 'PRODUCT_NOT_FOUND', message: 'Product PID was not found.' } });
-    const duration = findDuration(product, body.duration);
+    const duration = findDuration(product, requestedDuration);
     if (!duration) return send(res, 400, { success: false, error: { code: 'DURATION_NOT_FOUND', message: 'That duration is not available for this product.' } });
     const price = Number(duration.price || 0);
     if (price <= 0) return send(res, 400, { success: false, error: { code: 'PRICE_NOT_AVAILABLE', message: 'This product duration has no purchasable price.' } });
-    if (/\bbala\b/i.test(product.name) && !String(body.android_id || '').trim()) {
-      return send(res, 400, { success: false, error: { code: 'ANDROID_ID_REQUIRED', message: 'android_id is required for this device-bound product.' } });
-    }
 
     const now = Date.now();
     let balanceReservation;
@@ -279,7 +287,7 @@ module.exports = async function handler(req, res) {
       providerResult = await buyFromProvider({
         productId: product.purchase_pid || product.pid,
         duration: duration.duration,
-        androidId: body.android_id,
+        androidId,
       });
     } catch (error) {
       await refund(auth.uid, price);

@@ -2343,15 +2343,18 @@ function ApiDocumentation({ apiState, onClose }) {
       toast.error('Copy failed. Please select the example manually.');
     }
   };
-  const curlProducts = `curl -H "x-api-key: YOUR_API_KEY" "${endpoint}?action=products"`;
-  const curlBalance = `curl -H "x-api-key: YOUR_API_KEY" "${endpoint}?action=balance"`;
+  const curlProducts = `curl -H "Authorization: Bearer YOUR_API_KEY" "${endpoint}?action=products"`;
+  const curlBalance = `curl -H "Authorization: Bearer YOUR_API_KEY" "${endpoint}?action=balance"`;
   const curlBuy = `curl -X POST "${endpoint}?action=buy" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: YOUR_API_KEY" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{"product_id":"133","duration":"3 Hours","android_id":"YOUR_ANDROID_ID"}'`;
   const jsExample = `const response = await fetch('${endpoint}?action=buy', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.TG_API_KEY },
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: \`Bearer \${process.env.TG_API_KEY}\`,
+  },
   body: JSON.stringify({ product_id: '133', duration: '3 Hours', android_id: 'YOUR_ANDROID_ID' })
 });
 const result = await response.json();`;
@@ -2359,7 +2362,7 @@ const result = await response.json();`;
 
 result = requests.post(
     '${endpoint}?action=buy',
-    headers={'x-api-key': 'YOUR_API_KEY'},
+    headers={'Authorization': 'Bearer YOUR_API_KEY'},
     json={'product_id': '133', 'duration': '3 Hours', 'android_id': 'YOUR_ANDROID_ID'},
 )
 print(result.json())`;
@@ -2380,7 +2383,7 @@ print(result.json())`;
         </div>
         <div className="api-doc-intro">
           <span className="api-doc-status"><MatIcon name="verified" size={15} /> Your API is ready</span>
-          <p>Use your private API key from API settings to connect your own server. Never put the key in frontend code, public repositories, or client-side apps.</p>
+          <p>Use your private API key from API settings to connect your own server. Store it in your server environment (for example <code>TG_API_KEY</code>), never in frontend code, public repositories, or client-side apps.</p>
           <code className="api-endpoint">{endpoint}</code>
           <p className="muted">Your current key: {apiState.apiKey ? <strong>generated just now</strong> : <strong>••••••••{apiState.last4 || '••••'}</strong>}</p>
         </div>
@@ -2397,9 +2400,9 @@ print(result.json())`;
         </div>
         <div className="api-doc-section">
           <h3><span>03</span> Place an order</h3>
-          <p>Send the product PID and duration from the products response. Our server securely calls the provider, deducts your wallet only after validation, saves the returned key, and refunds the wallet if the provider fails.</p>
+          <p>Send <code>product_id</code>, the exact <code>duration</code>, and <code>android_id</code>. Before the provider request, the API checks your wallet balance and stops early when funds are insufficient. The storefront also pre-checks provider balance through <code>action=balance</code>. Our server then calls the provider, deducts your wallet only after validation, saves the returned key, and refunds the wallet if the provider fails.</p>
           <Example name="buy" title="POST · Purchase">{curlBuy}</Example>
-          <div className="api-doc-note"><MatIcon name="info" size={16} /> Device-bound Bala products require <code>android_id</code>. The returned <code>order.id</code> is the same order that appears in My Orders and can be invoiced there.</div>
+          <div className="api-doc-note"><MatIcon name="info" size={16} /> All buy requests require <code>product_id</code>, <code>duration</code>, and <code>android_id</code>. The returned <code>order.id</code> is the same order that appears in My Orders and can be invoiced there.</div>
         </div>
         <div className="api-doc-section">
           <h3><span>04</span> Use it from your own server</h3>
