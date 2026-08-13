@@ -145,6 +145,22 @@ const cleanProviderDuration = value => {
   return duration;
 };
 export { cleanProviderDuration };
+const MEDIA_PROXY_HOSTS = ['adminpanels.shop'];
+export function mediaUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || /^(data:|blob:|\/)/i.test(raw)) return raw;
+  try {
+    const parsed = new URL(raw, window.location.origin);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      const approved = MEDIA_PROXY_HOSTS.some(host => hostname === host || hostname.endsWith(`.${host}`));
+      if (approved) return `/api/media?url=${encodeURIComponent(parsed.href)}`;
+    }
+    return parsed.href;
+  } catch {
+    return raw;
+  }
+}
 const sourceUrl = (value, sourceDomain) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -168,8 +184,8 @@ export function parseProductSource(html, sourceDomain = '') {
     return cards.map((card, index) => {
     const pid = card.id.match(/^product-card-(.+)$/i)?.[1] || String(index + 1);
     const name = cleanSourceText(card.querySelector('.product-title, h5, h4')?.textContent) || `Product ${pid}`;
-    const images = [...card.querySelectorAll('img[src]')].map(item => sourceUrl(item.getAttribute('src'), sourceDomain)).filter(Boolean);
-    const videos = [...card.querySelectorAll('video source[src], video[src]')].map(item => sourceUrl(item.getAttribute('src'), sourceDomain)).filter(Boolean);
+    const images = [...card.querySelectorAll('img[src]')].map(item => mediaUrl(sourceUrl(item.getAttribute('src'), sourceDomain))).filter(Boolean);
+    const videos = [...card.querySelectorAll('video source[src], video[src]')].map(item => mediaUrl(sourceUrl(item.getAttribute('src'), sourceDomain))).filter(Boolean);
     const links = [...card.querySelectorAll('a[href]')].map(link => ({
       text: cleanSourceText(link.textContent).toLowerCase(),
       href: sourceUrl(link.getAttribute('href'), sourceDomain),
@@ -324,8 +340,8 @@ export async function getProductCatalog(type = 'user') {
         name,
         game: product.game || 'Unknown',
         platform: product.platform || '',
-        image: product.imageOverride || product.image || productIconFor(name) || '',
-        videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
+        image: product.imageOverride || mediaUrl(product.image) || productIconFor(name) || '',
+        videos: Array.isArray(product.videos) ? product.videos.map(mediaUrl).filter(Boolean) : [],
         features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
         pricing,
         pricingSource: 'imported',
@@ -751,8 +767,8 @@ export async function fetchGameProducts() {
       sourcePid: product.product_id || product.pid || product.id,
       name,
       game: product.game || 'Unknown',
-      image: brandIcon || product.image || '',
-      videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
+      image: brandIcon || mediaUrl(product.image) || '',
+      videos: Array.isArray(product.videos) ? product.videos.map(mediaUrl).filter(Boolean) : [],
       features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
       description: typeof product.description === 'string' ? product.description : '',
       salesCount: product.salesCount ?? product.purchaseCount ?? product.orders ?? product.sold ?? null,
@@ -954,10 +970,9 @@ async function checkProviderBalance() {
 }
 
 export async function buyResellerProduct(productId, duration, androidId = '') {
-  // Avoid a provider purchase request that is guaranteed to fail. This call
-  // is still server-proxied; the provider API and master keys never reach the
-  // browser bundle.
-  await checkProviderBalance();
+  // This provider does not implement a balance action; its buy response
+  // reports insufficient funds when applicable. Keep the purchase request
+  // server-proxied so provider credentials never reach the browser bundle.
   const params = {
     action: 'buy',
     product_id: String(productId),

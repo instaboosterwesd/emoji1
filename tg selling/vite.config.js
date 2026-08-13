@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const publicApiHandler = require('../api/public-api.js');
 const telegramNotifyHandler = require('../api/telegram-notify.js');
 const imageUploadHandler = require('../api/image-upload.js');
+const mediaHandler = require('../api/media.js');
 
 function createVercelResponse(res) {
   const response = {
@@ -19,6 +20,10 @@ function createVercelResponse(res) {
     },
     end(body) {
       res.end(body);
+      return response;
+    },
+    write(chunk) {
+      res.write(chunk);
       return response;
     },
   };
@@ -197,12 +202,33 @@ function resellerDevProxy(env) {
   };
 }
 
+function mediaDevMiddleware() {
+  return {
+    name: 'media-dev-proxy',
+    configureServer(server) {
+      server.middlewares.use('/api/media', async (req, res) => {
+        const queryStart = String(req.url || '').indexOf('?');
+        const queryString = queryStart >= 0 ? req.url.slice(queryStart + 1) : '';
+        req.query = Object.fromEntries(new URLSearchParams(queryString));
+        try {
+          await mediaHandler(req, createVercelResponse(res));
+        } catch (error) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({ message: 'Media proxy request failed.' }));
+          server.config.logger.error(error);
+        }
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   // Replit Secrets are injected into process.env. Merge them after .env so
   // server-only credentials work in the Vite dev proxy without being bundled.
   const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
   return {
-    plugins: [react(), resellerDevProxy(env), publicApiDevMiddleware(), telegramNotifyDevMiddleware(), imageUploadDevMiddleware()],
+    plugins: [react(), resellerDevProxy(env), publicApiDevMiddleware(), telegramNotifyDevMiddleware(), imageUploadDevMiddleware(), mediaDevMiddleware()],
     define: {
       // Keep accidental client-side access to these names impossible.
       'import.meta.env.VITE_RESELLER_API_KEY': 'undefined',
