@@ -81,12 +81,17 @@ import {
   getProductCatalogMeta,
   fetchStorefrontProducts,
   adminSaveProductCatalog,
+  adminSaveProductVideo,
+  adminSaveProductVideoCatalog,
   adminSaveProductImage,
   uploadImageToImageBB,
   adminUpdateProductPids,
   adminSetProductCatalogLinkMode,
+  adminSetProductCatalogVideoMode,
+  getProductVideoData,
   parseProductPidSource,
   parseProductSource,
+  parseProductVideoSource,
 } from './services';
 import './styles.css';
 import './feature-fixes.css';
@@ -3024,6 +3029,66 @@ function ProductImageDialog({ product, onClose, onSave }) {
   );
 }
 
+function ProductVideoDialog({ product, onClose, onSave }) {
+  const [videoText, setVideoText] = useState(Array.isArray(product?.videos) ? product.videos.join('\n') : '');
+  const [saving, setSaving] = useState(false);
+
+  if (!product) return null;
+
+  const save = async () => {
+    const invalid = videoText
+      .split(/[\n,\s]+/)
+      .map(value => value.trim())
+      .filter(Boolean)
+      .find(value => !/^https?:\/\//i.test(value));
+    if (invalid) {
+      toast.error('Each video must be a valid http(s) URL.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await adminSaveProductVideo(product.pid, product.name, videoText);
+      toast.success(videoText.trim() ? 'Product video saved' : 'Product video cleared');
+      await onSave();
+      onClose();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="action-modal-backdrop admin-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+      <section className="action-modal liquid-dialog admin-dialog product-video-dialog">
+        <div className="dialog-title-row">
+          <MatIcon name="video_library" size={20} />
+          <h2>Add product video</h2>
+          <button className="icon-button" type="button" onClick={onClose} disabled={saving}><MatIcon name="close" size={18} /></button>
+        </div>
+        <p className="muted dialog-sub">{product.name} · PID {product.pid}</p>
+        <label>
+          Video URL
+          <textarea
+            value={videoText}
+            onChange={e => setVideoText(e.target.value)}
+            placeholder="https://res.cloudinary.com/.../video/upload/...mp4"
+            rows={5}
+            autoComplete="off"
+          />
+          <small className="muted">Add one direct video URL per line. Clear the field to remove this product's manual video mapping.</small>
+        </label>
+        <div className="modal-btn-row">
+          <button type="button" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="modal-save" type="button" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : <><MatIcon name="check" size={16} /> Save video</>}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function PricingEditDialog({ product, onClose, onSave }) {
   const [rules, setRules] = useState({});
   const [onlyContact, setOnlyContact] = useState(false);
@@ -3155,6 +3220,9 @@ function AdminPage({ session, onSessionChange }) {
   const [catalogPidOverrides, setCatalogPidOverrides] = useState({});
   const [catalogImporting, setCatalogImporting] = useState(false);
   const [pidUpdateResults, setPidUpdateResults] = useState(null);
+  const [videoImportText, setVideoImportText] = useState('');
+  const [videoData, setVideoData] = useState([]);
+  const [videoImporting, setVideoImporting] = useState(false);
   const [productChannels, setProductChannels] = useState([]);
   const [channelForm, setChannelForm] = useState({ id: '', productName: '', feedbackUrl: '', fileUpdateUrl: '' });
   const [search, setSearch] = useState('');
@@ -3176,6 +3244,7 @@ function AdminPage({ session, onSessionChange }) {
   const [editUser, setEditUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
   const [imageProduct, setImageProduct] = useState(null);
+  const [videoProduct, setVideoProduct] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
   const [apiChecking, setApiChecking] = useState(false);
   // Manual keys
@@ -3201,6 +3270,7 @@ function AdminPage({ session, onSessionChange }) {
     { id: 'resellers', label: 'Resellers', icon: 'verified_user' },
     { id: 'products', label: 'Products', icon: 'shopping_bag' },
     { id: 'product-data', label: 'Product Data', icon: 'cloud_upload' },
+    { id: 'video-data', label: 'Video Data', icon: 'video_library' },
     { id: 'channels', label: 'Feedback & Files', icon: 'link' },
     { id: 'issues', label: 'Issues', icon: 'report' },
     { id: 'gift-codes', label: 'Gift Codes', icon: 'card_giftcard', lottie: '/icons/new/gift-code.json' },
@@ -3215,7 +3285,7 @@ function AdminPage({ session, onSessionChange }) {
   const loadAdmin = async () => {
     setLoading(true);
     try {
-      const [overview, productList, alerts, status, gcList, channelList, catalogInfo, pricingSettings] = await Promise.all([
+      const [overview, productList, alerts, status, gcList, channelList, catalogInfo, pricingSettings, videoList] = await Promise.all([
         getAdminOverview(),
         fetchStorefrontProducts('user').catch(() => []),
         getAdminAlerts().catch(() => []),
@@ -3224,6 +3294,7 @@ function AdminPage({ session, onSessionChange }) {
         getProductChannels().catch(() => []),
         getProductCatalogMeta().catch(() => ({})),
         getProductPricingSettings().catch(() => ({ userIncreasePercent: 0, resellerIncreasePercent: 0 })),
+        getProductVideoData().catch(() => []),
       ]);
       setData(overview);
       setProducts(productList);
@@ -3246,6 +3317,7 @@ function AdminPage({ session, onSessionChange }) {
       setGiftCodes(gcList);
       setProductChannels(channelList);
       setCatalogMeta(catalogInfo);
+      setVideoData(videoList);
       setCatalogSourceDomain(catalogInfo[catalogImportType]?.sourceDomain || '');
       setUserIncreasePercent(String(pricingSettings.userIncreasePercent || 0));
       setResellerIncreasePercent(String(pricingSettings.resellerIncreasePercent || 0));
@@ -3341,6 +3413,25 @@ function AdminPage({ session, onSessionChange }) {
     }
   };
 
+  const importVideoCatalog = async event => {
+    event.preventDefault();
+    if (!videoImportText.trim()) {
+      toast.error('Paste the video names and links first.');
+      return;
+    }
+    setVideoImporting(true);
+    try {
+      const result = await adminSaveProductVideoCatalog(videoImportText);
+      setVideoImportText('');
+      setVideoData(result.products || []);
+      toast.success(`Video data saved: ${result.count} products`);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setVideoImporting(false);
+    }
+  };
+
   const catalogPreview = useMemo(() => {
     if (!catalogImportHtml.trim()) return { products: [], error: '' };
     try {
@@ -3355,6 +3446,15 @@ function AdminPage({ session, onSessionChange }) {
     }
   }, [catalogImportHtml, catalogImportMode, catalogSourceDomain]);
 
+  const videoPreview = useMemo(() => {
+    if (!videoImportText.trim()) return { products: [], error: '' };
+    try {
+      return { products: parseProductVideoSource(videoImportText), error: '' };
+    } catch (err) {
+      return { products: [], error: err.message };
+    }
+  }, [videoImportText]);
+
   const setSourceLinkMode = async enabled => {
     try {
       await adminSetProductCatalogLinkMode(catalogImportType, enabled);
@@ -3363,6 +3463,19 @@ function AdminPage({ session, onSessionChange }) {
         [catalogImportType]: { ...(current[catalogImportType] || {}), sourceLinksEnabled: enabled },
       }));
       toast.success(enabled ? 'Pasted File Update links enabled' : 'Default group File Update links enabled');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const setVideoImportMode = async enabled => {
+    try {
+      await adminSetProductCatalogVideoMode(catalogImportType, enabled);
+      setCatalogMeta(current => ({
+        ...current,
+        [catalogImportType]: { ...(current[catalogImportType] || {}), videoImportEnabled: enabled },
+      }));
+      toast.success(enabled ? 'Imported product videos enabled' : 'Manual Video Data will be used');
     } catch (err) {
       toast.error(err.message);
     }
@@ -3619,6 +3732,9 @@ function AdminPage({ session, onSessionChange }) {
             <button onClick={() => setImageProduct(product)}>
               <MatIcon name="image" size={13} /> Image URL
             </button>
+            <button onClick={() => setVideoProduct(product)}>
+              <MatIcon name="video_library" size={13} /> Add video
+            </button>
             <button onClick={() => setPricingProduct(product)}>
               <MatIcon name="edit" size={13} /> Pricing &amp; DM switch
             </button>
@@ -3675,24 +3791,44 @@ function AdminPage({ session, onSessionChange }) {
         </div>
 
         {catalogImportMode !== 'pid' ? (
-          <div className="catalog-source-link-toggle">
-            <div>
-              <strong>Use File Update links from pasted source</strong>
-              <small className="muted">
-                Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
-              </small>
+          <>
+            <div className="catalog-source-link-toggle">
+              <div>
+                <strong>Use File Update links from pasted source</strong>
+                <small className="muted">
+                  Off keeps your mapped Telegram channel links. Feedback always uses your official feedback channel.
+                </small>
+              </div>
+              <button
+                type="button"
+                className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
+                role="switch"
+                aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
+                onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
+              >
+                <span />
+                {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
+              </button>
             </div>
-            <button
-              type="button"
-              className={`switch-button${catalogMeta[catalogImportType]?.sourceLinksEnabled ? ' on' : ''}`}
-              role="switch"
-              aria-checked={catalogMeta[catalogImportType]?.sourceLinksEnabled === true}
-              onClick={() => setSourceLinkMode(!catalogMeta[catalogImportType]?.sourceLinksEnabled)}
-            >
-              <span />
-              {catalogMeta[catalogImportType]?.sourceLinksEnabled ? 'ON' : 'OFF'}
-            </button>
-          </div>
+            <div className="catalog-source-link-toggle">
+              <div>
+                <strong>Import videos from pasted source</strong>
+                <small className="muted">
+                  OFF keeps the shared Video Data links. Turn ON when the User/Reseller source contains video URLs.
+                </small>
+              </div>
+              <button
+                type="button"
+                className={`switch-button${catalogMeta[catalogImportType]?.videoImportEnabled ? ' on' : ''}`}
+                role="switch"
+                aria-checked={catalogMeta[catalogImportType]?.videoImportEnabled === true}
+                onClick={() => setVideoImportMode(!catalogMeta[catalogImportType]?.videoImportEnabled)}
+              >
+                <span />
+                {catalogMeta[catalogImportType]?.videoImportEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          </>
         ) : (
           <div className="catalog-source-link-toggle catalog-pid-target">
             <div>
@@ -3853,6 +3989,83 @@ function AdminPage({ session, onSessionChange }) {
             )}
           />
         </div>
+      </div>
+    ),
+
+    'video-data': (
+      <div className="admin-card product-data-card">
+        <div className="admin-card-header">
+          <div className="heading-title-row">
+            <MatIcon name="video_library" size={22} />
+            <div>
+              <h3>Video Data</h3>
+              <p className="muted">Map product names to direct video links. These mappings stay separate from User and Reseller catalog imports.</p>
+            </div>
+          </div>
+        </div>
+        <form className="admin-form catalog-import-form" onSubmit={importVideoCatalog}>
+          <label>
+            Product video links
+            <textarea
+              value={videoImportText}
+              onChange={e => setVideoImportText(e.target.value)}
+              placeholder={'1. PRODUCT NAME\nhttps://res.cloudinary.com/.../video/upload/...mp4\n\n2. ANOTHER PRODUCT\nhttps://...'}
+              rows={12}
+              required
+            />
+            <small className="muted">Use one product name followed by its URL. The numbered Cloudinary text format is supported. Multiple URLs can be added for one product.</small>
+          </label>
+          {videoImportText.trim() && (
+            <div className="catalog-pid-preview">
+              <div className="admin-card-header">
+                <div>
+                  <h3>Detected video mappings</h3>
+                  <p className="muted">
+                    {videoPreview.products.length
+                      ? `${videoPreview.products.length} product${videoPreview.products.length === 1 ? '' : 's'} found.`
+                      : videoPreview.error || 'Reading links…'}
+                  </p>
+                </div>
+              </div>
+              {videoPreview.products.length > 0 && (
+                <div className="catalog-pid-result-list">
+                  {videoPreview.products.map(product => (
+                    <span key={product.name}><strong>{product.name}</strong> · {product.videos.length} video{product.videos.length === 1 ? '' : 's'}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <button className="modal-save" type="submit" disabled={videoImporting}>
+            <MatIcon name="video_library" size={16} /> {videoImporting ? 'Saving videos…' : 'Save Video Data'}
+          </button>
+        </form>
+        <div className="catalog-status-grid">
+          <div className="catalog-status-item selected">
+            <strong>Shared Video Data</strong>
+            <span>{videoData.length} products</span>
+            <small>{videoData.length ? 'Manual mappings are ready for storefront use' : 'Not imported yet'}</small>
+          </div>
+        </div>
+        <AdminList
+          items={videoData}
+          empty="No product videos mapped yet"
+          render={product => (
+            <AdminRow
+              title={product.name}
+              meta={`PID ${product.pid || '—'} · ${product.videos.length} video${product.videos.length === 1 ? '' : 's'}`}
+              status="Video Data"
+            >
+              <button type="button" onClick={() => {
+                const match = products.find(item => item.name === product.name || String(item.pid) === String(product.pid));
+                if (match) setVideoProduct({ ...match, videos: product.videos });
+                else toast.error('Import this product into User Data first to edit it here.');
+              }}>
+                <MatIcon name="edit" size={13} /> Edit video
+              </button>
+            </AdminRow>
+          )}
+        />
       </div>
     ),
 
@@ -4407,6 +4620,7 @@ function AdminPage({ session, onSessionChange }) {
       )}
       {viewIssueUser && <UserViewDialog user={viewIssueUser} onClose={() => setViewIssueUser(null)} />}
       {imageProduct && <ProductImageDialog product={imageProduct} onClose={() => setImageProduct(null)} onSave={loadAdmin} />}
+      {videoProduct && <ProductVideoDialog product={videoProduct} onClose={() => setVideoProduct(null)} onSave={loadAdmin} />}
       {pricingProduct && <PricingEditDialog product={pricingProduct} onClose={() => setPricingProduct(null)} onSave={loadAdmin} />}
     </main>
   );

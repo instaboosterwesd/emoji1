@@ -47,6 +47,7 @@ export const productIconFor = name => productBrandIconRules.find(b => b.test(nam
 
 /* ── Imported product catalog and support channels ───────────────── */
 const PRODUCT_CATALOG_PATH = 'productCatalogs';
+const PRODUCT_VIDEO_PATH = 'productVideos';
 const DEFAULT_FEEDBACK_CHANNEL_URL = 'https://t.me/+kaazzM96cLs3ZmJl';
 
 const DEFAULT_GROUP_CHANNELS = [
@@ -318,12 +319,94 @@ export function parseProductPidSource(html) {
   return entries;
 }
 
+export function parseProductVideoSource(text) {
+  const lines = String(text || '')
+    .split(/\r?\n/)
+    .map(line => cleanSourceText(line))
+    .filter(Boolean);
+  const entries = [];
+  const byName = new Map();
+  let pendingName = '';
+
+  const cleanVideoName = value => String(value || '')
+    .replace(/^\s*\d+\s*[\).\:-]\s*/, '')
+    .replace(/^\s*[-*]\s*/, '')
+    .trim();
+
+  lines.forEach(line => {
+    const urlMatch = line.match(/https?:\/\/[^\s<>"']+/i);
+    if (!urlMatch) {
+      if (!/^(?:cloudinary video links|cloud name|upload preset|generated|=+)/i.test(line)) {
+        pendingName = cleanVideoName(line);
+      }
+      return;
+    }
+
+    const url = urlMatch[0].replace(/[),.;]+$/, '');
+    if (!/^https?:\/\//i.test(url)) return;
+    const inlineName = cleanVideoName(line.slice(0, urlMatch.index).replace(/[-:|]+$/, ''));
+    const name = inlineName || pendingName || (() => {
+      try {
+        const pathname = new URL(url).pathname.split('/').pop() || 'Product video';
+        return decodeURIComponent(pathname).replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim();
+      } catch {
+        return 'Product video';
+      }
+    })();
+    const key = pidMatchKey(name);
+    if (!key) return;
+    if (!byName.has(key)) {
+      const entry = { name, videos: [] };
+      byName.set(key, entry);
+      entries.push(entry);
+    }
+    const entry = byName.get(key);
+    if (!entry.videos.includes(url)) entry.videos.push(url);
+    pendingName = '';
+  });
+
+  if (!entries.length) {
+    throw new Error('No video links found. Add one product name followed by an http(s) video URL per entry.');
+  }
+  return entries;
+}
+
+export async function getProductVideoData() {
+  if (!firebaseDb) return [];
+  const snap = await get(ref(firebaseDb, PRODUCT_VIDEO_PATH));
+  if (!snap.exists()) return [];
+  const value = snap.val() || {};
+  const products = Array.isArray(value.products) ? value.products : [];
+  return products.map(product => ({
+    ...product,
+    name: cleanSourceText(product.name),
+    pid: String(product.pid || ''),
+    videos: Array.isArray(product.videos)
+      ? [...new Set(product.videos.map(video => String(video || '').trim()).filter(video => /^https?:\/\//i.test(video)))]
+      : [],
+  })).filter(product => product.name && product.videos.length);
+}
+
+const resolvedProductVideos = (product, videoData = [], importedVideos = []) => {
+  const pid = String(product?.pid || product?.productId || product?.id || '');
+  const nameKey = pidMatchKey(product?.name);
+  const mapped = videoData.find(item =>
+    (pid && item.pid && String(item.pid) === pid)
+      || (nameKey && pidMatchKey(item.name) === nameKey),
+  );
+  const directVideos = mapped?.videos || [];
+  const sourceVideos = Array.isArray(importedVideos) ? importedVideos.filter(Boolean) : [];
+  return sourceVideos.length ? sourceVideos : directVideos;
+};
+
 export async function getProductCatalog(type = 'user') {
   if (!firebaseDb) return [];
   const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}`));
   if (!snap.exists()) return [];
   const value = snap.val() || {};
   const sourceLinksEnabled = value.sourceLinksEnabled === true;
+  const videoImportEnabled = value.videoImportEnabled === true;
+  const videoData = await getProductVideoData().catch(() => []);
   return Array.isArray(value.products) ? value.products
     .map(product => {
       const name = product.name || 'Untitled product';
@@ -347,11 +430,18 @@ export async function getProductCatalog(type = 'user') {
         game: product.game || 'Unknown',
         platform: product.platform || '',
         image: catalogMediaUrl(product.imageOverride || product.image, product.sourceDomain) || productIconFor(name) || '',
-        videos: Array.isArray(product.videos) ? product.videos.map(video => catalogMediaUrl(video, product.sourceDomain)).filter(Boolean) : [],
+        videos: resolvedProductVideos(
+          product,
+          videoData,
+          videoImportEnabled && Array.isArray(product.videos)
+            ? product.videos.map(video => catalogMediaUrl(video, product.sourceDomain)).filter(Boolean)
+            : [],
+        ),
         features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
         pricing,
         pricingSource: 'imported',
         sourceLinksEnabled,
+        videoImportEnabled,
         feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
         sourceFileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : '',
         fileUpdateUrl: sourceLinksEnabled ? product.fileUpdateUrl || '' : defaultFileUpdateUrlFor(name),
@@ -371,6 +461,7 @@ export async function getProductCatalogMeta() {
       sourceDomain: value.sourceDomain || '',
       updatedAt: value.updatedAt || 0,
       sourceLinksEnabled: value.sourceLinksEnabled === true,
+      videoImportEnabled: value.videoImportEnabled === true,
       newProducts: Array.isArray(value.newProducts) ? value.newProducts : [],
     }];
   }));
@@ -423,6 +514,7 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '', pid
     products: storedProducts,
     count: storedProducts.length,
     sourceLinksEnabled: previous.sourceLinksEnabled === true,
+    videoImportEnabled: previous.videoImportEnabled === true,
     newProducts,
     updatedAt: Date.now(),
   };
@@ -434,6 +526,53 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '', pid
     newProducts,
     replaced: true,
   };
+}
+
+export async function adminSaveProductVideoCatalog(text) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const parsedProducts = parseProductVideoSource(text);
+  const previousSnap = await get(ref(firebaseDb, PRODUCT_VIDEO_PATH));
+  const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
+  const products = parsedProducts.map(product => ({
+    name: product.name,
+    pid: String(product.pid || ''),
+    videos: [...new Set(product.videos)],
+  }));
+  await set(ref(firebaseDb, PRODUCT_VIDEO_PATH), {
+    products,
+    count: products.length,
+    updatedAt: Date.now(),
+    previousUpdatedAt: previous.updatedAt || 0,
+  });
+  return { count: products.length, products };
+}
+
+export async function adminSaveProductVideo(productId, productName, videoText) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const name = cleanSourceText(productName);
+  const pid = String(productId || '').trim();
+  if (!name && !pid) throw new Error('Product details are missing.');
+  const videos = [...new Set(String(videoText || '')
+    .split(/[\n,\s]+/)
+    .map(video => video.trim())
+    .filter(video => /^https?:\/\//i.test(video)))];
+  const videoRef = ref(firebaseDb, PRODUCT_VIDEO_PATH);
+  const snapshot = await get(videoRef);
+  const current = snapshot.exists() ? snapshot.val() || {} : {};
+  const products = Array.isArray(current.products) ? current.products : [];
+  const index = products.findIndex(item =>
+    (pid && item.pid && String(item.pid) === pid)
+      || (name && pidMatchKey(item.name) === pidMatchKey(name)),
+  );
+  if (!videos.length) {
+    if (index >= 0) products.splice(index, 1);
+  } else {
+    const next = { name, pid, videos };
+    if (index >= 0) products[index] = { ...products[index], ...next };
+    else products.push(next);
+  }
+  await set(videoRef, { ...current, products, count: products.length, updatedAt: Date.now() });
+  return index >= 0 || videos.length ? { name, pid, videos } : null;
 }
 
 export async function adminSaveProductImage(type, productId, imageUrl) {
@@ -527,6 +666,13 @@ export async function adminUpdateProductPids(type, html) {
 export async function adminSetProductCatalogLinkMode(type, enabled) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type === 'reseller' ? 'reseller' : 'user'}/sourceLinksEnabled`), enabled === true);
+  return enabled === true;
+}
+
+export async function adminSetProductCatalogVideoMode(type, enabled) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  await set(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}/videoImportEnabled`), enabled === true);
   return enabled === true;
 }
 
@@ -756,6 +902,7 @@ export async function fetchGameProducts() {
   if (!response.ok) throw new Error('Products could not be loaded.');
   const data = await response.json();
   const products = Array.isArray(data?.products) ? data.products : [];
+  const videoData = await getProductVideoData().catch(() => []);
   const mappedProducts = products.map(product => {
     const name = product.name || 'Untitled product';
     const catalog = findCatalogProduct(name);
@@ -774,7 +921,11 @@ export async function fetchGameProducts() {
       name,
       game: product.game || 'Unknown',
       image: brandIcon || mediaUrl(product.image) || '',
-      videos: Array.isArray(product.videos) ? product.videos.map(mediaUrl).filter(Boolean) : [],
+       videos: resolvedProductVideos(
+         product,
+         videoData,
+         Array.isArray(product.videos) ? product.videos.map(mediaUrl).filter(Boolean) : [],
+       ),
       features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
       description: typeof product.description === 'string' ? product.description : '',
       salesCount: product.salesCount ?? product.purchaseCount ?? product.orders ?? product.sold ?? null,
@@ -807,7 +958,7 @@ export async function fetchGameProducts() {
       name: product.name,
       game: 'FREEFIRE',
       image: productIconFor(product.name) || '',
-      videos: [],
+       videos: resolvedProductVideos(product, videoData),
       features: ['Android ID required', 'Device-bound delivery'],
       description: 'Bala Mod device-bound product',
       salesCount: null,
