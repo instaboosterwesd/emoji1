@@ -467,6 +467,41 @@ export async function getProductCatalogMeta() {
   }));
 }
 
+export async function getProductImageOverrides() {
+  if (!firebaseDb) return [];
+  const snaps = await Promise.all(['user', 'reseller'].map(type => get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type}`))));
+  const overrides = [];
+  snaps.forEach(snap => {
+    const value = snap.exists() ? snap.val() || {} : {};
+    const products = Array.isArray(value.products) ? value.products : [];
+    products.forEach(product => {
+      const image = String(
+        product.imageOverride
+          || (product.imageSource === 'manual' ? product.image : '')
+          || '',
+      ).trim();
+      if (!image) return;
+      overrides.push({
+        id: String(product.pid || product.purchasePid || product.id || ''),
+        name: product.name || '',
+        image,
+        sourceDomain: product.sourceDomain || value.sourceDomain || '',
+      });
+    });
+  });
+  return overrides;
+}
+
+const resolvedProductImage = (product, imageOverrides = []) => {
+  const pid = String(product?.pid || product?.productId || product?.id || '');
+  const nameKey = pidMatchKey(product?.name);
+  const match = imageOverrides.find(item =>
+    (pid && item.id && String(item.id) === pid)
+      || (nameKey && pidMatchKey(item.name) === nameKey),
+  );
+  return match ? catalogMediaUrl(match.image, match.sourceDomain) : '';
+};
+
 export async function adminSaveProductCatalog(type, html, sourceDomain = '', pidOverrides = {}) {
   if (!firebaseDb) throw new Error('Firebase database is not configured.');
   const catalogType = type === 'reseller' ? 'reseller' : 'user';
@@ -902,7 +937,10 @@ export async function fetchGameProducts() {
   if (!response.ok) throw new Error('Products could not be loaded.');
   const data = await response.json();
   const products = Array.isArray(data?.products) ? data.products : [];
-  const videoData = await getProductVideoData().catch(() => []);
+  const [videoData, imageOverrides] = await Promise.all([
+    getProductVideoData().catch(() => []),
+    getProductImageOverrides().catch(() => []),
+  ]);
   const mappedProducts = products.map(product => {
     const name = product.name || 'Untitled product';
     const catalog = findCatalogProduct(name);
@@ -920,7 +958,7 @@ export async function fetchGameProducts() {
       sourcePid: product.product_id || product.pid || product.id,
       name,
       game: product.game || 'Unknown',
-      image: brandIcon || mediaUrl(product.image) || '',
+       image: resolvedProductImage(product, imageOverrides) || mediaUrl(product.image) || brandIcon || '',
        videos: resolvedProductVideos(
          product,
          videoData,
@@ -957,7 +995,7 @@ export async function fetchGameProducts() {
       sourcePid: product.pid,
       name: product.name,
       game: 'FREEFIRE',
-      image: productIconFor(product.name) || '',
+      image: resolvedProductImage(product, imageOverrides) || productIconFor(product.name) || '',
        videos: resolvedProductVideos(product, videoData),
       features: ['Android ID required', 'Device-bound delivery'],
       description: 'Bala Mod device-bound product',

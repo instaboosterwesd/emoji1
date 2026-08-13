@@ -727,7 +727,14 @@ function AiShopPanel({ session, onBuy, onClose }) {
                 <div className="ai-shop-product" key={product.pid || product.id || product.name}>
                   {message.id.startsWith('trending-') && <div className="ai-shop-ranking">#{productIndex + 1} trending</div>}
                   <div className="ai-shop-product-top">
-                    <img src={productIconForWithFallback(product.name)} alt="" />
+                    <img
+                      src={product.image || productIconForWithFallback(product.name)}
+                      alt=""
+                      onError={e => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = productIconForWithFallback(product.name);
+                      }}
+                    />
                     <div><strong>{product.name}</strong><small>{product.game} · {product.platform || 'Access key'}</small></div>
                   </div>
                   <p className="ai-shop-description">{safeCatalogDetails(product)}</p>
@@ -1623,7 +1630,16 @@ function ProductDetailPage({ product, channel, fallbackGetFileUrl = '', onBack, 
 
         {/* Product info */}
         <div className="pdp-info">
-          <div className="product-icon"><img src={productIconForWithFallback(product.name)} alt="" /></div>
+          <div className="product-icon">
+            <img
+              src={product.image || productIconForWithFallback(product.name)}
+              alt=""
+              onError={e => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = productIconForWithFallback(product.name);
+              }}
+            />
+          </div>
           <div className="pdp-info-text">
             <h2 className="pdp-name">{product.name}</h2>
             <p className="pdp-meta muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p>
@@ -2075,7 +2091,14 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
                 <strong>{product.name}</strong>
                 <small>PID {product.pid}</small>
               </div>
-              <img src={productIconForWithFallback(product.name)} alt="" />
+              <img
+                src={product.image || productIconForWithFallback(product.name)}
+                alt=""
+                onError={e => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = productIconForWithFallback(product.name);
+                }}
+              />
             </div>
             <div className="purchase-meta-grid">
               <div><span><img src="/icons/new/game-logo.webp" style={{width:18,height:18,objectFit:'contain',verticalAlign:'middle',marginRight:3}} alt="" /> Game</span><strong>{product.game || 'Product'}</strong></div>
