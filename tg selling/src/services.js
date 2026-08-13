@@ -406,7 +406,10 @@ export async function getProductCatalog(type = 'user') {
   const value = snap.val() || {};
   const sourceLinksEnabled = value.sourceLinksEnabled === true;
   const videoImportEnabled = value.videoImportEnabled === true;
-  const videoData = await getProductVideoData().catch(() => []);
+  const [videoData, imageOverrides] = await Promise.all([
+    getProductVideoData().catch(() => []),
+    getProductImageOverrides(type).catch(() => []),
+  ]);
   return Array.isArray(value.products) ? value.products
     .map(product => {
       const name = product.name || 'Untitled product';
@@ -421,6 +424,7 @@ export async function getProductCatalog(type = 'user') {
           stock: item.stock ?? null,
         };
       }).filter(item => item.price >= 0) : [];
+      const manualImage = resolvedProductImage(product, imageOverrides);
       return {
         ...product,
         id: product.id || pid,
@@ -429,7 +433,7 @@ export async function getProductCatalog(type = 'user') {
         name,
         game: product.game || 'Unknown',
         platform: product.platform || '',
-        image: catalogMediaUrl(product.imageOverride || product.image, product.sourceDomain) || productIconFor(name) || '',
+        image: manualImage || catalogMediaUrl(product.imageOverride || product.image, product.sourceDomain) || productIconFor(name) || '',
         videos: resolvedProductVideos(
           product,
           videoData,
@@ -470,22 +474,30 @@ export async function getProductCatalogMeta() {
 export async function getProductImageOverrides(type = 'user') {
   if (!firebaseDb) return [];
   const catalogType = type === 'reseller' ? 'reseller' : 'user';
-  const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
+  // Product images are managed from the user catalog in the admin panel, but
+  // the same products can be displayed from the reseller catalog. Prefer a
+  // reseller-specific override when present, then use the shared user image.
+  const catalogTypes = catalogType === 'reseller' ? ['reseller', 'user'] : ['user'];
+  const snaps = await Promise.all(
+    catalogTypes.map(item => get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${item}`))),
+  );
   const overrides = [];
-  const value = snap.exists() ? snap.val() || {} : {};
-  const products = Array.isArray(value.products) ? value.products : [];
-  products.forEach(product => {
-    const image = String(
-      product.imageOverride
-        || (product.imageSource === 'manual' ? product.image : '')
-        || '',
-    ).trim();
-    if (!image) return;
-    overrides.push({
-      id: String(product.pid || product.purchasePid || product.id || ''),
-      name: product.name || '',
-      image,
-      sourceDomain: product.sourceDomain || value.sourceDomain || '',
+  snaps.forEach(snap => {
+    const value = snap.exists() ? snap.val() || {} : {};
+    const products = Array.isArray(value.products) ? value.products : [];
+    products.forEach(product => {
+      const image = String(
+        product.imageOverride
+          || (product.imageSource === 'manual' ? product.image : '')
+          || '',
+      ).trim();
+      if (!image) return;
+      overrides.push({
+        id: String(product.pid || product.purchasePid || product.id || ''),
+        name: product.name || '',
+        image,
+        sourceDomain: product.sourceDomain || value.sourceDomain || '',
+      });
     });
   });
   return overrides;
