@@ -81,6 +81,8 @@ import {
   getProductCatalogMeta,
   fetchStorefrontProducts,
   adminSaveProductCatalog,
+  adminSaveProductImage,
+  uploadImageToImageBB,
   adminUpdateProductPids,
   adminSetProductCatalogLinkMode,
   parseProductPidSource,
@@ -2873,6 +2875,100 @@ function UserEditDialog({ user, pricingSettings, onClose, onSaved }) {
 }
 
 /* ── PricingEditDialog ──────────────────────────────────────────── */
+function ProductImageDialog({ product, onClose, onSave }) {
+  const [imageUrl, setImageUrl] = useState(product?.image || '');
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  if (!product) return null;
+
+  const upload = event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Select an image file.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Use an image under 8 MB.');
+      return;
+    }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const result = await uploadImageToImageBB(reader.result);
+        setImageUrl(result.url);
+        toast.success('Image uploaded. Save the product to apply it.');
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.onerror = () => {
+      setUploading(false);
+      toast.error('Image could not be read.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await adminSaveProductImage('user', product.pid, imageUrl);
+      toast.success(imageUrl.trim() ? 'Product image saved' : 'Product image cleared');
+      await onSave();
+      onClose();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="action-modal-backdrop admin-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving && !uploading) onClose(); }}>
+      <section className="action-modal liquid-dialog admin-dialog product-image-dialog">
+        <div className="dialog-title-row">
+          <MatIcon name="image" size={20} />
+          <h2>Product image</h2>
+          <button className="icon-button" type="button" onClick={onClose} disabled={saving || uploading}><MatIcon name="close" size={18} /></button>
+        </div>
+        <p className="muted dialog-sub">{product.name} · PID {product.pid}</p>
+        <div className="product-image-preview">
+          {imageUrl
+            ? <img src={imageUrl} alt={`${product.name} preview`} onError={e => { e.currentTarget.style.opacity = '0.35'; }} />
+            : <img src={productIconForWithFallback(product.name)} alt="" />}
+        </div>
+        <label>
+          Image URL
+          <input
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+            placeholder="https://i.ibb.co/your-image.png"
+            type="url"
+            autoComplete="off"
+          />
+          <small className="muted">Paste an ImageBB/direct image URL, or upload below. Leave blank to use the built-in product icon.</small>
+        </label>
+        <label className="image-upload-field">
+          <span>Upload to ImageBB</span>
+          <input type="file" accept="image/*" onChange={upload} disabled={saving || uploading} />
+          <small className="muted">{uploading ? 'Uploading…' : 'The ImageBB key stays on the server. Maximum 8 MB.'}</small>
+        </label>
+        <div className="modal-btn-row">
+          <button type="button" onClick={onClose} disabled={saving || uploading}>Cancel</button>
+          <button className="modal-save" type="button" onClick={save} disabled={saving || uploading}>
+            {saving ? 'Saving…' : <><MatIcon name="check" size={16} /> Save image</>}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function PricingEditDialog({ product, onClose, onSave }) {
   const [rules, setRules] = useState({});
   const [onlyContact, setOnlyContact] = useState(false);
@@ -3024,6 +3120,7 @@ function AdminPage({ session, onSessionChange }) {
   const [historyUser, setHistoryUser] = useState(null);
   const [editUser, setEditUser] = useState(null);
   const [pricingProduct, setPricingProduct] = useState(null);
+  const [imageProduct, setImageProduct] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
   const [apiChecking, setApiChecking] = useState(false);
   // Manual keys
@@ -3464,6 +3561,9 @@ function AdminPage({ session, onSessionChange }) {
               </>
             }
           >
+            <button onClick={() => setImageProduct(product)}>
+              <MatIcon name="image" size={13} /> Image URL
+            </button>
             <button onClick={() => setPricingProduct(product)}>
               <MatIcon name="edit" size={13} /> Pricing &amp; DM switch
             </button>
@@ -4251,6 +4351,7 @@ function AdminPage({ session, onSessionChange }) {
         />
       )}
       {viewIssueUser && <UserViewDialog user={viewIssueUser} onClose={() => setViewIssueUser(null)} />}
+      {imageProduct && <ProductImageDialog product={imageProduct} onClose={() => setImageProduct(null)} onSave={loadAdmin} />}
       {pricingProduct && <PricingEditDialog product={pricingProduct} onClose={() => setPricingProduct(null)} onSave={loadAdmin} />}
     </main>
   );

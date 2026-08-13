@@ -1,5 +1,14 @@
 const DEFAULT_RESELLER_ENDPOINT = 'https://xyzcheats.com/api/reseller_v1.php';
 
+function resellerEndpoint() {
+  return String(
+    process.env.RESELLER_ENDPOINT
+      || process.env.RESELLER_API_ENDPOINT
+      || process.env.RESELLER_API_URL
+      || DEFAULT_RESELLER_ENDPOINT,
+  ).trim();
+}
+
 function providerMessage(value) {
   const raw = String(value || '').replace(/\s+/g, ' ').trim();
   return raw
@@ -53,7 +62,7 @@ function extractKey(data, raw = '') {
 }
 
 async function buyFromProvider({ productId, duration, androidId = '' }) {
-  const endpoint = String(process.env.RESELLER_ENDPOINT || DEFAULT_RESELLER_ENDPOINT).trim();
+  const endpoint = resellerEndpoint();
   const apiKey = String(process.env.RESELLER_API_KEY || '').trim();
   const masterKey = String(process.env.RESELLER_MASTER_KEY || '').trim();
   if (!apiKey || !masterKey || !endpoint) {
@@ -94,4 +103,4 @@ async function buyFromProvider({ productId, duration, androidId = '' }) {
   return { key, data };
 }
 
-module.exports = { buyFromProvider, cleanProviderDuration, providerMessage };
+module.exports = { buyFromProvider, cleanProviderDuration, providerMessage, resellerEndpoint };

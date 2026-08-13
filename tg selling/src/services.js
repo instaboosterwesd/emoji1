@@ -324,7 +324,7 @@ export async function getProductCatalog(type = 'user') {
         name,
         game: product.game || 'Unknown',
         platform: product.platform || '',
-        image: product.image || productIconFor(name) || '',
+        image: product.imageOverride || product.image || productIconFor(name) || '',
         videos: Array.isArray(product.videos) ? product.videos.filter(Boolean) : [],
         features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
         pricing,
@@ -366,8 +366,27 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '', pid
   const catalogRef = ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`);
   const previousSnap = await get(catalogRef);
   const previous = previousSnap.exists() ? previousSnap.val() || {} : {};
-  const previousIds = new Set((Array.isArray(previous.products) ? previous.products : []).map(product => String(product.pid || product.id)));
-  const storedProducts = products.map(product => ({ ...product, feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL }));
+  const previousProducts = Array.isArray(previous.products) ? previous.products : [];
+  const previousIds = new Set(previousProducts.map(product => String(product.pid || product.id)));
+  const previousFor = product => previousProducts.find(item =>
+    String(item.pid || item.id || item.purchasePid) === String(product.pid || product.id || product.purchasePid)
+    || pidMatchKey(item.name) === pidMatchKey(product.name),
+  );
+  const storedProducts = products.map(product => {
+    const previousProduct = previousFor(product);
+    const manualImage = String(
+      previousProduct?.imageOverride
+        || (previousProduct?.imageSource === 'manual' ? previousProduct.image : '')
+        || '',
+    ).trim();
+    return {
+      ...product,
+      ...(manualImage
+        ? { image: manualImage, imageOverride: manualImage, imageSource: 'manual' }
+        : {}),
+      feedbackUrl: DEFAULT_FEEDBACK_CHANNEL_URL,
+    };
+  });
   const newProducts = storedProducts.filter(product => !previousIds.has(String(product.pid || product.id))).map(product => ({
     pid: String(product.pid || product.id),
     name: product.name,
@@ -393,6 +412,44 @@ export async function adminSaveProductCatalog(type, html, sourceDomain = '', pid
     newProducts,
     replaced: true,
   };
+}
+
+export async function adminSaveProductImage(type, productId, imageUrl) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  const catalogRef = ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`);
+  const snapshot = await get(catalogRef);
+  if (!snapshot.exists()) throw new Error(`No ${catalogType} catalog found. Import Product Data first.`);
+
+  const current = snapshot.val() || {};
+  const currentProducts = Array.isArray(current.products) ? current.products : [];
+  const targetId = String(productId || '').trim();
+  const index = currentProducts.findIndex(product =>
+    String(product.pid || product.purchasePid || product.id || '') === targetId,
+  );
+  if (index < 0) throw new Error('Product was not found in the selected catalog.');
+
+  const nextImage = String(imageUrl || '').trim();
+  const product = currentProducts[index] || {};
+  const { imageOverride: _oldImageOverride, imageSource: _oldImageSource, ...withoutImageOverride } = product;
+  currentProducts[index] = {
+    ...withoutImageOverride,
+    image: nextImage || productIconFor(product.name) || '',
+    ...(nextImage ? { imageOverride: nextImage, imageSource: 'manual' } : {}),
+  };
+  await set(catalogRef, { ...current, products: currentProducts, updatedAt: Date.now() });
+  return currentProducts[index];
+}
+
+export async function uploadImageToImageBB(imageData) {
+  const response = await fetch('/api/image-upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: imageData }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.url) throw new Error(data?.message || 'Image upload failed.');
+  return data;
 }
 
 export async function adminUpdateProductPids(type, html) {

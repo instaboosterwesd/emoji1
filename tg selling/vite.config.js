@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const publicApiHandler = require('../api/public-api.js');
 const telegramNotifyHandler = require('../api/telegram-notify.js');
+const imageUploadHandler = require('../api/image-upload.js');
 
 function createVercelResponse(res) {
   const response = {
@@ -72,6 +73,38 @@ function telegramNotifyDevMiddleware() {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.end(JSON.stringify({ success: false, message: 'Telegram notification failed.' }));
+            server.config.logger.error(error);
+          }
+        });
+      });
+    },
+  };
+}
+
+function imageUploadDevMiddleware() {
+  return {
+    name: 'image-upload-dev-middleware',
+    configureServer(server) {
+      server.middlewares.use('/api/image-upload', (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = req.method === 'OPTIONS' ? 204 : 405;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(req.method === 'OPTIONS' ? '{}' : JSON.stringify({ message: 'Method not allowed.' }));
+          return;
+        }
+        const chunks = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', async () => {
+          try {
+            const rawBody = Buffer.concat(chunks).toString();
+            if (rawBody) {
+              try { req.body = JSON.parse(rawBody); } catch { req.body = rawBody; }
+            }
+            await imageUploadHandler(req, createVercelResponse(res));
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ message: 'Image upload request failed.' }));
             server.config.logger.error(error);
           }
         });
@@ -169,7 +202,7 @@ export default defineConfig(({ mode }) => {
   // server-only credentials work in the Vite dev proxy without being bundled.
   const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
   return {
-    plugins: [react(), resellerDevProxy(env), publicApiDevMiddleware(), telegramNotifyDevMiddleware()],
+    plugins: [react(), resellerDevProxy(env), publicApiDevMiddleware(), telegramNotifyDevMiddleware(), imageUploadDevMiddleware()],
     define: {
       // Keep accidental client-side access to these names impossible.
       'import.meta.env.VITE_RESELLER_API_KEY': 'undefined',
