@@ -255,17 +255,27 @@ module.exports = async function handler(req, res) {
     const productId = String(body.product_id || body.pid || '').trim();
     const requestedDuration = String(body.duration || '').trim();
     const androidId = String(body.android_id || '').trim();
-    if (!productId || !requestedDuration || !androidId) {
+    if (!productId || !requestedDuration) {
       return send(res, 400, {
         success: false,
         error: {
           code: 'REQUIRED_FIELDS_MISSING',
-          message: 'buy requires product_id, duration, and android_id.',
+          message: 'buy requires product_id and duration.',
         },
       });
     }
     const product = products.find(item => item.pid === productId || item.purchase_pid === productId || item.id === productId);
     if (!product) return send(res, 404, { success: false, error: { code: 'PRODUCT_NOT_FOUND', message: 'Product PID was not found.' } });
+    const needsAndroidId = /\bbala\b/i.test(product.name);
+    if (needsAndroidId && !androidId) {
+      return send(res, 400, {
+        success: false,
+        error: {
+          code: 'ANDROID_ID_REQUIRED',
+          message: 'android_id is required for Bala device-bound products.',
+        },
+      });
+    }
     const duration = findDuration(product, requestedDuration);
     if (!duration) return send(res, 400, { success: false, error: { code: 'DURATION_NOT_FOUND', message: 'That duration is not available for this product.' } });
     const price = Number(duration.price || 0);

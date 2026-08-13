@@ -36,6 +36,8 @@
 .profile-actions button:nth-child(4):before{background-image:url('/icons/new/logout.png')!important;content:''!important;filter:brightness(0) invert(1) drop-shadow(0 0 7px rgba(255,120,120,.42))!important;mix-blend-mode:normal!important}
 .profile-actions .danger{color:#ffb3b3!important}.profile-actions .danger:before{opacity:1!important}
 .modal-danger{background:#e84d64!important}.api-key-box{display:block;max-width:100%;padding:12px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(0,0,0,.22);font:600 12px 'Space Grotesk';word-break:break-all;color:#d8f6ff!important}
+.api-key-reveal{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.api-copy-btn{min-height:32px}
 .admin-wide{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(196,141,255,.35);color:#fff;background:rgba(157,94,255,.16);padding:13px;margin:12px 0;font-weight:700}
 .admin-grid{display:grid!important;grid-template-columns:repeat(3,1fr);gap:9px!important;margin:12px 0 18px!important}.admin-grid div{padding:12px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(255,255,255,.08)}.admin-grid span,.admin-grid strong{display:block}.admin-grid span{font-size:10px;color:rgba(255,255,255,.55)}.admin-grid strong{margin-top:4px;font-size:13px}
 .icon-button{width:36px;height:36px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);border-radius:11px;background:rgba(255,255,255,.08);color:#fff}

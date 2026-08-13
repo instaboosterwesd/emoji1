@@ -1584,13 +1584,27 @@ function ProductDetailPage({ product, channel, fallbackGetFileUrl = '', onBack, 
         {/* Media card */}
         <div className="pdp-media-card">
           {playingVideo && product.videos[0] ? (
-            <video src={product.videos[0]} controls autoPlay playsInline poster={product.image || undefined} />
+            <video
+              src={product.videos[0]}
+              controls
+              autoPlay
+              playsInline
+              poster={product.image || undefined}
+              onError={() => setPlayingVideo(false)}
+            />
           ) : (
             <button className="video-thumb" type="button"
               onClick={() => product.videos[0] ? setPlayingVideo(true) : null}
               style={{ cursor: product.videos[0] ? 'pointer' : 'default' }}>
               {product.image
-                ? <img src={product.image} alt={product.name} />
+                 ? <img
+                     src={product.image}
+                     alt={product.name}
+                     onError={e => {
+                       e.currentTarget.onerror = null;
+                       e.currentTarget.src = productIconForWithFallback(product.name);
+                     }}
+                   />
                 : <div className="product-media-fallback">
                     <img src={productIconForWithFallback(product.name)} alt="" style={{ width: 64, height: 64, objectFit: 'contain' }} />
                   </div>
@@ -1770,7 +1784,15 @@ function SearchResultsPage({ products, applyPricing, search, setSearch, onBack, 
             <button className="srp-row" key={p.pid} type="button" onClick={() => onSelectProduct(p)}>
               <div className="srp-thumb">
                 {p.image
-                  ? <img src={p.image} alt={p.name} loading="lazy" />
+                   ? <img
+                       src={p.image}
+                       alt={p.name}
+                       loading="lazy"
+                       onError={e => {
+                         e.currentTarget.onerror = null;
+                         e.currentTarget.src = productIconForWithFallback(p.name);
+                       }}
+                     />
                   : <img src={productIconForWithFallback(p.name)} alt="" className="srp-fallback-icon" />
                 }
               </div>
@@ -1923,7 +1945,15 @@ function ProductsView({ session, onBuy }) {
                 onClick={() => setSelectedProduct(p)}>
                 <div className="cpr-thumb">
                   {p.image
-                    ? <img src={p.image} alt={p.name} loading="lazy" />
+                     ? <img
+                         src={p.image}
+                         alt={p.name}
+                         loading="lazy"
+                         onError={e => {
+                           e.currentTarget.onerror = null;
+                           e.currentTarget.src = productIconForWithFallback(p.name);
+                         }}
+                       />
                     : <img src={productIconForWithFallback(p.name)} alt="" className="cpr-fallback-icon" />
                   }
                 </div>
@@ -2238,6 +2268,7 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
   const [photoData, setPhotoData] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [apiCopied, setApiCopied] = useState(false);
 
   useEffect(() => { setName(profile.name || ''); setPhotoData(''); setOldPassword(''); setNewPassword(''); }, [type, profile.name]);
 
@@ -2265,8 +2296,24 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
   };
 
   const resetApi = async () => {
-    try { const result = await resetUserApiKey(profile.uid); onApiState(result); toast.success('New API key generated'); }
+    try {
+      const result = await resetUserApiKey(profile.uid);
+      onApiState(result);
+      setApiCopied(false);
+      toast.success('New API key generated');
+    }
     catch (err) { toast.error(err.message); }
+  };
+
+  const copyApiKey = async () => {
+    try {
+      await copyTextToClipboard(apiState.apiKey);
+      setApiCopied(true);
+      toast.success('API key copied!');
+      window.setTimeout(() => setApiCopied(false), 1800);
+    } catch {
+      toast.error('Copy failed. Please select the API key manually.');
+    }
   };
 
   return (
@@ -2300,7 +2347,15 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
       {type === 'api' && (
         <section className="action-modal liquid-dialog">
           <div className="dialog-title-row"><LottieIcon src="/icons/new/key-lottie.json" size={24} /><h2>Private API</h2></div>
-          {apiState.apiKey ? <p className="api-key-box">{apiState.apiKey}</p> : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
+          {apiState.apiKey ? (
+            <div className="api-key-reveal">
+              <code className="api-key-box">{apiState.apiKey}</code>
+              <button type="button" className="copy-key-btn api-copy-btn" onClick={copyApiKey}>
+                <MatIcon name={apiCopied ? 'check' : 'content_copy'} size={15} />
+                {apiCopied ? 'Copied' : 'Copy API key'}
+              </button>
+            </div>
+          ) : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
           <p>This private key enables API access and Bot login. Keep it private. It is shown only when generated or reset.</p>
           <div className="modal-btn-row">
             <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Close</button>

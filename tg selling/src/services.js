@@ -161,6 +161,12 @@ export function mediaUrl(value) {
     return raw;
   }
 }
+function catalogMediaUrl(value, sourceDomain = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^(data:|blob:|\/)/i.test(raw)) return mediaUrl(raw);
+  return mediaUrl(sourceUrl(raw, sourceDomain));
+}
 const sourceUrl = (value, sourceDomain) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -340,8 +346,8 @@ export async function getProductCatalog(type = 'user') {
         name,
         game: product.game || 'Unknown',
         platform: product.platform || '',
-        image: product.imageOverride || mediaUrl(product.image) || productIconFor(name) || '',
-        videos: Array.isArray(product.videos) ? product.videos.map(mediaUrl).filter(Boolean) : [],
+        image: catalogMediaUrl(product.imageOverride || product.image, product.sourceDomain) || productIconFor(name) || '',
+        videos: Array.isArray(product.videos) ? product.videos.map(video => catalogMediaUrl(video, product.sourceDomain)).filter(Boolean) : [],
         features: Array.isArray(product.features) ? product.features.filter(Boolean) : [],
         pricing,
         pricingSource: 'imported',
