@@ -15,6 +15,14 @@ function databaseUrl() {
   return String(process.env.FIREBASE_DATABASE_URL || process.env.VITE_FIREBASE_DATABASE_URL || '').replace(/\/+$/, '');
 }
 
+function isBalaDeviceBoundProduct(product) {
+  const name = String(product?.name || '').trim();
+  if (!/\bbala\b/i.test(name)) return false;
+  if (/\b(?:v2|version\s*2)\b/i.test(name)) return false;
+  if (/^bala\s+xyz\s+cheats\b/i.test(name) && !/\bmod\b/i.test(name)) return false;
+  return true;
+}
+
 async function dbRequest(path, options = {}) {
   const base = databaseUrl();
   if (!base) throw new Error('Firebase database is not configured on the server.');
@@ -266,7 +274,7 @@ module.exports = async function handler(req, res) {
     }
     const product = products.find(item => item.pid === productId || item.purchase_pid === productId || item.id === productId);
     if (!product) return send(res, 404, { success: false, error: { code: 'PRODUCT_NOT_FOUND', message: 'Product PID was not found.' } });
-    const needsAndroidId = /\bbala\b/i.test(product.name);
+    const needsAndroidId = isBalaDeviceBoundProduct(product);
     if (needsAndroidId && !androidId) {
       return send(res, 400, {
         success: false,

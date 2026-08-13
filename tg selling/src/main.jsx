@@ -2118,7 +2118,7 @@ function PurchaseDialog({ purchase, session, communityLinks, close, onPurchased 
                   inputMode="text"
                   disabled={busy}
                 />
-                <small className="muted">Required only for Bala Mod / device-bound products. It will be sent as <code>android_id</code>.</small>
+                <small className="muted">Required only for Bala V1 / device-bound products. It will be sent as <code>android_id</code>.</small>
               </label>
             )}
             <p className="purchase-note"><DeviceIcon emoji="/icons/new/pig-emoji.json" icon="savings" size={16} /> Balance will be deducted. A key will be delivered instantly.</p>
@@ -2429,6 +2429,9 @@ function ApiDocumentation({ apiState, role = 'user', onClose }) {
   const exampleProduct = catalog[0];
   const examplePid = exampleProduct?.pid || 'PRODUCT_PID';
   const exampleDuration = exampleProduct?.pricing?.[0]?.duration || exampleProduct?.pricing?.[0]?.label || 'EXACT_DURATION';
+  const exampleNeedsAndroidId = isDeviceBoundProduct(exampleProduct);
+  const exampleAndroidIdJson = exampleNeedsAndroidId ? ', "android_id":"YOUR_ANDROID_ID"' : '';
+  const exampleAndroidIdJs = exampleNeedsAndroidId ? ", android_id: 'YOUR_ANDROID_ID'" : '';
 
   const copy = async (name, value) => {
     try {
@@ -2444,14 +2447,14 @@ function ApiDocumentation({ apiState, role = 'user', onClose }) {
   const curlBuy = `curl -X POST "${endpoint}?action=buy" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{"product_id":"${examplePid}","duration":"${exampleDuration}","android_id":"YOUR_ANDROID_ID"}'`;
+  -d '{"product_id":"${examplePid}","duration":"${exampleDuration}"${exampleAndroidIdJson}}'`;
   const jsExample = `const response = await fetch('${endpoint}?action=buy', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     Authorization: \`Bearer \${process.env.TG_API_KEY}\`,
   },
-  body: JSON.stringify({ product_id: '${examplePid}', duration: '${exampleDuration}', android_id: 'YOUR_ANDROID_ID' })
+  body: JSON.stringify({ product_id: '${examplePid}', duration: '${exampleDuration}'${exampleAndroidIdJs} })
 });
 const result = await response.json();`;
   const pythonExample = `import requests
@@ -2459,7 +2462,7 @@ const result = await response.json();`;
 result = requests.post(
     '${endpoint}?action=buy',
     headers={'Authorization': 'Bearer YOUR_API_KEY'},
-    json={'product_id': '${examplePid}', 'duration': '${exampleDuration}', 'android_id': 'YOUR_ANDROID_ID'},
+    json={'product_id': '${examplePid}', 'duration': '${exampleDuration}'${exampleNeedsAndroidId ? ", 'android_id': 'YOUR_ANDROID_ID'" : ''}},
 )
 print(result.json())`;
   const Example = ({ name, title, children }) => (
@@ -2532,9 +2535,9 @@ print(result.json())`;
         </div>
         <div className="api-doc-section">
           <h3><span>03</span> Place an order</h3>
-          <p>Send <code>product_id</code>, the exact <code>duration</code>, and <code>android_id</code>. Before the provider request, the API checks your wallet balance and stops early when funds are insufficient. The storefront also pre-checks provider balance through <code>action=balance</code>. Our server then calls the provider, deducts your wallet only after validation, saves the returned key, and refunds the wallet if the provider fails.</p>
+          <p>Send <code>product_id</code> and the exact <code>duration</code>. Send <code>android_id</code> only for Bala V1; Bala V2 goes directly without a device ID. Before the provider request, the API checks your wallet balance and stops early when funds are insufficient. The storefront also pre-checks provider balance through <code>action=balance</code>. Our server then calls the provider, deducts your wallet only after validation, saves the returned key, and refunds the wallet if the provider fails.</p>
           <Example name="buy" title="POST · Purchase">{curlBuy}</Example>
-          <div className="api-doc-note"><MatIcon name="info" size={16} /> All buy requests require <code>product_id</code>, <code>duration</code>, and <code>android_id</code>. The returned <code>order.id</code> is the same order that appears in My Orders and can be invoiced there.</div>
+          <div className="api-doc-note"><MatIcon name="info" size={16} /> All buy requests require <code>product_id</code> and <code>duration</code>. <code>android_id</code> is required only for Bala V1. The returned <code>order.id</code> is the same order that appears in My Orders and can be invoiced there.</div>
         </div>
         <div className="api-doc-section">
           <h3><span>04</span> Use it from your own server</h3>

@@ -467,38 +467,37 @@ export async function getProductCatalogMeta() {
   }));
 }
 
-export async function getProductImageOverrides() {
+export async function getProductImageOverrides(type = 'user') {
   if (!firebaseDb) return [];
-  const snaps = await Promise.all(['user', 'reseller'].map(type => get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${type}`))));
+  const catalogType = type === 'reseller' ? 'reseller' : 'user';
+  const snap = await get(ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`));
   const overrides = [];
-  snaps.forEach(snap => {
-    const value = snap.exists() ? snap.val() || {} : {};
-    const products = Array.isArray(value.products) ? value.products : [];
-    products.forEach(product => {
-      const image = String(
-        product.imageOverride
-          || (product.imageSource === 'manual' ? product.image : '')
-          || '',
-      ).trim();
-      if (!image) return;
-      overrides.push({
-        id: String(product.pid || product.purchasePid || product.id || ''),
-        name: product.name || '',
-        image,
-        sourceDomain: product.sourceDomain || value.sourceDomain || '',
-      });
+  const value = snap.exists() ? snap.val() || {} : {};
+  const products = Array.isArray(value.products) ? value.products : [];
+  products.forEach(product => {
+    const image = String(
+      product.imageOverride
+        || (product.imageSource === 'manual' ? product.image : '')
+        || '',
+    ).trim();
+    if (!image) return;
+    overrides.push({
+      id: String(product.pid || product.purchasePid || product.id || ''),
+      name: product.name || '',
+      image,
+      sourceDomain: product.sourceDomain || value.sourceDomain || '',
     });
   });
   return overrides;
 }
 
 const resolvedProductImage = (product, imageOverrides = []) => {
-  const pid = String(product?.pid || product?.productId || product?.id || '');
+  const pid = String(product?.pid || product?.productId || product?.product_id || product?.id || '');
   const nameKey = pidMatchKey(product?.name);
-  const match = imageOverrides.find(item =>
-    (pid && item.id && String(item.id) === pid)
-      || (nameKey && pidMatchKey(item.name) === nameKey),
-  );
+  // Prefer the exact PID so a same-named product can never replace the
+  // manually saved image with another catalog/source image.
+  const match = imageOverrides.find(item => pid && item.id && String(item.id) === pid)
+    || imageOverrides.find(item => nameKey && pidMatchKey(item.name) === nameKey);
   return match ? catalogMediaUrl(match.image, match.sourceDomain) : '';
 };
 
@@ -932,14 +931,14 @@ export async function loginWithApiKey(apiKey) {
   return getUserProfile(uid);
 }
 
-export async function fetchGameProducts() {
+export async function fetchGameProducts(role = 'user') {
   const response = await fetch(productsEndpoint);
   if (!response.ok) throw new Error('Products could not be loaded.');
   const data = await response.json();
   const products = Array.isArray(data?.products) ? data.products : [];
   const [videoData, imageOverrides] = await Promise.all([
     getProductVideoData().catch(() => []),
-    getProductImageOverrides().catch(() => []),
+    getProductImageOverrides(role).catch(() => []),
   ]);
   const mappedProducts = products.map(product => {
     const name = product.name || 'Untitled product';
@@ -958,7 +957,11 @@ export async function fetchGameProducts() {
       sourcePid: product.product_id || product.pid || product.id,
       name,
       game: product.game || 'Unknown',
-       image: resolvedProductImage(product, imageOverrides) || mediaUrl(product.image) || brandIcon || '',
+       image: resolvedProductImage({
+         ...product,
+         pid: catalog?.pid || product.product_id || product.pid || product.id,
+         name: catalog?.name || name,
+       }, imageOverrides) || mediaUrl(product.image) || brandIcon || '',
        videos: resolvedProductVideos(
          product,
          videoData,
@@ -1022,7 +1025,7 @@ export async function fetchStorefrontProducts(role = 'user') {
   } catch {
     // A missing/permission-limited imported catalog should not hide live products.
   }
-  return fetchGameProducts();
+  return fetchGameProducts(role);
 }
 
 function normaliseProductName(name) {
@@ -1070,7 +1073,16 @@ function canonicalDeviceBoundFallbacks(products = []) {
 }
 
 export function isDeviceBoundProduct(product) {
-  return /\bbala\b/i.test(String(product?.name || ''));
+  const name = String(product?.name || '').trim();
+  if (!/\bbala\b/i.test(name)) return false;
+
+  // Bala V2 does not use device binding. Keep the explicit V2 labels first,
+  // then cover the current source name used for the V2 catalog entry.
+  if (/\b(?:v2|version\s*2)\b/i.test(name)) return false;
+  if (/^bala\s+xyz\s+cheats\b/i.test(name) && !/\bmod\b/i.test(name)) return false;
+
+  // Bala V1 / the legacy Bala Mod entry remains device-bound.
+  return true;
 }
 
 function isLikelyProviderErrorText(value) {
