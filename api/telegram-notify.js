@@ -1,5 +1,6 @@
 function send(res, status, body) {
-  res.statusCode = status;
+  if (typeof res.status === 'function') res.status(status);
+  else res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(body));
@@ -38,15 +39,21 @@ async function dbPut(path, value) {
 }
 
 async function sendTelegram(text) {
-  const token = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
-  // Keep the requested admin destination working when Vercel has only the
-  // bot token configured. It can still be overridden without a code change.
+  const token = String(
+    process.env.TELEGRAM_BOT_TOKEN
+      || process.env.DEPOSIT_TELEGRAM_BOT_TOKEN
+      || '',
+  ).trim();
   const chatId = String(
     process.env.TELEGRAM_CHAT_ID
       || process.env.TELEGRAM_ADMIN_CHAT_ID
-      || '5844447576',
+      || process.env.DEPOSIT_NOTIFY_CHAT_ID
+      || '',
   ).trim();
   if (!token || !chatId) throw new Error('Telegram notification is not configured.');
+  if (!/^-?\d+$|^@[A-Za-z0-9_]{5,}$/.test(chatId)) {
+    throw new Error('Telegram notification chat ID is invalid.');
+  }
 
   const response = await fetch(`https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`, {
     method: 'POST',
@@ -64,6 +71,24 @@ async function sendTelegram(text) {
 }
 
 module.exports = async function handler(req, res) {
+  if (req.method === 'GET') {
+    const tokenConfigured = Boolean(
+      process.env.TELEGRAM_BOT_TOKEN || process.env.DEPOSIT_TELEGRAM_BOT_TOKEN,
+    );
+    const chatIdConfigured = Boolean(
+      process.env.TELEGRAM_CHAT_ID
+      || process.env.TELEGRAM_ADMIN_CHAT_ID
+      || process.env.DEPOSIT_NOTIFY_CHAT_ID,
+    );
+    return send(res, tokenConfigured && chatIdConfigured ? 200 : 503, {
+      configured: tokenConfigured && chatIdConfigured,
+      botTokenConfigured: tokenConfigured,
+      chatIdConfigured,
+      message: tokenConfigured && chatIdConfigured
+        ? 'Telegram deposit notifications are configured server-side.'
+        : 'Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the production environment.',
+    });
+  }
   if (req.method !== 'POST') return send(res, 405, { success: false, message: 'Method not allowed.' });
 
   let body = req.body;
