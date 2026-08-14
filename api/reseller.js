@@ -1,4 +1,4 @@
-const { resellerEndpoint, resellerRequestTimeoutMs } = require('./_lib/reseller');
+const { providerMessage, resellerEndpoint, resellerRequestTimeoutMs } = require('./_lib/reseller');
 
 function send(res, status, body) {
   if (typeof res.status === 'function') res.status(status);
@@ -111,6 +111,9 @@ async function handleRequest(req, res) {
       parsed = { message: raw };
     }
 
+    if (/(?:just a moment|cloudflare|cf-chl|error code:\s*522|error code:\s*52\d|<html|<!doctype)/i.test(raw)) {
+      return send(res, 502, { message: providerMessage(raw) });
+    }
     return send(res, upstream.ok ? 200 : upstream.status, parsed);
   } catch (error) {
     return send(res, 502, {

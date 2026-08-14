@@ -18,6 +18,9 @@ function resellerRequestTimeoutMs() {
 
 function providerMessage(value) {
   const raw = String(value || '').replace(/\s+/g, ' ').trim();
+  if (/(?:just a moment|cloudflare|cf-chl|error code:\s*522|error code:\s*52\d|<html|<!doctype)/i.test(raw)) {
+    return 'Provider API is temporarily unavailable (upstream Cloudflare error).';
+  }
   return raw
     .replace(/(?:api[_\s-]?key|master[_\s-]?key|authorization|x-master-key)\s*[:=]\s*[^,\s;]+/gi, '[hidden credential]')
     .replace(/https?:\/\/\S+/gi, '[provider endpoint]')

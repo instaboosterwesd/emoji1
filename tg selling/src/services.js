@@ -1111,6 +1111,9 @@ function providerErrorDetail(error) {
     .replace(/\s+/g, ' ')
     .trim();
   if (!message) return '';
+  if (/(?:just a moment|cloudflare|cf-chl|error code:\s*522|error code:\s*52\d|<html|<!doctype)/i.test(message)) {
+    return 'Provider API is temporarily unavailable (upstream Cloudflare error).';
+  }
   // Do not surface a provider response that could contain credentials or a
   // full HTML/debug payload. Provider errors are only for user diagnosis.
   const safe = message
