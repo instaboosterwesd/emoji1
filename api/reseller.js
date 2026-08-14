@@ -1,4 +1,4 @@
-const { resellerEndpoint } = require('./_lib/reseller');
+const { resellerEndpoint, resellerRequestTimeoutMs } = require('./_lib/reseller');
 
 function send(res, status, body) {
   if (typeof res.status === 'function') res.status(status);
@@ -101,7 +101,7 @@ async function handleRequest(req, res) {
         'x-master-key': masterKey,
       },
       body: params,
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(resellerRequestTimeoutMs()),
     });
     const raw = await upstream.text();
     let parsed;
@@ -115,7 +115,7 @@ async function handleRequest(req, res) {
   } catch (error) {
     return send(res, 502, {
       message: error?.name === 'TimeoutError'
-        ? 'Reseller API timed out after 15 seconds.'
+        ? `Reseller API timed out after ${Math.round(resellerRequestTimeoutMs() / 1000)} seconds.`
         : 'Reseller API is unavailable.',
     });
   }

@@ -1,4 +1,5 @@
 const DEFAULT_RESELLER_ENDPOINT = 'https://xyzcheats.com/api/reseller_v1.php';
+const DEFAULT_RESELLER_TIMEOUT_MS = 60_000;
 
 function resellerEndpoint() {
   return String(
@@ -7,6 +8,12 @@ function resellerEndpoint() {
       || process.env.RESELLER_API_URL
       || DEFAULT_RESELLER_ENDPOINT,
   ).trim();
+}
+
+function resellerRequestTimeoutMs() {
+  const configured = Number(process.env.RESELLER_TIMEOUT_MS);
+  if (!Number.isFinite(configured) || configured <= 0) return DEFAULT_RESELLER_TIMEOUT_MS;
+  return Math.min(Math.max(Math.round(configured), 15_000), DEFAULT_RESELLER_TIMEOUT_MS);
 }
 
 function providerMessage(value) {
@@ -49,12 +56,24 @@ function extractKey(data, raw = '') {
     data?.result?.key_code,
     data?.result?.code,
     data?.result?.license,
+    data?.msg,
+    data?.message,
+    data?.data?.msg,
+    data?.data?.message,
+    data?.result?.msg,
+    data?.result?.message,
     typeof data?.data === 'string' ? data.data : '',
     typeof data?.result === 'string' ? data.result : '',
     data?.rawKey,
   ];
   const looksLikeError = value => /(?:error|failed|failure|invalid|insufficient|balance|unavailable|not\s+found|try\s+again|required|expired|duplicate|already)/i.test(value);
-  const found = candidates.find(value => typeof value === 'string' && value.trim() && !looksLikeError(value));
+  const looksLikeGenericSuccess = value => /^(?:ok|success|true|done|completed?|purchase(?:d)?(?:\s+success(?:ful|fully)?)?|order\s+(?:placed|created)(?:\s+success(?:fully)?)?)[.!]?$/i.test(value.trim());
+  const found = candidates.find(value => (
+    typeof value === 'string'
+    && value.trim()
+    && !looksLikeError(value)
+    && !looksLikeGenericSuccess(value)
+  ));
   if (found) return found.trim();
   const plain = String(raw || '').trim();
   if (plain && !/^[\[{]/.test(plain) && !/^(ok|success|true|done)$/i.test(plain) && !looksLikeError(plain)) return plain;
@@ -86,7 +105,7 @@ async function buyFromProvider({ productId, duration, androidId = '' }) {
       'x-master-key': masterKey,
     },
     body: params,
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(resellerRequestTimeoutMs()),
   });
   const raw = await response.text();
   let data;
@@ -103,4 +122,10 @@ async function buyFromProvider({ productId, duration, androidId = '' }) {
   return { key, data };
 }
 
-module.exports = { buyFromProvider, cleanProviderDuration, providerMessage, resellerEndpoint };
+module.exports = {
+  buyFromProvider,
+  cleanProviderDuration,
+  providerMessage,
+  resellerEndpoint,
+  resellerRequestTimeoutMs,
+};

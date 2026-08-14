@@ -19,6 +19,7 @@ export const firebaseDb = firebaseApp ? getDatabase(firebaseApp) : null;
 
 const resellerEndpoint = '/api/reseller';
 const productsEndpoint = '/api/products';
+const RESELLER_REQUEST_TIMEOUT_MS = 60_000;
 
 const otpHeaders = { accept: '*/*', 'auth-key': 'appxapi', 'client-service': 'Appx', 'device-type': '', source: 'website' };
 const cleanPhone = phone => phone.replace(/\D/g, '').slice(-10);
@@ -1101,6 +1102,10 @@ function isLikelyProviderErrorText(value) {
   return /(?:error|failed|failure|insufficient|funds?|balance|invalid|unavailable|not\s+found|try\s+again|unable|mandatory|required|expired|duplicate|already\s+(?:used|purchased))/i.test(String(value || ''));
 }
 
+function isGenericProviderSuccessText(value) {
+  return /^(?:ok|success|true|done|completed?|purchase(?:d)?(?:\s+success(?:ful|fully)?)?|order\s+(?:placed|created)(?:\s+success(?:fully)?)?)[.!]?$/i.test(String(value || '').trim());
+}
+
 function providerErrorDetail(error) {
   const message = String(error?.message || error || '')
     .replace(/\s+/g, ' ')
@@ -1145,7 +1150,7 @@ function safePurchaseFailureMessage(error) {
 async function checkProviderBalance() {
   const body = new URLSearchParams({ action: 'balance' });
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), RESELLER_REQUEST_TIMEOUT_MS);
   let response;
   try {
     response = await fetch(resellerEndpoint, {
@@ -1155,7 +1160,7 @@ async function checkProviderBalance() {
       signal: controller.signal,
     });
   } catch (error) {
-    if (error?.name === 'AbortError') throw new Error('Reseller balance check timed out after 15 seconds.');
+    if (error?.name === 'AbortError') throw new Error(`Reseller balance check timed out after ${Math.round(RESELLER_REQUEST_TIMEOUT_MS / 1000)} seconds.`);
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -1200,7 +1205,7 @@ export async function buyResellerProduct(productId, duration, androidId = '') {
   if (androidId?.trim()) params.android_id = androidId.trim();
   const body = new URLSearchParams(params);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), RESELLER_REQUEST_TIMEOUT_MS);
   let response;
   try {
     response = await fetch(resellerEndpoint, {
@@ -1210,7 +1215,7 @@ export async function buyResellerProduct(productId, duration, androidId = '') {
       signal: controller.signal,
     });
   } catch (error) {
-    if (error?.name === 'AbortError') throw new Error('Reseller API timed out after 15 seconds.');
+    if (error?.name === 'AbortError') throw new Error(`Reseller API timed out after ${Math.round(RESELLER_REQUEST_TIMEOUT_MS / 1000)} seconds.`);
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -2008,9 +2013,20 @@ export async function purchaseProduct(uid, product, duration, price, userName) {
           apiResult?.result?.license,
           typeof apiResult?.result === 'string' ? apiResult.result : null,
           apiResult?.rawKey,
+           apiResult?.msg,
+           apiResult?.message,
+           apiResult?.data?.msg,
+           apiResult?.data?.message,
+           apiResult?.result?.msg,
+           apiResult?.result?.message,
         ];
         deliveredKey = possibleKeys
-          .find(key => typeof key === 'string' && key.trim() && !isLikelyProviderErrorText(key))
+           .find(key => (
+             typeof key === 'string'
+             && key.trim()
+             && !isLikelyProviderErrorText(key)
+             && !isGenericProviderSuccessText(key)
+           ))
           ?.trim() || null;
         if (!deliveredKey && typeof apiResult?.__raw === 'string') {
           const raw = apiResult.__raw.trim();

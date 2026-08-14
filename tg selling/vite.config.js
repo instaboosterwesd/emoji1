@@ -7,6 +7,7 @@ const publicApiHandler = require('../api/public-api.js');
 const telegramNotifyHandler = require('../api/telegram-notify.js');
 const imageUploadHandler = require('../api/image-upload.js');
 const mediaHandler = require('../api/media.js');
+const { resellerRequestTimeoutMs } = require('../api/_lib/reseller.js');
 
 function createVercelResponse(res) {
   const response = {
@@ -181,7 +182,7 @@ function resellerDevProxy(env) {
                 'x-master-key': masterKey,
               },
               body: params,
-              signal: AbortSignal.timeout(15000),
+               signal: AbortSignal.timeout(resellerRequestTimeoutMs()),
             });
             const raw = await upstream.text();
             res.statusCode = upstream.ok ? 200 : upstream.status;
@@ -192,7 +193,7 @@ function resellerDevProxy(env) {
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.end(JSON.stringify({
               message: error?.name === 'TimeoutError'
-                ? 'Reseller API timed out after 15 seconds.'
+                ? `Reseller API timed out after ${Math.round(resellerRequestTimeoutMs() / 1000)} seconds.`
                 : 'Reseller API is unavailable.',
             }));
           }
