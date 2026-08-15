@@ -45,14 +45,15 @@ The app exposes an authenticated API at:
 Customers use the private key generated in Profile → API settings with either
 the `x-api-key` header or `Authorization: Bearer <key>`. The API supports:
 
-- `GET ?action=products` — account catalog, storefront PID, provider purchase PID, durations, prices and stock
-- `GET ?action=product&pid=133` — one product by PID
+- `GET ?action=products` — account catalog, storefront PID, provider purchase PID, durations, account-specific prices, stock, product file/update link and feedback channel link
+- `GET ?action=product&pid=133` — one product by PID with the same account-specific details and support links
 - `GET ?action=balance` — wallet balance
 - `POST ?action=buy` — provider purchase, wallet deduction/refund, and Firebase order creation
 
 API purchases are written to `licenseKeys` with `uid`, `source: "api"` and
 `apiOrder: true`, so the returned key appears in the same user's My Orders and
-can use the existing invoice download. Keep these server-side variables
+can use the existing invoice download. A successful purchase response also
+includes `get_file_link` and `feedback_link` for the purchased product. Keep these server-side variables
 configured for the API function:
 
 - `FIREBASE_DATABASE_URL` (or the existing `VITE_FIREBASE_DATABASE_URL`)

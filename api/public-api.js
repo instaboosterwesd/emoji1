@@ -1,5 +1,6 @@
 const { createHash } = require('node:crypto');
 const { buyFromProvider, cleanProviderDuration, providerMessage } = require('./_lib/reseller');
+const { resolveProductSupportLinks, supportKey } = require('./_lib/support-links');
 
 function send(res, status, body) {
   res.status(status);
@@ -169,10 +170,6 @@ function mediaUrls(value) {
   return [...new Set(values.map(cleanPublicUrl).filter(Boolean))];
 }
 
-function supportKey(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
 async function getSupportDirectory() {
   const [channels, community] = await Promise.all([
     dbRequest('productChannels').catch(() => null),
@@ -185,23 +182,7 @@ async function getSupportDirectory() {
 }
 
 function productSupport(product, directory) {
-  const productName = product?.name || product?.productName || '';
-  const match = directory.channels.find(item => supportKey(item.productName) === supportKey(productName));
-  return {
-    getFileLink: String(
-      match?.fileUpdateUrl
-      || product?.fileUpdateUrl
-      || product?.sourceFileUpdateUrl
-      || directory.community.getFileUrl
-      || '',
-    ).trim(),
-    feedbackLink: String(
-      match?.feedbackUrl
-      || product?.feedbackUrl
-      || directory.community.helpUrl
-      || '',
-    ).trim(),
-  };
+  return resolveProductSupportLinks(product, directory.channels, directory.community);
 }
 
 function normalizePricingSettings(value) {
@@ -537,7 +518,19 @@ module.exports = async function handler(req, res) {
     return send(res, 201, {
       success: true,
       message: 'Order placed successfully.',
-      order: { id: keyId, product_id: product.purchase_pid || product.pid, pid: product.pid, product: product.name, duration: duration.duration, price, key: providerResult.key, status: 'active', created_at: now },
+      order: {
+        id: keyId,
+        product_id: product.purchase_pid || product.pid,
+        pid: product.pid,
+        product: product.name,
+        duration: duration.duration,
+        price,
+        key: providerResult.key,
+        status: 'active',
+        get_file_link: product.get_file_link || null,
+        feedback_link: product.feedback_link || null,
+        created_at: now,
+      },
     });
   } catch (error) {
     const result = errorResponse(error);
