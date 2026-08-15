@@ -783,7 +783,7 @@ const randomSecret = (size = 24) => {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 };
 
-const publicProfile = (uid, value = {}) => ({
+const publicProfile = (uid, value = {}, { includeApiKey = false } = {}) => ({
   uid,
   role: value.role || 'user',
   reseller: Boolean(value.reseller || value.role === 'reseller'),
@@ -801,6 +801,7 @@ const publicProfile = (uid, value = {}) => ({
   active: Number(value.active || 0),
   status: value.status || 'active',
   apiKeyLast4: value.apiKeyLast4 || '',
+  ...(includeApiKey ? { apiKey: value.apiKeyValue || '' } : {}),
   userPriceIncreasePercent: value.userPriceIncreasePercent === '' || value.userPriceIncreasePercent === null || value.userPriceIncreasePercent === undefined
     ? ''
     : Math.max(0, Math.min(1000, Number(value.userPriceIncreasePercent) || 0)),
@@ -809,17 +810,17 @@ const publicProfile = (uid, value = {}) => ({
     : Math.max(0, Math.min(1000, Number(value.resellerPriceIncreasePercent) || 0)),
 });
 
-export async function getUserProfile(uid) {
+export async function getUserProfile(uid, { includeApiKey = true } = {}) {
   if (!firebaseDb || !uid) return publicProfile(uid);
   const snapshot = await get(ref(firebaseDb, `users/${uid}`));
-  return publicProfile(uid, snapshot.exists() ? snapshot.val() : {});
+  return publicProfile(uid, snapshot.exists() ? snapshot.val() : {}, { includeApiKey });
 }
 
 export function subscribeUserProfile(uid, onChange, onError) {
   if (!firebaseDb || !uid || typeof onChange !== 'function') return () => {};
   return onValue(
     ref(firebaseDb, `users/${uid}`),
-    snapshot => onChange(publicProfile(uid, snapshot.exists() ? snapshot.val() : {})),
+    snapshot => onChange(publicProfile(uid, snapshot.exists() ? snapshot.val() : {}, { includeApiKey: true })),
     error => {
       if (typeof onError === 'function') onError(error);
     },
@@ -921,7 +922,12 @@ export async function resetUserApiKey(uid) {
   if (user.apiKeyHash) await set(ref(firebaseDb, `apiKeys/${user.apiKeyHash}`), null);
   const apiKey = `tg_${randomSecret(30)}`;
   const apiKeyHash = await textHash(apiKey);
-  await update(userRef, { apiKeyHash, apiKeyLast4: apiKey.slice(-4), apiKeyUpdatedAt: Date.now() });
+  await update(userRef, {
+    apiKeyHash,
+    apiKeyLast4: apiKey.slice(-4),
+    apiKeyValue: apiKey,
+    apiKeyUpdatedAt: Date.now(),
+  });
   await set(ref(firebaseDb, `apiKeys/${apiKeyHash}`), { uid, createdAt: Date.now() });
   try { localStorage.setItem(`tg_api_key_${uid}`, apiKey); } catch {}
   return { apiKey, last4: apiKey.slice(-4) };
@@ -930,6 +936,10 @@ export async function resetUserApiKey(uid) {
 export async function ensureUserApiKey(uid) {
   if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
   const profile = await getUserProfile(uid);
+  if (profile.apiKey && profile.apiKey.startsWith('tg_') && profile.apiKey.endsWith(profile.apiKeyLast4 || '')) {
+    try { localStorage.setItem(`tg_api_key_${uid}`, profile.apiKey); } catch {}
+    return { apiKey: profile.apiKey, last4: profile.apiKeyLast4 };
+  }
   try {
     const storedKey = localStorage.getItem(`tg_api_key_${uid}`) || '';
     if (storedKey && storedKey.endsWith(profile.apiKeyLast4 || '')) {
@@ -1323,7 +1333,7 @@ export async function adminUpdateUser(uid, updates) {
   if (updates.status !== undefined) safeUpdates.status = updates.status;
   if (updates.reseller !== undefined) safeUpdates.reseller = Boolean(updates.reseller);
   await update(ref(firebaseDb, `users/${uid}`), safeUpdates);
-  return getUserProfile(uid);
+  return getUserProfile(uid, { includeApiKey: false });
 }
 
 export async function adminEditUser(uid, {

@@ -2391,8 +2391,13 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
                 {apiCopied ? 'Copied' : 'Copy API key'}
               </button>
             </div>
-          ) : <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>}
-          <p>This private key enables API access and Bot login. Keep it private. It is shown only when generated or reset.</p>
+          ) : (
+            <div className="api-key-unavailable">
+              <p>Key active. Last 4: <strong>{apiState.last4}</strong></p>
+              <p className="muted">The full key is not available on this device. Reset the key to generate a new copyable key.</p>
+            </div>
+          )}
+          <p>This private key enables API access and Bot login. Keep it private. Your generated key stays available here until you reset it.</p>
           <div className="modal-btn-row">
             <button type="button" onClick={close}><DeviceIcon emoji="/icons/new/close-emoji.json" icon="close" size={16} /> Close</button>
             <button type="button" onClick={onApiDocs}><MatIcon name="menu_book" size={15} /> API Docs</button>
@@ -2688,7 +2693,7 @@ function UserViewDialog({ user, onClose }) {
   const [profile, setProfile] = useState(null);
   useEffect(() => {
     if (!user?.uid) return;
-    getUserProfile(user.uid).then(setProfile).catch(() => setProfile({ ...user, balance: 0, status: 'unknown' }));
+    getUserProfile(user.uid, { includeApiKey: false }).then(setProfile).catch(() => setProfile({ ...user, balance: 0, status: 'unknown' }));
   }, [user?.uid]);
 
   if (!user) return null;
