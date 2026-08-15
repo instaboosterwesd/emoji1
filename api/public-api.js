@@ -204,6 +204,59 @@ function productSupport(product, directory) {
   };
 }
 
+function normalizePricingSettings(value) {
+  const finite = (candidate, fallback) => Number.isFinite(Number(candidate)) ? Number(candidate) : fallback;
+  return {
+    userAdjustment: finite(value?.userAdjustment, -20),
+    resellerAdjustment: finite(value?.resellerAdjustment, 10),
+    userIncreasePercent: Math.max(0, Math.min(1000, finite(value?.userIncreasePercent, 0))),
+    resellerIncreasePercent: Math.max(0, Math.min(1000, finite(value?.resellerIncreasePercent, 0))),
+  };
+}
+
+function accountIncreasePercent(user, pricingSettings) {
+  const isReseller = user?.role === 'reseller';
+  const personalValue = isReseller
+    ? user?.resellerPriceIncreasePercent
+    : user?.userPriceIncreasePercent;
+  if (personalValue !== '' && personalValue !== null && personalValue !== undefined && Number.isFinite(Number(personalValue))) {
+    return Math.max(0, Math.min(1000, Number(personalValue)));
+  }
+  return isReseller ? pricingSettings.resellerIncreasePercent : pricingSettings.userIncreasePercent;
+}
+
+function applyAccountPricing(pid, pricing, pricingSource, pricingRules, pricingSettings, user) {
+  const isReseller = user?.role === 'reseller';
+  const increasePercent = accountIncreasePercent(user, pricingSettings);
+  return pricing.map(item => {
+    const key = `${pid}_${String(item.duration || item.label || '').trim().replace(/[^a-z0-9]+/gi, '_')}`;
+    const rule = pricingRules?.[key] || {};
+    const apiPrice = Number(item.price || 0);
+    const fixedUserPrice = Number(rule.price);
+    const fixedResellerPrice = Number(rule.resellerPrice);
+    const baseUserPrice = Number.isFinite(fixedUserPrice) && rule.price !== ''
+      ? fixedUserPrice
+      : pricingSource === 'imported'
+        ? apiPrice
+        : Math.max(0, apiPrice + pricingSettings.userAdjustment);
+    const userPrice = increasePercent > 0 && !isReseller
+      ? Math.round(baseUserPrice * (1 + increasePercent / 100) * 100) / 100
+      : baseUserPrice;
+    const baseResellerPrice = Number.isFinite(fixedResellerPrice) && rule.resellerPrice !== ''
+      ? fixedResellerPrice
+      : pricingSource === 'imported'
+        ? apiPrice
+        : Math.max(0, apiPrice + pricingSettings.resellerAdjustment);
+    const resellerPrice = increasePercent > 0 && isReseller
+      ? Math.round(baseResellerPrice * (1 + increasePercent / 100) * 100) / 100
+      : baseResellerPrice;
+    return {
+      ...item,
+      price: isReseller ? resellerPrice : userPrice,
+    };
+  });
+}
+
 function productVideoData(product, videoData = [], videoImportEnabled = false) {
   const pid = String(product?.pid || product?.purchasePid || product?.product_id || product?.id || '').trim();
   const productName = product?.name || product?.productName || '';
@@ -223,11 +276,18 @@ function productVideoData(product, videoData = [], videoImportEnabled = false) {
 function normalizeProduct(
   product,
   directory = { channels: [], community: {} },
-  { videoData = [], videoImportEnabled = false } = {},
+  {
+    videoData = [],
+    videoImportEnabled = false,
+    pricingRules = {},
+    pricingSettings = normalizePricingSettings(),
+    user = {},
+    pricingSource = 'imported',
+  } = {},
 ) {
   const pid = String(product?.pid || product?.purchasePid || product?.product_id || product?.id || '').trim();
   const purchasePid = String(product?.purchasePid || product?.purchase_pid || product?.product_id || pid).trim();
-  const pricing = asArray(product?.pricing).map(item => {
+  const rawPricing = asArray(product?.pricing).map(item => {
     const duration = cleanProviderDuration(item?.duration || item?.label) || 'Default';
     return {
       label: duration,
@@ -236,6 +296,7 @@ function normalizeProduct(
       stock: item?.stock ?? null,
     };
   }).filter(item => item.duration);
+  const pricing = applyAccountPricing(pid, rawPricing, pricingSource, pricingRules, pricingSettings, user);
   const support = productSupport(product, directory);
   return {
     id: String(product?.id || pid),
@@ -255,16 +316,20 @@ function normalizeProduct(
 
 async function getProducts(user) {
   const type = user?.role === 'reseller' ? 'reseller' : 'user';
-  const [catalog, directory, videoStore] = await Promise.all([
+  const [catalog, directory, videoStore, pricingStore, pricingSettingsStore] = await Promise.all([
     dbRequest(`productCatalogs/${type}`),
     getSupportDirectory(),
     dbRequest('productVideos').catch(() => null),
+    dbRequest('adminProductPricing').catch(() => null),
+    dbRequest('settings/productPricing').catch(() => null),
   ]);
   const videoData = asArray(videoStore?.products).filter(item => item && item.videos);
   const videoImportEnabled = catalog?.videoImportEnabled === true;
-  const normalizeOptions = { videoData, videoImportEnabled };
+  const pricingRules = pricingStore || {};
+  const pricingSettings = normalizePricingSettings(pricingSettingsStore);
+  const normalizeOptions = { videoData, videoImportEnabled, pricingRules, pricingSettings, user };
   const products = asArray(catalog?.products)
-    .map(product => normalizeProduct(product, directory, normalizeOptions))
+    .map(product => normalizeProduct(product, directory, { ...normalizeOptions, pricingSource: 'imported' }))
     .filter(item => item.pid && item.pricing.length);
   if (products.length) return products;
 
@@ -273,7 +338,7 @@ async function getProducts(user) {
   const response = await fetch(`https://vercel-api-seven-sepia.vercel.app/scrape?cookie=${encodeURIComponent(cookie)}`);
   const data = await response.json().catch(() => ({}));
   return asArray(data?.products)
-    .map(product => normalizeProduct(product, directory, normalizeOptions))
+    .map(product => normalizeProduct(product, directory, { ...normalizeOptions, pricingSource: 'live' }))
     .filter(item => item.pid);
 }
 
