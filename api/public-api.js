@@ -204,7 +204,27 @@ function productSupport(product, directory) {
   };
 }
 
-function normalizeProduct(product, directory = { channels: [], community: {} }) {
+function productVideoData(product, videoData = [], videoImportEnabled = false) {
+  const pid = String(product?.pid || product?.purchasePid || product?.product_id || product?.id || '').trim();
+  const productName = product?.name || product?.productName || '';
+  const match = videoData.find(item =>
+    (pid && item.pid && String(item.pid) === pid)
+      || (productName && supportKey(item.name) === supportKey(productName)),
+  );
+  const manualVideos = mediaUrls(match?.videos);
+  const importedVideos = mediaUrls(product?.video || product?.videos || product?.videoUrl || product?.video_url);
+  return videoImportEnabled && importedVideos.length
+    ? importedVideos
+    : manualVideos.length
+      ? manualVideos
+      : importedVideos;
+}
+
+function normalizeProduct(
+  product,
+  directory = { channels: [], community: {} },
+  { videoData = [], videoImportEnabled = false } = {},
+) {
   const pid = String(product?.pid || product?.purchasePid || product?.product_id || product?.id || '').trim();
   const purchasePid = String(product?.purchasePid || product?.purchase_pid || product?.product_id || pid).trim();
   const pricing = asArray(product?.pricing).map(item => {
@@ -227,7 +247,7 @@ function normalizeProduct(product, directory = { channels: [], community: {} }) 
     description: String(product?.description || '').replace(/<[^>]*>/g, '').trim(),
     pricing,
     photo: cleanPublicUrl(product?.photo || product?.image || product?.imageUrl || product?.image_url),
-    video: mediaUrls(product?.video || product?.videos || product?.videoUrl || product?.video_url),
+    video: productVideoData(product, videoData, videoImportEnabled),
     get_file_link: cleanPublicUrl(support.getFileLink),
     feedback_link: cleanPublicUrl(support.feedbackLink),
   };
@@ -235,16 +255,26 @@ function normalizeProduct(product, directory = { channels: [], community: {} }) 
 
 async function getProducts(user) {
   const type = user?.role === 'reseller' ? 'reseller' : 'user';
-  const catalog = await dbRequest(`productCatalogs/${type}`);
-  const directory = await getSupportDirectory();
-  const products = asArray(catalog?.products).map(product => normalizeProduct(product, directory)).filter(item => item.pid && item.pricing.length);
+  const [catalog, directory, videoStore] = await Promise.all([
+    dbRequest(`productCatalogs/${type}`),
+    getSupportDirectory(),
+    dbRequest('productVideos').catch(() => null),
+  ]);
+  const videoData = asArray(videoStore?.products).filter(item => item && item.videos);
+  const videoImportEnabled = catalog?.videoImportEnabled === true;
+  const normalizeOptions = { videoData, videoImportEnabled };
+  const products = asArray(catalog?.products)
+    .map(product => normalizeProduct(product, directory, normalizeOptions))
+    .filter(item => item.pid && item.pricing.length);
   if (products.length) return products;
 
   const cookie = String(process.env.PRODUCTS_SCRAPE_COOKIE || '').trim();
   if (!cookie) return [];
   const response = await fetch(`https://vercel-api-seven-sepia.vercel.app/scrape?cookie=${encodeURIComponent(cookie)}`);
   const data = await response.json().catch(() => ({}));
-  return asArray(data?.products).map(product => normalizeProduct(product, directory)).filter(item => item.pid);
+  return asArray(data?.products)
+    .map(product => normalizeProduct(product, directory, normalizeOptions))
+    .filter(item => item.pid);
 }
 
 function publicProduct(product) {
