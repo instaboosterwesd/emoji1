@@ -188,9 +188,9 @@ export function initInputProtection() {
       e.preventDefault();
     }
   }, true);
-  document.addEventListener('selectstart', preventOnNonInput, true);
-  document.addEventListener('copy', preventOnNonInput, true);
-  document.addEventListener('cut', preventOnNonInput, true);
+  // Documentation, API examples, and product details must remain selectable
+  // so users can copy them. Clipboard buttons provide the easy path, while
+  // this no longer blocks normal text selection/copy on the page.
   document.addEventListener('paste', preventOnNonInput, true);
   document.addEventListener('dragstart', e => e.preventDefault(), true);
   document.addEventListener('keydown', blockKeyboardShortcuts, true);

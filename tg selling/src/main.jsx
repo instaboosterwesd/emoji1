@@ -885,6 +885,14 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
     } catch (err) { toast.error(err.message); }
   };
 
+  const openApiDocs = async () => {
+    try {
+      const result = await ensureUserApiKey(session.uid);
+      setApiState(result);
+      setApiDocsOpen(true);
+    } catch (err) { toast.error(err.message); }
+  };
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', lottieIcon: '/icons/new/shop-store.json' },
     { id: 'buy', label: 'Buy', lottieIcon: '/icons/new/shopping-cart.json' },
@@ -897,7 +905,7 @@ function Dashboard({ session, onSessionChange, onLogout, siteStatus, perfMode, o
     tab === 'orders' ? <OrdersView session={session} communityLinks={communityLinks} /> :
     tab === 'buy' ? <ProductsView session={profile} onBuy={setPurchase} /> :
     tab === 'wallet' ? <WalletView session={session} profile={profile} refreshProfile={refreshProfile} /> :
-    tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} openApiDocs={() => setApiDocsOpen(true)} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
+    tab === 'profile' ? <ProfileView profile={profile} communityLinks={communityLinks} openDialog={setDialog} openApi={openApi} openApiDocs={openApiDocs} onShowPerf={() => onPerfSelect(null)} onResellerBenefits={() => setResellerBenefitsOpen(true)} /> :
     <DashboardHome profile={profile} role={profile.role} setTab={setTab} communityLinks={communityLinks} />;
 
   if (apiDocsOpen) {
@@ -2409,29 +2417,8 @@ function ProfileDialog({ type, profile, apiState, close, onLogout, onProfile, on
 function ApiDocumentation({ apiState, role = 'user', onClose }) {
   const endpoint = `${window.location.origin}/api/public-api`;
   const [copied, setCopied] = useState('');
-  const [catalog, setCatalog] = useState([]);
-  const [catalogLoading, setCatalogLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    setCatalogLoading(true);
-    getProductCatalog(role)
-      .then(products => products.length ? products : fetchStorefrontProducts(role))
-      .catch(() => fetchStorefrontProducts(role).catch(() => []))
-      .then(products => {
-        if (!active) return;
-        setCatalog(Array.isArray(products) ? products : []);
-        setCatalogLoading(false);
-      });
-    return () => { active = false; };
-  }, [role]);
-
-  const exampleProduct = catalog[0];
-  const examplePid = exampleProduct?.pid || 'PRODUCT_PID';
-  const exampleDuration = exampleProduct?.pricing?.[0]?.duration || exampleProduct?.pricing?.[0]?.label || 'EXACT_DURATION';
-  const exampleNeedsAndroidId = isDeviceBoundProduct(exampleProduct);
-  const exampleAndroidIdJson = exampleNeedsAndroidId ? ', "android_id":"YOUR_ANDROID_ID"' : '';
-  const exampleAndroidIdJs = exampleNeedsAndroidId ? ", android_id: 'YOUR_ANDROID_ID'" : '';
+  const examplePid = 'PRODUCT_PID';
+  const exampleDuration = '3 Hours';
 
   const copy = async (name, value) => {
     try {
@@ -2447,24 +2434,37 @@ function ApiDocumentation({ apiState, role = 'user', onClose }) {
   const curlBuy = `curl -X POST "${endpoint}?action=buy" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{"product_id":"${examplePid}","duration":"${exampleDuration}"${exampleAndroidIdJson}}'`;
-  const jsExample = `const response = await fetch('${endpoint}?action=buy', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: \`Bearer \${process.env.TG_API_KEY}\`,
-  },
-  body: JSON.stringify({ product_id: '${examplePid}', duration: '${exampleDuration}'${exampleAndroidIdJs} })
-});
-const result = await response.json();`;
-  const pythonExample = `import requests
-
-result = requests.post(
-    '${endpoint}?action=buy',
-    headers={'Authorization': 'Bearer YOUR_API_KEY'},
-    json={'product_id': '${examplePid}', 'duration': '${exampleDuration}'${exampleNeedsAndroidId ? ", 'android_id': 'YOUR_ANDROID_ID'" : ''}},
-)
-print(result.json())`;
+  -d '{"product_id":"${examplePid}","duration":"${exampleDuration}","android_id":"YOUR_ANDROID_ID"}'`;
+  const productResponse = `{
+  "success": true,
+  "account_type": "${role === 'reseller' ? 'reseller' : 'user'}",
+  "products": [{
+    "pid": "${examplePid}",
+    "product_name": "Product name",
+    "photo": "https://...",
+    "video": ["https://..."],
+    "prices": [{ "duration": "3 Hours", "price": 80 }],
+    "get_file_link": "https://t.me/...",
+    "feedback_link": "https://t.me/..."
+  }]
+}`;
+  const balanceResponse = `{
+  "success": true,
+  "balance": 500,
+  "currency": "INR"
+}`;
+  const orderResponse = `{
+  "success": true,
+  "message": "Order placed successfully.",
+  "order": {
+    "id": "lk_api_...",
+    "pid": "${examplePid}",
+    "duration": "${exampleDuration}",
+    "price": 80,
+    "key": "DELIVERED_KEY",
+    "status": "active"
+  }
+}`;
   const Example = ({ name, title, children }) => (
     <div className="api-doc-example">
       <div className="api-doc-example-head"><strong>{title}</strong><button type="button" onClick={() => copy(name, children)}><MatIcon name={copied === name ? 'check' : 'content_copy'} size={15} /> {copied === name ? 'Copied' : 'Copy'}</button></div>
@@ -2482,86 +2482,41 @@ print(result.json())`;
         </div>
         <div className="api-doc-intro">
           <span className="api-doc-status"><MatIcon name="verified" size={15} /> Your API is ready</span>
-          <p>Use your private API key from API settings to connect your own server. Store it in your server environment (for example <code>TG_API_KEY</code>), never in frontend code, public repositories, or client-side apps.</p>
-          <code className="api-endpoint">{endpoint}</code>
-          <p className="muted">Your current key: {apiState.apiKey ? <strong>generated just now</strong> : <strong>••••••••{apiState.last4 || '••••'}</strong>}</p>
+           <p>Use the API key from API Settings on your server. Pricing is automatically selected for your account: <strong>{role === 'reseller' ? 'reseller' : 'user'}</strong>.</p>
+           <div className="api-endpoint-row">
+             <code className="api-endpoint">{endpoint}</code>
+             <button type="button" className="copy-key-btn" onClick={() => copy('endpoint-top', endpoint)}><MatIcon name={copied === 'endpoint-top' ? 'check' : 'content_copy'} size={15} /> {copied === 'endpoint-top' ? 'Copied' : 'Copy endpoint'}</button>
+           </div>
+           <p className="muted">Key status: <strong>{apiState.apiKey ? 'available in API Settings' : `active · ending ${apiState.last4 || '••••'}`}</strong></p>
         </div>
         <div className="api-doc-section">
-          <h3><span>01</span> Fetch products and PIDs</h3>
-          <p>Returns the products available to your account, including <code>pid</code>, name, durations, price and stock. Save the PID and exact duration for checkout.</p>
+           <h3><span>01</span> Fetch products</h3>
+           <p>Returns only the products available to this API account. Each product includes PID, name, photo, video, account-specific prices by duration, file link, and feedback link.</p>
           <Example name="products" title="GET · Products">{curlProducts}</Example>
-           <p className="api-doc-route"><code>GET ?action=product&amp;pid={examplePid}</code> fetches one product.</p>
-           <div className="api-pid-panel">
-             <div className="api-pid-panel-head">
-               <strong>Admin catalog PIDs</strong>
-               <span>{catalogLoading ? 'Loading…' : `${catalog.length} product${catalog.length === 1 ? '' : 's'}`}</span>
-             </div>
-             {catalogLoading ? (
-               <p className="api-pid-empty">Loading the current admin catalog…</p>
-             ) : catalog.length ? (
-               <div className="api-pid-list">
-                 {catalog.map(product => {
-                   const pid = String(product.pid || product.id || '').trim();
-                   const purchasePid = String(product.purchasePid || pid).trim();
-                   const durations = Array.isArray(product.pricing) ? product.pricing : [];
-                   return (
-                     <article className="api-pid-row" key={`${pid}-${product.name}`}>
-                       <div className="api-pid-product">
-                         <strong>{product.name}</strong>
-                         <code>PID: {pid}</code>
-                         {purchasePid && purchasePid !== pid && <small>Provider PID: {purchasePid}</small>}
-                       </div>
-                       <div className="api-pid-durations">
-                         {durations.length ? durations.map((item, index) => (
-                           <span key={`${pid}-${item.duration || item.label}-${index}`}>
-                             {item.duration || item.label || 'Default'}
-                             {Number(item.price) > 0 ? ` · ₹${Number(item.price).toLocaleString('en-IN')}` : ''}
-                           </span>
-                         )) : <span>Duration unavailable</span>}
-                       </div>
-                     </article>
-                   );
-                 })}
-               </div>
-             ) : (
-               <p className="api-pid-empty">No admin products are available yet. Ask the admin to import the product catalog first.</p>
-             )}
+           <div className="api-field-list">
+             <span><code>pid</code><small>Product ID used for orders</small></span>
+             <span><code>prices[]</code><small>Every duration and its price</small></span>
+             <span><code>get_file_link</code><small>Product file/update channel</small></span>
+             <span><code>feedback_link</code><small>Official feedback channel</small></span>
            </div>
+           <Example name="products-response" title="Response">{productResponse}</Example>
         </div>
         <div className="api-doc-section">
           <h3><span>02</span> Check wallet balance</h3>
           <p>Reads the same wallet balance shown in your dashboard. Amounts are in INR.</p>
           <Example name="balance" title="GET · Balance">{curlBalance}</Example>
+           <Example name="balance-response" title="Response">{balanceResponse}</Example>
         </div>
         <div className="api-doc-section">
           <h3><span>03</span> Place an order</h3>
-          <p>Send <code>product_id</code> and the exact <code>duration</code>. Send <code>android_id</code> only for Bala V1; Bala V2 goes directly without a device ID. Before the provider request, the API checks your wallet balance and stops early when funds are insufficient. The storefront also pre-checks provider balance through <code>action=balance</code>. Our server then calls the provider, deducts your wallet only after validation, saves the returned key, and refunds the wallet if the provider fails.</p>
+           <p>Send the PID and one exact duration from <code>prices[]</code>. The API checks your wallet, places the provider order using the account's own funds, deducts the matching price, saves the key, and refunds the wallet if the provider fails. Include <code>android_id</code> only when the product requires it.</p>
           <Example name="buy" title="POST · Purchase">{curlBuy}</Example>
-          <div className="api-doc-note"><MatIcon name="info" size={16} /> All buy requests require <code>product_id</code> and <code>duration</code>. <code>android_id</code> is required only for Bala V1. The returned <code>order.id</code> is the same order that appears in My Orders and can be invoiced there.</div>
-        </div>
-        <div className="api-doc-section">
-          <h3><span>04</span> Use it from your own server</h3>
-          <Example name="javascript" title="Node.js / JavaScript">{jsExample}</Example>
-          <Example name="python" title="Python">{pythonExample}</Example>
-        </div>
-        <div className="api-doc-section api-response-section">
-          <h3><span>05</span> Response format</h3>
-          <pre><code>{`{
-  "success": true,
-  "order": {
-    "id": "lk_api_...",
-  "product_id": "${examplePid}",
-    "duration": "3 Hours",
-    "price": 80,
-    "key": "YOUR_DELIVERED_KEY",
-    "status": "active"
-  }
-}`}</code></pre>
-          <p className="muted">For errors, check <code>success: false</code> and <code>error.code</code>. Common codes: <code>INSUFFICIENT_BALANCE</code>, <code>PRODUCT_NOT_FOUND</code>, <code>DURATION_NOT_FOUND</code>, <code>PROVIDER_PURCHASE_FAILED</code>.</p>
+           <Example name="buy-response" title="Response">{orderResponse}</Example>
+           <div className="api-doc-note"><MatIcon name="info" size={16} /> Required fields: <code>product_id</code> (or <code>pid</code>) and <code>duration</code>. Common errors: <code>INSUFFICIENT_BALANCE</code>, <code>PRODUCT_NOT_FOUND</code>, <code>DURATION_NOT_FOUND</code>, and <code>PROVIDER_PURCHASE_FAILED</code>.</div>
         </div>
         <div className="modal-btn-row">
            <button className="api-doc-action-back" type="button" onClick={onClose}><MatIcon name="arrow_back" size={16} /> Back to profile</button>
-           <button className="modal-save api-doc-action-copy" type="button" onClick={() => copy('endpoint', endpoint)}><MatIcon name={copied === 'endpoint' ? 'check' : 'content_copy'} size={15} /> {copied === 'endpoint' ? 'Copied' : 'Copy endpoint'}</button>
+            <button className="modal-save api-doc-action-copy" type="button" onClick={() => copy('endpoint-footer', endpoint)}><MatIcon name={copied === 'endpoint-footer' ? 'check' : 'content_copy'} size={15} /> {copied === 'endpoint-footer' ? 'Copied' : 'Copy endpoint'}</button>
         </div>
       </section>
     </div>

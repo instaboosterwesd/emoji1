@@ -923,12 +923,19 @@ export async function resetUserApiKey(uid) {
   const apiKeyHash = await textHash(apiKey);
   await update(userRef, { apiKeyHash, apiKeyLast4: apiKey.slice(-4), apiKeyUpdatedAt: Date.now() });
   await set(ref(firebaseDb, `apiKeys/${apiKeyHash}`), { uid, createdAt: Date.now() });
+  try { localStorage.setItem(`tg_api_key_${uid}`, apiKey); } catch {}
   return { apiKey, last4: apiKey.slice(-4) };
 }
 
 export async function ensureUserApiKey(uid) {
   if (!firebaseDb || !uid) throw new Error('Firebase database is not configured.');
   const profile = await getUserProfile(uid);
+  try {
+    const storedKey = localStorage.getItem(`tg_api_key_${uid}`) || '';
+    if (storedKey && storedKey.endsWith(profile.apiKeyLast4 || '')) {
+      return { apiKey: storedKey, last4: profile.apiKeyLast4 };
+    }
+  } catch {}
   if (profile.apiKeyLast4) return { apiKey: '', last4: profile.apiKeyLast4 };
   return resetUserApiKey(uid);
 }
@@ -941,6 +948,7 @@ export async function loginWithApiKey(apiKey) {
   if (!keySnapshot.exists()) throw new Error('Invalid API key.');
   const uid = keySnapshot.val()?.uid;
   if (!uid) throw new Error('API key is not linked to a user.');
+  try { localStorage.setItem(`tg_api_key_${uid}`, apiKey.trim()); } catch {}
   return getUserProfile(uid);
 }
 

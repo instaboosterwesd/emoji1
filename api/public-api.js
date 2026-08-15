@@ -159,7 +159,52 @@ function asArray(value) {
   return Array.isArray(value) ? value : Object.entries(value || {}).map(([id, item]) => ({ id, ...(item || {}) }));
 }
 
-function normalizeProduct(product) {
+function cleanPublicUrl(value) {
+  const url = String(value || '').trim();
+  return /^(?:https?:\/\/|\/)/i.test(url) ? url : '';
+}
+
+function mediaUrls(value) {
+  const values = Array.isArray(value) ? value : [value];
+  return [...new Set(values.map(cleanPublicUrl).filter(Boolean))];
+}
+
+function supportKey(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+async function getSupportDirectory() {
+  const [channels, community] = await Promise.all([
+    dbRequest('productChannels').catch(() => null),
+    dbRequest('settings/community').catch(() => null),
+  ]);
+  return {
+    channels: asArray(channels).filter(item => !item.deleted),
+    community: community || {},
+  };
+}
+
+function productSupport(product, directory) {
+  const productName = product?.name || product?.productName || '';
+  const match = directory.channels.find(item => supportKey(item.productName) === supportKey(productName));
+  return {
+    getFileLink: String(
+      match?.fileUpdateUrl
+      || product?.fileUpdateUrl
+      || product?.sourceFileUpdateUrl
+      || directory.community.getFileUrl
+      || '',
+    ).trim(),
+    feedbackLink: String(
+      match?.feedbackUrl
+      || product?.feedbackUrl
+      || directory.community.helpUrl
+      || '',
+    ).trim(),
+  };
+}
+
+function normalizeProduct(product, directory = { channels: [], community: {} }) {
   const pid = String(product?.pid || product?.purchasePid || product?.product_id || product?.id || '').trim();
   const purchasePid = String(product?.purchasePid || product?.purchase_pid || product?.product_id || pid).trim();
   const pricing = asArray(product?.pricing).map(item => {
@@ -171,6 +216,7 @@ function normalizeProduct(product) {
       stock: item?.stock ?? null,
     };
   }).filter(item => item.duration);
+  const support = productSupport(product, directory);
   return {
     id: String(product?.id || pid),
     pid,
@@ -180,20 +226,40 @@ function normalizeProduct(product) {
     platform: product?.platform || '',
     description: String(product?.description || '').replace(/<[^>]*>/g, '').trim(),
     pricing,
+    photo: cleanPublicUrl(product?.photo || product?.image || product?.imageUrl || product?.image_url),
+    video: mediaUrls(product?.video || product?.videos || product?.videoUrl || product?.video_url),
+    get_file_link: cleanPublicUrl(support.getFileLink),
+    feedback_link: cleanPublicUrl(support.feedbackLink),
   };
 }
 
 async function getProducts(user) {
   const type = user?.role === 'reseller' ? 'reseller' : 'user';
   const catalog = await dbRequest(`productCatalogs/${type}`);
-  const products = asArray(catalog?.products).map(normalizeProduct).filter(item => item.pid && item.pricing.length);
+  const directory = await getSupportDirectory();
+  const products = asArray(catalog?.products).map(product => normalizeProduct(product, directory)).filter(item => item.pid && item.pricing.length);
   if (products.length) return products;
 
   const cookie = String(process.env.PRODUCTS_SCRAPE_COOKIE || '').trim();
   if (!cookie) return [];
   const response = await fetch(`https://vercel-api-seven-sepia.vercel.app/scrape?cookie=${encodeURIComponent(cookie)}`);
   const data = await response.json().catch(() => ({}));
-  return asArray(data?.products).map(normalizeProduct).filter(item => item.pid);
+  return asArray(data?.products).map(product => normalizeProduct(product, directory)).filter(item => item.pid);
+}
+
+function publicProduct(product) {
+  return {
+    pid: product.pid,
+    product_name: product.name,
+    photo: product.photo || null,
+    video: product.video || [],
+    prices: product.pricing.map(item => ({
+      duration: item.duration,
+      price: Number(item.price || 0),
+    })),
+    get_file_link: product.get_file_link || null,
+    feedback_link: product.feedback_link || null,
+  };
 }
 
 function findDuration(product, requested) {
@@ -248,12 +314,21 @@ module.exports = async function handler(req, res) {
 
     const products = await getProducts(auth.user);
     if (req.method === 'GET' && action === 'products') {
-      return send(res, 200, { success: true, count: products.length, products });
+      return send(res, 200, {
+        success: true,
+        account_type: auth.user?.role === 'reseller' ? 'reseller' : 'user',
+        count: products.length,
+        products: products.map(publicProduct),
+      });
     }
     if (req.method === 'GET' && action === 'product') {
       const product = products.find(item => item.pid === String(req.query?.pid || req.query?.product_id || ''));
       if (!product) return send(res, 404, { success: false, error: { code: 'PRODUCT_NOT_FOUND', message: 'Product PID was not found.' } });
-      return send(res, 200, { success: true, product });
+      return send(res, 200, {
+        success: true,
+        account_type: auth.user?.role === 'reseller' ? 'reseller' : 'user',
+        product: publicProduct(product),
+      });
     }
 
     if (req.method !== 'POST' || action !== 'buy') {
