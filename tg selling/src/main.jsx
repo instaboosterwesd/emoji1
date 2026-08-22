@@ -9,6 +9,7 @@ import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import countryData from 'country-telephone-data';
 import { initSecurity } from './security.js';
+import { PRODUCT_CATALOG } from './products.js';
 import {
   changeUserPassword,
   ensureGoogleUser,
@@ -3357,13 +3358,26 @@ function AdminPage({ session, onSessionChange }) {
   const filteredProducts = products.filter(p => `${p.name} ${p.pid} ${p.game}`.toLowerCase().includes(search.toLowerCase())).slice(0, 20);
   const channelProductOptions = useMemo(() => {
     const byName = new Map();
-    [...products, ...(catalogMeta.user?.newProducts || []), ...(catalogMeta.reseller?.newProducts || []), ...productChannels]
+    [...PRODUCT_CATALOG, ...products, ...(catalogMeta.user?.newProducts || []), ...(catalogMeta.reseller?.newProducts || []), ...productChannels]
       .forEach(product => {
         const name = product.name || product.productName;
         if (name?.trim()) byName.set(name.trim().toLowerCase(), name.trim());
       });
     return [...byName.values()].sort((a, b) => a.localeCompare(b));
   }, [products, catalogMeta, productChannels]);
+  const channelRows = useMemo(() => channelProductOptions.map(productName => {
+    const custom = productChannels.find(channel =>
+      (channel.productName || '').trim().toLowerCase() === productName.toLowerCase() && !channel.deleted,
+    );
+    const effective = findProductChannel(productName, custom ? [custom] : []);
+    return {
+      id: custom?.id || '',
+      productName,
+      feedbackUrl: effective.feedbackUrl || '',
+      fileUpdateUrl: effective.fileUpdateUrl || '',
+      isCustom: Boolean(custom),
+    };
+  }), [channelProductOptions, productChannels]);
 
   const safeAction = async (action, success) => {
     try { await action(); toast.success(success); loadAdmin(); }
@@ -4109,11 +4123,11 @@ function AdminPage({ session, onSessionChange }) {
               <option value="" disabled>Select an existing product</option>
               {channelProductOptions.map(name => <option key={name} value={name}>{name}</option>)}
             </select>
-            <small className="muted">Select a product from the imported catalog, then update its channel links below.</small>
+            <small className="muted">Select any built-in or imported product, then update its channel links below.</small>
           </label>
           <label>
             Feedback URL
-            <input
+              <input
               value={channelForm.feedbackUrl}
               onChange={e => setChannelForm(v => ({ ...v, feedbackUrl: e.target.value }))}
               placeholder="https://t.me/..."
@@ -4121,7 +4135,7 @@ function AdminPage({ session, onSessionChange }) {
             />
           </label>
           <label>
-            File Update URL
+              Get File / File Update URL
             <input
               value={channelForm.fileUpdateUrl}
               onChange={e => setChannelForm(v => ({ ...v, fileUpdateUrl: e.target.value }))}
@@ -4165,11 +4179,11 @@ function AdminPage({ session, onSessionChange }) {
             <MatIcon name="restore" size={16} /> Restore built-in links
           </button>
         </div>
-        <AdminList items={productChannels} empty="No manual product links configured" render={channel => (
+        <AdminList items={channelRows} empty="No products available yet" render={channel => (
           <AdminRow
             title={channel.productName}
             meta={<>{channel.feedbackUrl ? 'Feedback ready' : 'No feedback link'} · {channel.fileUpdateUrl ? 'File Update ready' : 'File Update not set'}</>}
-            status="Custom"
+            status={channel.isCustom ? 'Custom' : 'Built-in'}
           >
             <button type="button" onClick={() => setChannelForm({
               id: channel.id,
