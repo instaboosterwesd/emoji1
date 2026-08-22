@@ -3118,7 +3118,14 @@ function PricingEditDialog({ product, onClose, onSave }) {
       for (const item of product.pricing) {
         const dur = item.duration || item.label;
         const r = getRule(dur);
-        if (r.price !== '' || r.resellerPrice !== '' || onlyContact || isOnlyContactProduct(product, rules)) {
+        const existingRule = rules[ruleKey(product.pid, dur)];
+        if (
+          existingRule
+          || r.price !== ''
+          || r.resellerPrice !== ''
+          || onlyContact
+          || isOnlyContactProduct(product, rules)
+        ) {
           await adminSaveProductRule({
             pid: String(product.pid),
             duration: dur,
@@ -3509,6 +3516,23 @@ function AdminPage({ session, onSessionChange }) {
         [catalogImportType]: { ...(current[catalogImportType] || {}), videoImportEnabled: enabled },
       }));
       toast.success(enabled ? 'Imported product videos enabled' : 'Manual Video Data will be used');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const restoreSharedVideoData = async () => {
+    try {
+      await Promise.all([
+        adminSetProductCatalogVideoMode('user', false),
+        adminSetProductCatalogVideoMode('reseller', false),
+      ]);
+      setCatalogMeta(current => ({
+        ...current,
+        user: { ...(current.user || {}), videoImportEnabled: false },
+        reseller: { ...(current.reseller || {}), videoImportEnabled: false },
+      }));
+      toast.success('Imported product videos disabled; shared Video Data restored');
     } catch (err) {
       toast.error(err.message);
     }
@@ -4089,6 +4113,18 @@ function AdminPage({ session, onSessionChange }) {
             <span>{videoData.length} products</span>
             <small>{videoData.length ? 'Manual mappings are ready for storefront use' : 'Not imported yet'}</small>
           </div>
+        </div>
+        <div className="catalog-source-link-toggle" style={{ marginTop: 16 }}>
+          <div>
+            <strong>Use shared Video Data</strong>
+            <small className="muted">
+              Turn off video links imported from User/Reseller HTML and restore the Cloudinary links saved here.
+              Existing imported links stay in the database but will not be shown.
+            </small>
+          </div>
+          <button type="button" className="modal-save" onClick={restoreSharedVideoData}>
+            <MatIcon name="restore" size={16} /> Restore shared videos
+          </button>
         </div>
         <AdminList
           items={videoData}
