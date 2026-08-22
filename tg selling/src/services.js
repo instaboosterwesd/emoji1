@@ -73,7 +73,7 @@ const DEFAULT_GROUP_CHANNELS = [
 ];
 
 const normaliseChannelName = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-const defaultFileUpdateUrlFor = productName => {
+export const defaultFileUpdateUrlFor = productName => {
   const name = normaliseChannelName(productName);
   return DEFAULT_GROUP_CHANNELS.find(rule => rule.test(name))?.fileUpdateUrl || '';
 };

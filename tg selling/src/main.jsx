@@ -75,6 +75,7 @@ import {
   productIconFor,
   getProductChannels,
   findProductChannel,
+  defaultFileUpdateUrlFor,
   adminSaveProductChannel,
   adminDeleteProductChannel,
   getProductCatalog,
@@ -3354,6 +3355,15 @@ function AdminPage({ session, onSessionChange }) {
     return true;
   });
   const filteredProducts = products.filter(p => `${p.name} ${p.pid} ${p.game}`.toLowerCase().includes(search.toLowerCase())).slice(0, 20);
+  const channelProductOptions = useMemo(() => {
+    const byName = new Map();
+    [...products, ...(catalogMeta.user?.newProducts || []), ...(catalogMeta.reseller?.newProducts || []), ...productChannels]
+      .forEach(product => {
+        const name = product.name || product.productName;
+        if (name?.trim()) byName.set(name.trim().toLowerCase(), name.trim());
+      });
+    return [...byName.values()].sort((a, b) => a.localeCompare(b));
+  }, [products, catalogMeta, productChannels]);
 
   const safeAction = async (action, success) => {
     try { await action(); toast.success(success); loadAdmin(); }
@@ -3397,6 +3407,22 @@ function AdminPage({ session, onSessionChange }) {
     } finally {
       setCatalogImporting(false);
     }
+  };
+
+  const selectChannelProduct = productName => {
+    const selectedName = productName.trim();
+    const existing = productChannels.find(channel =>
+      (channel.productName || '').trim().toLowerCase() === selectedName.toLowerCase() && !channel.deleted,
+    );
+    const catalogProduct = products.find(product =>
+      (product.name || '').trim().toLowerCase() === selectedName.toLowerCase(),
+    );
+    setChannelForm({
+      id: existing?.id || '',
+      productName: selectedName,
+      feedbackUrl: existing?.feedbackUrl || catalogProduct?.feedbackUrl || '',
+      fileUpdateUrl: existing?.fileUpdateUrl || defaultFileUpdateUrlFor(selectedName) || '',
+    });
   };
 
   const importVideoCatalog = async event => {
@@ -4075,12 +4101,15 @@ function AdminPage({ session, onSessionChange }) {
         }}>
           <label>
             Product name
-            <input
+            <select
               value={channelForm.productName}
-              onChange={e => setChannelForm(v => ({ ...v, productName: e.target.value }))}
-              placeholder="Product name or brand"
+              onChange={e => selectChannelProduct(e.target.value)}
               required
-            />
+            >
+              <option value="" disabled>Select an existing product</option>
+              {channelProductOptions.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+            <small className="muted">Select a product from the imported catalog, then update its channel links below.</small>
           </label>
           <label>
             Feedback URL
@@ -4111,6 +4140,31 @@ function AdminPage({ session, onSessionChange }) {
             )}
           </div>
         </form>
+        <div className="catalog-source-link-toggle" style={{ marginTop: 16 }}>
+          <div>
+            <strong>Use built-in channel mappings</strong>
+            <small className="muted">
+              Turn this on to ignore Telegram links pasted from User/Reseller HTML and use the mappings already defined in code or saved here.
+            </small>
+          </div>
+          <button
+            type="button"
+            className="modal-save"
+            onClick={() => safeAction(async () => {
+              await Promise.all([
+                adminSetProductCatalogLinkMode('user', false),
+                adminSetProductCatalogLinkMode('reseller', false),
+              ]);
+              setCatalogMeta(current => ({
+                ...current,
+                user: { ...(current.user || {}), sourceLinksEnabled: false },
+                reseller: { ...(current.reseller || {}), sourceLinksEnabled: false },
+              }));
+            }, 'Imported Telegram links disabled; built-in mappings restored')}
+          >
+            <MatIcon name="restore" size={16} /> Restore built-in links
+          </button>
+        </div>
         <AdminList items={productChannels} empty="No manual product links configured" render={channel => (
           <AdminRow
             title={channel.productName}
