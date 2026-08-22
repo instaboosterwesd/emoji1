@@ -649,6 +649,37 @@ export async function adminSaveProductImage(type, productId, imageUrl) {
   return currentProducts[index];
 }
 
+export async function adminSetProductHighSelling(productId, productName, enabled) {
+  if (!firebaseDb) throw new Error('Firebase database is not configured.');
+  const targetId = String(productId || '').trim();
+  const targetName = pidMatchKey(productName);
+  const catalogTypes = ['user', 'reseller'];
+  let updated = 0;
+
+  for (const catalogType of catalogTypes) {
+    const catalogRef = ref(firebaseDb, `${PRODUCT_CATALOG_PATH}/${catalogType}`);
+    const snapshot = await get(catalogRef);
+    if (!snapshot.exists()) continue;
+    const current = snapshot.val() || {};
+    const products = Array.isArray(current.products) ? current.products : [];
+    let changed = false;
+    const nextProducts = products.map(product => {
+      const productIdValue = String(product.pid || product.purchasePid || product.id || '');
+      const matches = (targetId && productIdValue === targetId)
+        || (targetName && pidMatchKey(product.name) === targetName);
+      if (!matches) return product;
+      changed = true;
+      return { ...product, highSelling: enabled === true };
+    });
+    if (changed) {
+      await set(catalogRef, { ...current, products: nextProducts, updatedAt: Date.now() });
+      updated += 1;
+    }
+  }
+  if (!updated) throw new Error('Product was not found in the imported catalogs.');
+  return enabled === true;
+}
+
 export async function uploadImageToImageBB(imageData) {
   const response = await fetch('/api/image-upload', {
     method: 'POST',

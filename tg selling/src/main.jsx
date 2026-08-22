@@ -86,6 +86,7 @@ import {
   adminSaveProductVideo,
   adminSaveProductVideoCatalog,
   adminSaveProductImage,
+  adminSetProductHighSelling,
   uploadImageToImageBB,
   adminUpdateProductPids,
   adminSetProductCatalogLinkMode,
@@ -737,7 +738,11 @@ function AiShopPanel({ session, onBuy, onClose }) {
                         e.currentTarget.src = productIconForWithFallback(product.name);
                       }}
                     />
-                    <div><strong>{product.name}</strong><small>{product.game} · {product.platform || 'Access key'}</small></div>
+                    <div>
+                      <strong>{product.name}</strong>
+                      <small>{product.game} · {product.platform || 'Access key'}</small>
+                      {product.highSelling && <span className="high-selling-badge"><MatIcon name="star" size={12} /> HIGH SELLING</span>}
+                    </div>
                   </div>
                   <p className="ai-shop-description">{safeCatalogDetails(product)}</p>
                   <div className="ai-shop-package-list">
@@ -1653,6 +1658,7 @@ function ProductDetailPage({ product, channel, fallbackGetFileUrl = '', onBack, 
           <div className="pdp-info-text">
             <h2 className="pdp-name">{product.name}</h2>
             <p className="pdp-meta muted">{product.game} · {product.platform || 'Platform'} · ID {product.pid}</p>
+            {product.highSelling && <span className="high-selling-badge"><MatIcon name="star" size={12} /> HIGH SELLING</span>}
           </div>
         </div>
 
@@ -1991,6 +1997,7 @@ function ProductsView({ session, onBuy }) {
                 <div className="cpr-meta">
                   <span className="cpr-name">{p.name}</span>
                   <span className="cpr-sub">{p.game} · {p.platform || 'Platform'} · ID {p.pid}</span>
+                   {p.highSelling && <span className="high-selling-badge"><MatIcon name="star" size={12} /> HIGH SELLING</span>}
                   {previewFeats.length > 0 && (
                     <span className="cpr-feats">{previewFeats.join(' · ')}</span>
                   )}
@@ -3745,7 +3752,7 @@ function AdminPage({ session, onSessionChange }) {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products" />
         </div>
         <AdminList items={filteredProducts} empty="No products loaded" render={product => (
-          <AdminRow
+            <AdminRow
             title={product.name}
             meta={`PID ${product.pid} · ${product.game} · ${product.platform || 'Platform'}`}
             status={
@@ -3764,6 +3771,16 @@ function AdminPage({ session, onSessionChange }) {
             <button onClick={() => setPricingProduct(product)}>
               <MatIcon name="edit" size={13} /> Pricing &amp; DM switch
             </button>
+             <button
+               type="button"
+               className={product.highSelling ? 'high-selling-admin active' : 'high-selling-admin'}
+               onClick={() => safeAction(
+                 () => adminSetProductHighSelling(product.pid, product.name, !product.highSelling),
+                 product.highSelling ? 'High Selling removed' : 'Marked as High Selling',
+               )}
+             >
+               <MatIcon name="star" size={13} /> {product.highSelling ? 'Unstar' : 'Star'}
+             </button>
           </AdminRow>
         )} />
       </div>
