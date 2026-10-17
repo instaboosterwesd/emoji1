@@ -1,5 +1,0 @@
-- [Credential-safe Git history](credential-safe-git-history.md) — never commit uploaded service-account files or private credentials; GitHub push protection rejects them even from earlier commits.
-- [Product support links](product-support-links.md) — built-in Telegram defaults stay usable while Firebase provides admin overrides.
-- [Catalog import replacement](catalog-import-replacement.md) — User/Reseller source imports are authoritative full snapshots, not merges.
-- [Provider duration boundary](provider-duration-boundary.md) — provider requests use canonical duration labels, never storefront price or stock metadata.
-- [Vercel deployment access](vercel-deployment-access.md) — Vercel GitHub imports need Vercel-side repo access; connected API can deploy static files when CLI tokens are unavailable.
