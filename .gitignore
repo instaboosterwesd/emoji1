@@ -18,3 +18,11 @@ flaticon-proxy/node_modules/
 .env
 .env.local
 vercel-env.txt
+/generated-artifacts/
+node_modules/
+.git/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
